@@ -20,3 +20,4 @@ gateway/gateway.json
 gateway/approval-pin.json
 gateway/state/
 gateway/KILL
+gateway/gateway.agent.json

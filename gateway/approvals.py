@@ -15,6 +15,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 PIN_FILE = os.path.join(HERE, "approval-pin.json")
 PORT = int(os.environ.get("GW_APPROVAL_PORT", "8093"))
+# Where the user approves. The phone instance (behind mcpo) is published on the tailnet; a desktop agent instance runs its
+# own page on another port, e.g. GW_APPROVAL_PORT=8094 and GW_APPROVAL_URL=http://127.0.0.1:8094/approvals
+PAGE_URL = os.environ.get("GW_APPROVAL_URL", "https://<this PC>.ts.net:8445/tts/approvals")
+_bound = {"ok": False, "err": ""}
 PENDING_TTL = 15 * 60        # an unanswered request expires after 15 minutes
 APPROVED_TTL = 10 * 60       # an approval must be used within 10 minutes
 SESSION_TTL = 12 * 3600      # PIN login lasts 12 hours on that phone
@@ -60,6 +64,8 @@ def request(tool, args, why):
             if v["key"] == key and v["state"] == "denied":
                 _pending.pop(v["id"], None)
                 return "wait", "DENIED by the user. Do not retry this call; ask the user what they want instead."
+        if _started and not _bound["ok"]:
+            return "wait", "NEEDS APPROVAL, but this gateway cannot take approvals: " + _bound["err"] + ". Tell the user; do not try another way."
         if not os.path.exists(PIN_FILE):
             return "wait", ("NEEDS APPROVAL, but approvals are not set up on this PC (no PIN). Tell the user this action needs "
                             "approval and that they can enable approvals by running C:/AI/gateway/set-approval-pin.ps1 on the PC.")
@@ -68,8 +74,8 @@ def request(tool, args, why):
         if not existing:
             _pending[pid] = dict(id=pid, key=key, tool=tool, args=args, why=why, created=now, state="pending", decided=None)
     return "wait", ("NEEDS APPROVAL (request %s: %s). Tell the user in one short line what you want to do and ask them to approve "
-                    "request %s on their approvals page (https://<this PC>.ts.net:8445/tts/approvals). After they say it is approved, "
-                    "repeat exactly the same call. Do not try another way to do it." % (pid, why, pid))
+                    "request %s on their approvals page (%s). After they say it is approved, "
+                    "repeat exactly the same call. Do not try another way to do it." % (pid, why, pid, PAGE_URL))
 
 
 # ---------------- PIN ----------------
@@ -237,5 +243,11 @@ def start():
     global _started
     if _started: return
     _started = True
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), _H)
+    try:
+        srv = ThreadingHTTPServer(("127.0.0.1", PORT), _H)
+    except OSError as e:   # port taken (another gateway instance): run without a page; changes then fail safe
+        _bound["err"] = "approvals page could not start on port %d (%s); set GW_APPROVAL_PORT to a free port" % (PORT, e)
+        sys.stderr.write("gateway: " + _bound["err"] + "\n")
+        return
+    _bound["ok"] = True
     threading.Thread(target=srv.serve_forever, daemon=True).start()

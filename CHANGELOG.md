@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1 - 2026-10-11
+- Use the gateway from Claude Code, Claude Desktop or Codex: `gateway/make_agent_config.py` builds an agent config without the nested `pc` server, and [GATEWAY.md](docs/GATEWAY.md#use-it-from-claude-code-claude-desktop-or-codex) has the setup for each. Ready in 7.3 s warm, 51.8 s on the first start.
+- A second gateway instance no longer crashes when port 8093 is taken. It runs without an approvals page, changes fail safe, and `GW_APPROVAL_PORT` / `GW_APPROVAL_URL` give each instance its own page.
+
 ## 2.2.0 - 2026-10-11
 **New: phone tool gateway** ([docs/GATEWAY.md](docs/GATEWAY.md), code in `gateway/`)
 - About 100 tools from nine MCP servers (Claude Code tools, files, fetch, time, library docs, headless browser, your own Chrome, Windows desktop, MarkItDown) sit behind 7 pinned tools plus `search_tools` / `call_tool`. The prompt prefix stays the same for the whole chat, so the prompt cache keeps working.

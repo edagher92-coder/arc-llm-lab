@@ -69,6 +69,49 @@ BALANCED's idle model unload moved from 30 to 120 minutes, so the first message 
 5. In Open WebUI, add the tool server and use Native function calling. `connect_gw_openwebui.py` does this from the command line.
 6. Run the tests from `gateway/`: `python tests/test_gateway.py` (11 checks) and `python -m unittest tests/test_outbox.py` (27 tests).
 
+## Use it from Claude Code, Claude Desktop or Codex
+
+An agent already has its own shell and file tools. What the gateway adds is the rest of the toolset: the headless browser, your logged-in Chrome, the Windows desktop, MarkItDown, library docs, `skills` and `share_file`. Those sit behind one search, and only six small schemas load up front. With a local model that matters most, because every schema is paid for on every request. With Claude it mainly keeps the tool list short.
+
+1. Make an agent config from your `gateway.json`. This drops the `pc` server, which would be a nested Claude Code. Your tokens stay in the local file.
+   ```powershell
+   cd C:\AI\gateway; .\.venv\Scripts\python.exe make_agent_config.py
+   ```
+2. Give each agent its own approvals port and state folder. The phone instance behind mcpo already uses port 8093. A second instance on the same port starts without a page, and any change it asks for fails safe.
+
+**Claude Code** (cloud Claude, or local Qwen through `claude-qwen.cmd`):
+```powershell
+claude mcp add gw --scope user -e GW_APPROVAL_PORT=8094 -e GW_APPROVAL_URL=http://127.0.0.1:8094/approvals -e GW_STATE_DIR=C:\AI\gateway\state-claude -e PYTHONIOENCODING=utf-8 -- C:\AI\gateway\.venv\Scripts\python.exe C:\AI\gateway\gateway.py C:\AI\gateway\gateway.agent.json
+```
+With the agent config on the test PC, the gateway was ready in 51.8 s on its first start and 7.3 s on the next. Set `MCP_TIMEOUT=90000` so Claude Code waits for it.
+
+`claude-qwen.cmd` runs with `--strict-mcp-config` and only reads `C:\AI\claude-local\mcp.json`. For the local agent, add the same entry there:
+```json
+"gw": { "command": "C:\\AI\\gateway\\.venv\\Scripts\\python.exe",
+        "args": ["C:\\AI\\gateway\\gateway.py", "C:\\AI\\gateway\\gateway.agent.json"],
+        "env": { "GW_APPROVAL_PORT": "8094", "GW_APPROVAL_URL": "http://127.0.0.1:8094/approvals",
+                 "GW_STATE_DIR": "C:\\AI\\gateway\\state-claude", "PYTHONIOENCODING": "utf-8" } }
+```
+
+**Claude Desktop**: put the same `"gw"` entry under `mcpServers` in `%APPDATA%\Claude\claude_desktop_config.json`, then restart the app.
+
+**Codex** (`%USERPROFILE%\.codex\config.toml`):
+```toml
+[mcp_servers.gw]
+command = 'C:\AI\gateway\.venv\Scripts\python.exe'
+args = ['C:\AI\gateway\gateway.py', 'C:\AI\gateway\gateway.agent.json']
+startup_timeout_sec = 120
+
+[mcp_servers.gw.env]
+GW_APPROVAL_PORT = "8095"
+GW_APPROVAL_URL = "http://127.0.0.1:8095/approvals"
+GW_STATE_DIR = 'C:\AI\gateway\state-codex'
+PYTHONIOENCODING = "utf-8"
+```
+With `codex-qwen.cmd`, switch off the servers the gateway already covers. For example, add `-c mcp_servers.local-ai-playwright.enabled=false -c mcp_servers.local-ai-context7.enabled=false` to `MCPOFF`.
+
+**How it behaves in an agent**: reads run at once. A desktop click, a browser action or a delete returns NEEDS APPROVAL with a request id. Approve it on that agent's page, for example `http://127.0.0.1:8094/approvals`, using the same PIN, and the agent repeats the call. The kill switch (`C:\AI\gateway\KILL`) stops every instance.
+
 ## Limits and next steps
 
 - The eval cases are single-step jobs. Multi-step builds ("make me a website") still depend on the model working through a long loop in Open WebUI. The next step is a server-side `agent` tool, a plan-act-verify loop inside the gateway with its own todo list and the same guard; see the [harness plan](HARNESS-PLAN.md).

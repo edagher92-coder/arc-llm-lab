@@ -11,5 +11,6 @@ Read [docs/GATEWAY.md](../docs/GATEWAY.md) for the design, the 10/10 phone eval 
 | `skills.py`, `outbox.py` | `skills` and `share_file` tools |
 | `prompts/phone-system.md` | Phone system prompt |
 | `gateway.example.json` | Config template: copy it to `gateway.json` (git-ignored) and add your tokens there |
+| `make_agent_config.py` | Builds `gateway.agent.json` for Claude Code, Claude Desktop or Codex (see the guide) |
 | `openwebui/` | Open WebUI filters: live stats and the phone prompt |
 | `tests/` | Unit tests (CI) and `phone_eval.py` (needs the PC stack) |
