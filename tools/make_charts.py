@@ -117,8 +117,53 @@ def vram(theme):
            "23.88 GiB usable on the Arc Pro B60. The governor always keeps at least 1.35-1.5 GiB free.", "Source: data/vram-budget-64k.csv")
     save(fig, "vram-budget", theme)
 
+
+def compare_price(theme):
+    t = THEMES[theme]; d = [r for r in rows("gpu-comparison.csv") if r["price_aud"]]
+    fig, ax = frame(t, h=5.6); fig.subplots_adjust(left=0.09, right=0.95, top=0.80, bottom=0.17)
+    ax.axhspan(21, 34, color=t["opt"], alpha=0.07, linewidth=0)
+    ax.axhline(21, color=t["opt"], linewidth=1.2, linestyle=(0, (4, 3)))
+    ax.text(6150, 21.6, "needed for 27B Q4 + 32K context (~21 GB)", ha="right", color=t["ink2"], fontsize=10.5)
+    for r in d:
+        x, y = float(r["price_aud"]), float(r["vram_gb"]); fit = r["fits_27b_q4_32k"] == "yes"
+        col = t["opt"] if fit else t["stock"]
+        ax.plot([x], [y], "o", markersize=13, color=col, markeredgecolor=t["bg"], markeredgewidth=2.5, zorder=3)
+        lab = r["gpu"].replace("NVIDIA ", "").replace("Intel ", "")
+        dx, ha = (14, "left") if x < 5000 else (-14, "right")
+        ax.annotate(f"{lab}\nA${x:,.0f}, {y:.0f} GB", (x, y), xytext=(dx, 0), textcoords="offset points", ha=ha, va="center", color=t["ink"], fontsize=11)
+    ax.set_xlim(0, 6600); ax.set_ylim(8, 34)
+    ax.set_xticks([0, 1000, 2000, 3000, 4000, 5000, 6000]); ax.set_xticklabels(["A$0", "1k", "2k", "3k", "4k", "5k", "6k"])
+    ax.set_ylabel("VRAM, GB", color=t["ink2"]); ax.set_xlabel("Australian street price", color=t["ink2"])
+    titles(fig, t, "The cheapest card that fits a 27B agent: Arc Pro B60",
+           "Only cards above the line hold a 27B model plus a working context. The RTX 5090 does too, at about 4.8x the price.",
+           "Source: data/gpu-comparison.csv. Prices: gpuprix.com AU (Sep-Oct 2026), RTX 5090 glukhov.org (Mar 2026). No AUD source, not plotted.")
+    save(fig, "compare-price-vram", theme)
+
+def compare_ceiling(theme):
+    t = THEMES[theme]; d = [r for r in rows("gpu-comparison.csv") if r["theoretical_decode_tok_s"]]
+    bars = []
+    for r in d:
+        nm = r["gpu"].replace("NVIDIA ", "").replace("Intel ", "").replace("AMD ", "")
+        bars.append((f"{nm}, theoretical ceiling", float(r["theoretical_decode_tok_s"]), "theo"))
+        if r["measured_decode_tok_s"]:
+            bars.append((f"{nm}, measured, no drafter", float(r["measured_decode_tok_s"]), "meas"))
+            bars.append((f"{nm}, measured, this repo", float(r["measured_with_drafter_tok_s"]), "ours"))
+    bars.sort(key=lambda b: b[1])
+    fig, ax = frame(t, h=6.0); fig.subplots_adjust(left=0.36, right=0.93, top=0.82, bottom=0.14)
+    ax.grid(axis="y", visible=False); ax.grid(axis="x", color=t["grid"], linewidth=1)
+    cols = {"theo": t["stock"], "meas": t["third"], "ours": t["opt"]}
+    for i, (nm, v, k) in enumerate(bars):
+        ax.barh(i, v, height=0.62, color=cols[k], linewidth=0, alpha=0.55 if k == "theo" else 1.0, hatch="//" if k == "theo" else None, edgecolor=t["bg"])
+        ax.text(v + 1.2, i, f"{v:.1f}", va="center", color=t["ink"], fontsize=11, fontweight="bold" if k == "ours" else "normal")
+    ax.set_yticks(range(len(bars))); ax.set_yticklabels([b[0] for b in bars], color=t["ink"], fontsize=10.5)
+    ax.set_xlim(0, 122); ax.set_xlabel("generation, tokens/s, Qwen3.8-27B Q4_K_M (16.46 GB)", color=t["ink2"])
+    titles(fig, t, "Speculative decoding takes the B60 past its own bandwidth ceiling",
+           "Hatched: bandwidth / model size, the no-drafter upper bound (estimate). Solid: measured on the B60. All cards gain from a drafter.",
+           "Source: data/gpu-comparison.csv, data/gpu-comparison-notes.md. Specs: TechPowerUp GPU database. B60 raw: data/raw/compare-f16.txt, tune.txt.")
+    save(fig, "compare-ceiling", theme)
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for th in THEMES:
-        prompt_depth(th); agent_turns(th); drafter(th); vram(th)
+        prompt_depth(th); agent_turns(th); drafter(th); vram(th); compare_price(th); compare_ceiling(th)
     print("charts ->", OUT)

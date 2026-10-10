@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>arc-llm-lab: Intel Arc Pro B60 LLM benchmarks</title>
+<meta name="description" content="A 27B coding agent on one Intel Arc Pro B60 24GB: llama.cpp Vulkan + Intel FA kernel, speculative decoding, 64K context, Claude Code and Codex local. Interactive benchmarks with raw data.">
+<meta property="og:title" content="arc-llm-lab: Intel Arc Pro B60 LLM benchmarks">
+<meta property="og:description" content="42 tok/s generation, 420 tok/s long-context reading, 64K context on a single 24GB Intel Arc card. Raw data and reproducible charts.">
+<meta property="og:image" content="https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/assets/social-preview.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#FFFFFF; --panel:#F6F8FA; --ink:#1F2328; --ink2:#59636E; --grid:#E6E9EC; --line:#D0D7DE;
+  --stock:#2F5BEA; --opt:#D9581A; --third:#8E4FC8; --tip:#1F2328; --tipink:#FFFFFF;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg:#0D1117; --panel:#161B22; --ink:#E6EDF3; --ink2:#9DA7B3; --grid:#21262D; --line:#30363D;
+  --stock:#4F7BFF; --opt:#E8661E; --third:#B26FE0; --tip:#E6EDF3; --tipink:#0D1117; } }
+* { box-sizing:border-box }
+html { scroll-behavior:smooth }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 Inter, system-ui, sans-serif; }
+a { color:var(--opt) }
+.wrap { max-width:1080px; margin:0 auto; padding:0 20px }
+header { padding:56px 0 28px }
+h1 { font-size:clamp(34px,5vw,54px); line-height:1.05; letter-spacing:-.025em; margin:0 0 14px; font-weight:800 }
+.lede { font-size:19px; color:var(--ink2); max-width:62ch; margin:0 }
+.links { margin-top:18px; display:flex; gap:10px; flex-wrap:wrap }
+.btn { display:inline-block; padding:9px 16px; border-radius:10px; border:1px solid var(--line); color:var(--ink); text-decoration:none; font-weight:600; font-size:15px; background:var(--panel) }
+.btn.primary { background:var(--opt); border-color:var(--opt); color:#fff }
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:30px 0 8px }
+.kpi { border-top:3px solid var(--line); padding:14px 2px 6px }
+.kpi.hot { border-top-color:var(--opt) }
+.kpi b { display:block; font-size:34px; letter-spacing:-.02em; font-weight:800 }
+.kpi span { color:var(--ink2); font-size:14px }
+section { padding:40px 0 10px; border-top:1px solid var(--grid); margin-top:36px }
+h2 { font-size:26px; letter-spacing:-.015em; margin:0 0 6px }
+.sub { color:var(--ink2); margin:0 0 18px; max-width:72ch }
+.chart { width:100%; height:auto; display:block; overflow:visible }
+.chart text { fill:var(--ink2); font:13px Inter, sans-serif }
+.chart .lab { fill:var(--ink); font-size:14px }
+.chart .val { fill:var(--ink); font-weight:700 }
+.chart .mark { cursor:pointer; outline:none }
+.chart .mark:focus-visible { stroke:var(--ink); stroke-width:2 }
+.tip { position:fixed; pointer-events:none; background:var(--tip); color:var(--tipink); padding:8px 11px; border-radius:8px; font-size:13px; line-height:1.4; max-width:280px; opacity:0; transition:opacity .12s; z-index:9 }
+.tip b { font-size:15px }
+.legend { display:flex; gap:18px; flex-wrap:wrap; font-size:14px; color:var(--ink2); margin:4px 0 10px }
+.legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px }
+details { margin-top:10px; color:var(--ink2); font-size:14px }
+details table { border-collapse:collapse; margin-top:8px; width:100%; font-size:13.5px }
+details th, details td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--grid) }
+.race { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+.term { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-height:250px; position:relative }
+.term h3 { margin:0 0 10px; font-size:14px; display:flex; align-items:center; gap:8px }
+.term h3 i { width:9px; height:9px; border-radius:50%; display:inline-block }
+.term pre { margin:0; font:14px/1.6 'JetBrains Mono', ui-monospace, monospace; white-space:pre; overflow:hidden; color:var(--ink) }
+.term .done { position:absolute; right:16px; bottom:12px; font-weight:700; font-size:14px }
+.controls { display:flex; gap:10px; align-items:center; margin:12px 0 0 }
+.toggle { display:inline-flex; gap:8px; align-items:center; font-size:14px; color:var(--ink2) }
+.toggle input { accent-color:var(--opt); width:18px; height:18px }
+footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px solid var(--grid); margin-top:40px }
+@media (max-width:720px) { .race { grid-template-columns:1fr } header { padding-top:32px } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto } .tip { transition:none } }
+</style>
+</head>
+<body>
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="wrap">
+<header>
+  <h1>A 27B coding agent on one Intel Arc Pro B60</h1>
+  <p class="lede">llama.cpp on Vulkan with Intel's flash-attention kernel and a speculative draft model. Claude Code and Codex run fully local on a 24GB card. Every number below links to its raw log.</p>
+  <div class="links">
+    <a class="btn primary" href="https://github.com/edagher92-coder/arc-llm-lab">View on GitHub</a>
+    <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">Raw data</a>
+    <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">Add your card</a>
+  </div>
+  <div class="kpis">
+    <div class="kpi hot"><b>42.3 tok/s</b><span>generation on coding tasks, up from 16 (2.6×)</span></div>
+    <div class="kpi"><b>420 tok/s</b><span>reading new input at 32K context, up from 118 (3.6×)</span></div>
+    <div class="kpi"><b>201 s → 55 s</b><span>three agent turns at 30–37K context</span></div>
+    <div class="kpi"><b>64K</b><span>context, with 1.59 GiB VRAM spare</span></div>
+  </div>
+</header>
+
+<section id="race">
+  <h2>See the difference</h2>
+  <p class="sub">The same code, replayed at the two measured generation speeds on the same card and model.</p>
+  <div class="race">
+    <div class="term"><h3><i style="background:var(--stock)"></i>Stock llama.cpp Vulkan, 16.0 tok/s</h3><pre id="t0"></pre><div class="done" id="d0" style="color:var(--stock)"></div></div>
+    <div class="term"><h3><i style="background:var(--opt)"></i>arc-llm-lab, 42.3 tok/s</h3><pre id="t1"></pre><div class="done" id="d1" style="color:var(--opt)"></div></div>
+  </div>
+  <div class="controls"><button class="btn" id="replay" type="button">Replay</button></div>
+</section>
+
+<section id="depth">
+  <h2>Long context: the Intel FA kernel, with f16 KV only</h2>
+  <p class="sub">Prompt processing speed (llama-bench pp2048) as the conversation grows. Hover or tab to a point for values.</p>
+  <div class="legend" id="lg-depth"></div>
+  <svg class="chart" id="c-depth" viewBox="0 0 900 380" role="img" aria-label="Prompt processing speed versus context depth"></svg>
+  <details><summary>Data table and source</summary><div id="tb-depth"></div><p>Raw: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-q4.txt">compare-q4.txt</a></p></details>
+</section>
+
+<section id="spec">
+  <h2>Speculative decoding: biggest win, until VRAM runs out</h2>
+  <p class="sub">DFlash2 draft model at different draft lengths. Every setting kept 7/7 coding and 3/3 tool-call quality. Below about 1.1 GiB free VRAM, generation collapses.</p>
+  <svg class="chart" id="c-spec" viewBox="0 0 900 340" role="img" aria-label="Generation speed by speculative draft length"></svg>
+  <details><summary>Data table and source</summary><div id="tb-spec"></div><p>Raw: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a></p></details>
+</section>
+
+<section id="compare">
+  <h2>Compared with other cards</h2>
+  <p class="sub">First: price against VRAM, using Australian street prices from the sources shown (cards without a reliable AUD price aren't plotted). Second: each card's no-drafter generation ceiling (memory bandwidth ÷ 16.46 GB of weights), an estimate, against what the B60 actually measured.</p>
+  <div class="toggle"><label class="toggle"><input type="checkbox" id="showTheo" checked> Show theoretical ceilings</label></div>
+  <svg class="chart" id="c-price" viewBox="0 0 900 360" role="img" aria-label="GPU price versus VRAM"></svg>
+  <svg class="chart" id="c-ceil" viewBox="0 0 900 360" role="img" aria-label="Generation ceiling by GPU versus measured B60"></svg>
+  <details><summary>Data table, method and sources</summary><div id="tb-gpu"></div><p>Method: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/gpu-comparison-notes.md">gpu-comparison-notes.md</a>. Specs: TechPowerUp GPU database.</p></details>
+</section>
+
+<section id="vram">
+  <h2>Where 24GB goes at 64K context</h2>
+  <p class="sub">23.88 GiB usable. The governor always keeps at least 1.35–1.5 GiB free.</p>
+  <svg class="chart" id="c-vram" viewBox="0 0 900 150" role="img" aria-label="VRAM budget at 64K context"></svg>
+</section>
+
+<section id="reliability">
+  <h2>Reliability: 100 real agent tasks</h2>
+  <p class="sub">Coding, debugging, tool use, file operations, long-context retrieval, business maths and error recovery, each scored by hidden checkers. The headline metric is completed tasks per minute.</p>
+  <div id="rel"></div>
+  <svg class="chart" id="c-rel" viewBox="0 0 900 300" role="img" aria-label="Pass rate by task category"></svg>
+</section>
+
+<footer>
+  Built and measured by Elie Dagher on an Arc Pro B60 24GB, Ryzen 7 3700X, Windows 11. Charts are generated from <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">data/</a> by <code>tools/build_site.py</code>. MIT licensed.
+</footer>
+</div>
+
+<script>
+const D = {"depth":[{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"589.22","pp8_tok_s":"81.57","tg32_tok_s":"16.01","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"198.44","pp8_tok_s":"22.37","tg32_tok_s":"15.14","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"118.00","pp8_tok_s":"13.14","tg32_tok_s":"14.45","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"653.28","pp8_tok_s":"82.15","tg32_tok_s":"16.05","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"513.33","pp8_tok_s":"69.99","tg32_tok_s":"15.20","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"420.05","pp8_tok_s":"63.24","tg32_tok_s":"14.46","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.03","pp8_tok_s":"81.41","tg32_tok_s":"15.82","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.92","pp8_tok_s":"26.82","tg32_tok_s":"12.01","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.91","pp8_tok_s":"16.28","tg32_tok_s":"9.71","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.44","pp8_tok_s":"81.57","tg32_tok_s":"15.86","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.90","pp8_tok_s":"26.91","tg32_tok_s":"12.09","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.87","pp8_tok_s":"16.31","tg32_tok_s":"9.73","source":"raw/compare-q4.txt"}],"sweep":[{"setting":"no drafter","draft_n_max":"0","ubatch":"512","draft_kv":"-","code_avg_tok_s":"16.05","chat_tok_s":"","free_vram_gib":"","coding_pass":"","tools_pass":"","note":"llama-bench tg32 (no speculative decoding)","source":"raw/compare-f16.txt"},{"setting":"DFlash2 n=5","draft_n_max":"5","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"41.4","chat_tok_s":"44.06","free_vram_gib":"1.04","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=7 (chosen)","draft_n_max":"7","ubatch":"256","draft_kv":"q8_0","code_avg_tok_s":"42.3","chat_tok_s":"41.64","free_vram_gib":"1.59","coding_pass":"7/7","tools_pass":"3/3","note":"ub256 + q8 draft KV frees 0.55 GiB for 64K context","source":"raw/tune.txt"},{"setting":"DFlash2 n=10","draft_n_max":"10","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"42.2","chat_tok_s":"43.39","free_vram_gib":"1.23","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=15","draft_n_max":"15","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"27.0","chat_tok_s":"28.56","free_vram_gib":"0.96","coding_pass":"7/7","tools_pass":"3/3","note":"VRAM starved (<1.1 GiB free) - generation collapses","source":"raw/tune.txt"}],"gpus":[{"gpu":"Intel Arc B580","vram_gb":"12","bandwidth_gbs":"456","price_aud":"419","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-b580","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"Intel Arc A770 16GB","vram_gb":"16","bandwidth_gbs":"560","price_aud":"540","price_date":"2026-09-30","price_source":"https://gpuprix.com/australia/gpus/arc-a770","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"Intel Arc Pro B60","vram_gb":"24","bandwidth_gbs":"456","price_aud":"1240","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-pro-b60","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"27.7","measured_decode_tok_s":"16.0","measured_with_drafter_tok_s":"42.3"},{"gpu":"NVIDIA RTX 3090","vram_gb":"24","bandwidth_gbs":"936","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"56.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"AMD RX 7900 XTX","vram_gb":"24","bandwidth_gbs":"960","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"58.3","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"NVIDIA RTX 4090","vram_gb":"24","bandwidth_gbs":"1008","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"61.2","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"NVIDIA RTX 5090","vram_gb":"32","bandwidth_gbs":"1792","price_aud":"5999","price_date":"2026-03","price_source":"https://www.glukhov.org/hardware/gpu/nvidia-rtx-5080-rtx-5090-prices-march-2026/","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"108.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":""}],"vram":[{"segment":"Model weights + DFlash2 drafter + buffers","gib":"17.15","note":"Qwen3.8-27B UD-Q4_K_M + DFlash2 Q4_K_M draft (q8_0 draft KV)"},{"segment":"KV cache 64K tokens (f16)","gib":"4.03","note":"64.5 KiB per token x 65536"},{"segment":"Other apps (Windows desktop)","gib":"1.10","note":"measured during tuning"},{"segment":"Free headroom","gib":"1.59","note":"generation collapses below ~1.1 GiB free"}],"turns":[{"config":"stock Vulkan + drafter (before Intel FA)","context_depth_tokens":"30000-37000","three_turn_wall_s":"201","turn_prompt_tok_s":"~100","turn_gen_tok_s":"~11","source":"observed (README history; raw log not retained)"},{"config":"Intel FA f16 KV (first build)","context_depth_tokens":"30000-37000","three_turn_wall_s":"54.9","turn_prompt_tok_s":"357-389","turn_gen_tok_s":"36-45","source":"raw/server-test.txt"},{"config":"Intel FA f16 KV live 61K ctx","context_depth_tokens":"30000-37000","three_turn_wall_s":"52.2","turn_prompt_tok_s":"377","turn_gen_tok_s":"43.9","source":"raw/bench-history.csv"},{"config":"Intel FA tuned 64K ctx (final)","context_depth_tokens":"30000-37000","three_turn_wall_s":"56.7","turn_prompt_tok_s":"333","turn_gen_tok_s":"42.2","source":"raw/bench-history.csv"}],"reliability":null};
+const NS = 'http://www.w3.org/2000/svg';
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const tip = document.getElementById('tip');
+function el(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+function bindTip(node, html) {
+  node.classList.add('mark'); node.setAttribute('tabindex', '0'); node.setAttribute('aria-label', html.replace(/<[^>]+>/g, ' '));
+  const show = (x, y) => { tip.innerHTML = html; tip.style.opacity = 1; const w = tip.offsetWidth; tip.style.left = Math.min(innerWidth - w - 8, x + 14) + 'px'; tip.style.top = (y + 14) + 'px'; };
+  node.addEventListener('pointermove', e => show(e.clientX, e.clientY));
+  node.addEventListener('pointerleave', () => tip.style.opacity = 0);
+  node.addEventListener('focus', () => { const r = node.getBoundingClientRect(); show(r.right, r.top); });
+  node.addEventListener('blur', () => tip.style.opacity = 0);
+}
+function table(id, head, body) {
+  const t = document.createElement('table'); t.innerHTML = '<thead><tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>' + body.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  document.getElementById(id).replaceChildren(t);
+}
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- token race ---- */
+const CODE = `def merge_intervals(intervals):\n    out = []\n    for s, e in sorted(intervals):\n        if out and s <= out[-1][1]:\n            out[-1][1] = max(out[-1][1], e)\n        else:\n            out.append([s, e])\n    return out`;
+const TOK = 85; let raceTimers = [];
+function race() {
+  raceTimers.forEach(clearInterval); raceTimers = [];
+  [[16.0, 't0', 'd0'], [42.3, 't1', 'd1']].forEach(([rate, tid, did]) => {
+    const pre = document.getElementById(tid), done = document.getElementById(did), secs = TOK / rate;
+    if (reduce) { pre.textContent = CODE; done.textContent = `done in ${secs.toFixed(1)} s`; return; }
+    pre.textContent = ''; done.textContent = ''; const t0 = performance.now();
+    const h = setInterval(() => { const f = Math.min(1, (performance.now() - t0) / 1000 / secs); pre.textContent = CODE.slice(0, Math.round(CODE.length * f)); if (f >= 1) { clearInterval(h); done.textContent = `done in ${secs.toFixed(1)} s`; } }, 33);
+    raceTimers.push(h);
+  });
+}
+document.getElementById('replay').onclick = race;
+new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { race(); o.disconnect(); } }, { threshold: .4 }).observe(document.getElementById('race'));
+
+/* ---- depth line chart ---- */
+function depth() {
+  const svg = document.getElementById('c-depth'); svg.replaceChildren();
+  const X = d => 70 + d / 32768 * 640, Y = v => 340 - v / 700 * 310;
+  for (let v = 0; v <= 700; v += 100) { el('line', { x1: 70, x2: 720, y1: Y(v), y2: Y(v), stroke: css('--grid') }, svg); el('text', { x: 60, y: Y(v) + 4, 'text-anchor': 'end' }, svg, v); }
+  [[0, 'empty'], [16384, '16K tokens'], [32768, '32K tokens']].forEach(([d, l]) => el('text', { x: X(d), y: 366, 'text-anchor': 'middle' }, svg, l));
+  const S = [['intel-fa', 'f16', 'Intel FA kernel, f16 KV', '--opt'], ['stock-vulkan', 'f16', 'Stock Vulkan, f16 KV', '--stock'], ['intel-fa', 'q4_0', 'Intel FA kernel, q4 KV', '--third']];
+  document.getElementById('lg-depth').innerHTML = S.map(s => `<span><i style="background:var(${s[3]})"></i>${s[2]}</span>`).join('');
+  S.forEach(([cfg, kv, lab, c], si) => {
+    const pts = D.depth.filter(r => r.config === cfg && r.kv_cache === kv).map(r => [X(+r.depth_tokens), Y(+r.pp2048_tok_s), r]);
+    el('path', { d: 'M' + pts.map(p => p[0] + ',' + p[1]).join(' L'), fill: 'none', stroke: css(c), 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, svg);
+    pts.forEach(([x, y, r]) => { const m = el('circle', { cx: x, cy: y, r: 6, fill: css(c), stroke: css('--bg'), 'stroke-width': 2 }, svg);
+      bindTip(m, `<b>${(+r.pp2048_tok_s).toFixed(0)} tok/s</b><br>${lab}<br>at ${r.depth_tokens === '0' ? 'empty context' : (r.depth_tokens / 1024) + 'K tokens'}<br>generation ${r.tg32_tok_s} tok/s`); });
+    const [x, y, r] = pts[pts.length - 1]; el('text', { x: x + 12, y: y + 4 + (si === 2 ? 16 : 0), class: 'lab' }, svg, `${(+r.pp2048_tok_s).toFixed(0)} tok/s`);
+  });
+  table('tb-depth', ['Config', 'KV', 'Depth', 'pp2048 tok/s', 'tg32 tok/s'], D.depth.map(r => [r.config, r.kv_cache, r.depth_tokens, r.pp2048_tok_s, r.tg32_tok_s]));
+}
+
+/* ---- speculative sweep ---- */
+function spec() {
+  const svg = document.getElementById('c-spec'); svg.replaceChildren();
+  const n = D.sweep.length, bw = 90, gap = (820 - n * bw) / (n + 1), Y = v => 280 - v / 50 * 250;
+  for (let v = 0; v <= 50; v += 10) { el('line', { x1: 60, x2: 880, y1: Y(v), y2: Y(v), stroke: css('--grid') }, svg); el('text', { x: 50, y: Y(v) + 4, 'text-anchor': 'end' }, svg, v); }
+  D.sweep.forEach((r, i) => {
+    const x = 60 + gap + i * (bw + gap), v = +r.code_avg_tok_s, col = r.draft_n_max === '0' ? '--stock' : (r.setting.includes('chosen') ? '--opt' : '--third');
+    const b = el('rect', { x, y: Y(v), width: bw, height: 280 - Y(v), rx: 5, fill: css(col) }, svg);
+    bindTip(b, `<b>${v} tok/s</b><br>${r.setting}${r.free_vram_gib ? '<br>' + r.free_vram_gib + ' GiB VRAM free' : ''}${r.coding_pass ? '<br>quality: coding ' + r.coding_pass + ', tools ' + r.tools_pass : ''}${r.note ? '<br>' + r.note : ''}`);
+    el('text', { x: x + bw / 2, y: Y(v) - 8, 'text-anchor': 'middle', class: 'val' }, svg, v.toFixed(1));
+    el('text', { x: x + bw / 2, y: 302, 'text-anchor': 'middle', class: 'lab' }, svg, r.setting.replace('DFlash2 ', '').replace(' (chosen)', ', chosen'));
+    el('text', { x: x + bw / 2, y: 322, 'text-anchor': 'middle' }, svg, r.free_vram_gib ? r.free_vram_gib + ' GiB free' : 'no draft model');
+  });
+  table('tb-spec', ['Setting', 'tok/s (coding avg)', 'Free VRAM GiB', 'Coding', 'Tools', 'Note'], D.sweep.map(r => [r.setting, r.code_avg_tok_s, r.free_vram_gib || '-', r.coding_pass || '-', r.tools_pass || '-', r.note || '']));
+}
+
+/* ---- GPU comparison ---- */
+function compare() {
+  const showTheo = document.getElementById('showTheo').checked;
+  let svg = document.getElementById('c-price'); svg.replaceChildren();
+  const X = p => 70 + p / 6600 * 800, Y = g => 320 - (g - 8) / 26 * 290;
+  for (let g = 10; g <= 34; g += 5) { el('line', { x1: 70, x2: 870, y1: Y(g), y2: Y(g), stroke: css('--grid') }, svg); el('text', { x: 60, y: Y(g) + 4, 'text-anchor': 'end' }, svg, g + ' GB'); }
+  [0, 2000, 4000, 6000].forEach(p => el('text', { x: X(p), y: 346, 'text-anchor': 'middle' }, svg, 'A$' + (p / 1000) + 'k'));
+  el('line', { x1: 70, x2: 870, y1: Y(21), y2: Y(21), stroke: css('--opt'), 'stroke-dasharray': '5 4' }, svg);
+  el('text', { x: 866, y: Y(21) - 8, 'text-anchor': 'end' }, svg, 'needed for 27B Q4 + 32K context (~21 GB)');
+  D.gpus.filter(r => r.price_aud).forEach(r => {
+    const x = X(+r.price_aud), y = Y(+r.vram_gb), fit = r.fits_27b_q4_32k === 'yes';
+    const m = el('circle', { cx: x, cy: y, r: 9, fill: css(fit ? '--opt' : '--stock'), stroke: css('--bg'), 'stroke-width': 2.5 }, svg);
+    bindTip(m, `<b>${r.gpu}</b><br>A$${(+r.price_aud).toLocaleString()} (${r.price_date})<br>${r.vram_gb} GB, ${r.bandwidth_gbs} GB/s<br>${fit ? 'fits' : 'does not fit'} a 27B Q4 agent`);
+    const right = x > 700; el('text', { x: right ? x - 14 : x + 14, y: y + 5, 'text-anchor': right ? 'end' : 'start', class: 'lab' }, svg, r.gpu.replace(/NVIDIA |Intel /, ''));
+  });
+  svg = document.getElementById('c-ceil'); svg.replaceChildren();
+  let bars = [];
+  D.gpus.filter(r => r.theoretical_decode_tok_s).forEach(r => {
+    const nm = r.gpu.replace(/NVIDIA |Intel |AMD /, '');
+    if (showTheo) bars.push([nm + ', ceiling (estimate)', +r.theoretical_decode_tok_s, 'theo', r]);
+    if (r.measured_decode_tok_s) { bars.push([nm + ', measured, no drafter', +r.measured_decode_tok_s, 'meas', r]); bars.push([nm + ', measured, this repo', +r.measured_with_drafter_tok_s, 'ours', r]); }
+  });
+  bars.sort((a, b) => b[1] - a[1]);
+  const bh = 300 / Math.max(bars.length, 1), XV = v => 300 + v / 120 * 560;
+  [0, 30, 60, 90, 120].forEach(v => { el('line', { x1: XV(v), x2: XV(v), y1: 10, y2: 320, stroke: css('--grid') }, svg); el('text', { x: XV(v), y: 340, 'text-anchor': 'middle' }, svg, v + ' tok/s'); });
+  bars.forEach(([lab, v, k, r], i) => {
+    const y = 14 + i * bh, col = { theo: '--stock', meas: '--third', ours: '--opt' }[k];
+    const b = el('rect', { x: 300, y, width: XV(v) - 300, height: bh * .64, rx: 4, fill: css(col), 'fill-opacity': k === 'theo' ? .45 : 1 }, svg);
+    bindTip(b, `<b>${v.toFixed(1)} tok/s</b><br>${lab}<br>${r.bandwidth_gbs} GB/s memory bandwidth${k === 'theo' ? '<br>estimate: bandwidth / 16.46 GB' : ''}`);
+    el('text', { x: 290, y: y + bh * .45, 'text-anchor': 'end', class: 'lab' }, svg, lab);
+    el('text', { x: XV(v) + 8, y: y + bh * .45, class: k === 'ours' ? 'val' : '' }, svg, v.toFixed(1));
+  });
+  table('tb-gpu', ['GPU', 'VRAM GB', 'Bandwidth GB/s', 'Price AUD', 'Fits 27B+32K', 'Ceiling tok/s (est.)', 'Measured'], D.gpus.map(r => [r.gpu, r.vram_gb, r.bandwidth_gbs, r.price_aud ? `<a href="${r.price_source}">A$${r.price_aud}</a> (${r.price_date})` : '-', r.fits_27b_q4_32k, r.theoretical_decode_tok_s || '-', r.measured_with_drafter_tok_s ? `${r.measured_decode_tok_s} / ${r.measured_with_drafter_tok_s} with drafter` : '-']));
+}
+document.getElementById('showTheo').onchange = compare;
+
+/* ---- VRAM ---- */
+function vram() {
+  const svg = document.getElementById('c-vram'); svg.replaceChildren(); let x = 20; const W = 860 / 23.88;
+  const cols = ['--stock', '--opt', '--third', null];
+  D.vram.forEach((r, i) => { const w = +r.gib * W;
+    const b = el('rect', { x, y: 20, width: w - 3, height: 54, rx: 4, fill: cols[i] ? css(cols[i]) : 'none', stroke: cols[i] ? 'none' : css('--ink2'), 'stroke-dasharray': cols[i] ? '' : '4 3' }, svg);
+    bindTip(b, `<b>${(+r.gib).toFixed(2)} GiB</b><br>${r.segment}<br>${r.note}`);
+    el('text', { x: 20 + i * 215, y: 106, class: 'val' }, svg, (+r.gib).toFixed(2) + ' GiB');
+    el('text', { x: 20 + i * 215, y: 126 }, svg, r.segment.split(' (')[0].replace('Model weights + DFlash2 drafter + buffers', 'Model + drafter'));
+    x += w; });
+}
+
+/* ---- reliability ---- */
+function reliability() {
+  const R = D.reliability, box = document.getElementById('rel'), svg = document.getElementById('c-rel');
+  if (!R) { box.innerHTML = '<p class="sub">Results are being collected; this section is published as soon as the run completes.</p>'; svg.style.display = 'none'; return; }
+  box.innerHTML = '<div class="kpis">' + Object.entries(R.runs).map(([k, r]) => `<div class="kpi ${r.agent === 'claude' ? 'hot' : ''}"><b>${r.passed}/${r.tasks}</b><span>${k}: ${(r.completed_per_min).toFixed(2)} completed tasks/min, median ${r.median_pass_s}s</span></div>`).join('') + '</div>';
+  svg.replaceChildren(); const cats = Object.entries(R.categories); const bh = 260 / cats.length, XV = v => 200 + v * 640;
+  cats.forEach(([c, r], i) => { const y = 10 + i * bh, v = r.pass_rate, col = v >= .9 ? '--opt' : v >= .6 ? '--stock' : '--third';
+    const b = el('rect', { x: 200, y, width: Math.max(2, XV(v) - 200), height: bh * .62, rx: 4, fill: css(col) }, svg);
+    bindTip(b, `<b>${Math.round(v * 100)}% pass</b><br>${c}, ${r.attempts} attempts<br>median ${r.median_s}s<br>tier: ${r.tier}`);
+    el('text', { x: 190, y: y + bh * .45, 'text-anchor': 'end', class: 'lab' }, svg, c);
+    el('text', { x: XV(v) + 8, y: y + bh * .45, class: 'val' }, svg, Math.round(v * 100) + '%  ' + r.tier.toLowerCase()); });
+}
+
+function all() { depth(); spec(); compare(); vram(); reliability(); }
+all(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+</script>
+</body>
+</html>

@@ -2,15 +2,22 @@
 
 **Run a 27B coding agent on one Intel Arc Pro B60 24GB.** llama.cpp on Vulkan, 42–45 tok/s generation, a 64K context, and Claude Code and Codex running fully local. Every number below comes with its raw log.
 
-[![GPU](https://img.shields.io/badge/GPU-Intel%20Arc%20Pro%20B60%2024GB-0071C5)](#hardware)
+[![GPU](https://img.shields.io/badge/GPU-Intel%20Arc%20Pro%20B60%2024GB-0071C5)](#results-on-a-single-arc-pro-b60)
 [![Backend](https://img.shields.io/badge/backend-llama.cpp%20Vulkan-E8661E)](engine/)
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#the-stack)
 [![Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Codex-B26FE0)](docs/AGENTS.md)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
+**[Interactive benchmarks →](https://edagher92-coder.github.io/arc-llm-lab/)** hover any data point, replay the speed race, compare GPUs.
+
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/agent-turns-dark.png">
-  <img alt="Three agentic coding turns at 30K+ context on an Intel Arc Pro B60: 201 seconds before, 55 seconds after" src="assets/agent-turns-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/anim-token-race-dark.svg">
+  <img alt="Animated: the same code generated at 16 tokens per second on stock llama.cpp and at 42.3 tokens per second with arc-llm-lab on an Intel Arc Pro B60" src="assets/anim-token-race-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/anim-agent-race-dark.svg">
+  <img alt="Animated time-lapse: three agentic coding turns at 30K+ context take 201 seconds before and 56.7 seconds with arc-llm-lab" src="assets/anim-agent-race-light.svg">
 </picture>
 
 ## Results on a single Arc Pro B60
@@ -35,8 +42,8 @@ Test PC: Ryzen 7 3700X, B550, 32 GB DDR4, Windows 11, Arc Pro B60 24GB (about A$
 5. **Turn off context shift.** By default llama.cpp silently drops old tokens when a conversation overflows. An agent then "forgets" its task with no error. `--no-context-shift` makes the server return an explicit error instead, and the agent wrappers here size their window to server context minus 8K so they compact first.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/prompt-speed-vs-depth-dark.png">
-  <img alt="Prompt processing speed vs context depth on Intel Arc Pro B60: Intel FA kernel with f16 KV 420 tok/s at 32K, stock Vulkan 118, q4 KV 101" src="assets/prompt-speed-vs-depth-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/anim-prompt-depth-dark.svg">
+  <img alt="Prompt processing speed vs context depth on Intel Arc Pro B60: Intel FA kernel with f16 KV 420 tok/s at 32K, stock Vulkan 118, q4 KV 101" src="assets/anim-prompt-depth-light.svg">
 </picture>
 
 <picture>
@@ -48,6 +55,32 @@ Test PC: Ryzen 7 3700X, B550, 32 GB DDR4, Windows 11, Arc Pro B60 24GB (about A$
   <source media="(prefers-color-scheme: dark)" srcset="assets/vram-budget-dark.png">
   <img alt="24GB VRAM budget at 64K context: 17.15 GiB model and drafter, 4.03 GiB KV cache, 1.10 GiB other apps, 1.59 GiB free" src="assets/vram-budget-light.png">
 </picture>
+
+## Compared with other cards
+
+How does a A$1,240 Arc card stack up? Specs and prices are sourced; for cards we haven't measured, the generation figure is a clearly labelled **theoretical ceiling** (memory bandwidth ÷ model size), not an invented benchmark. Method: [data/gpu-comparison-notes.md](data/gpu-comparison-notes.md).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/compare-price-vram-dark.png">
+  <img alt="Price versus VRAM: Arc B580 A$419 12GB and A770 A$540 16GB are below the 21GB needed for a 27B agent; Arc Pro B60 A$1,240 24GB and RTX 5090 A$5,999 32GB are above it" src="assets/compare-price-vram-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/compare-ceiling-dark.png">
+  <img alt="Generation ceilings: RTX 5090 108.9, RTX 4090 61.2, RX 7900 XTX 58.3, RTX 3090 56.9 tok/s estimated; Arc Pro B60 measured 42.3 with speculative decoding versus a 27.7 estimated ceiling and 16.0 measured without a drafter" src="assets/compare-ceiling-light.png">
+</picture>
+
+| GPU | VRAM | Bandwidth | AU price | Fits 27B + 32K? | Gen ceiling (est.) | Measured |
+|---|---|---|---|---|---|---|
+| Arc B580 | 12 GB | 456 GB/s | A$419 | no | — | — |
+| Arc A770 16GB | 16 GB | 560 GB/s | A$540 | no | — | — |
+| **Arc Pro B60** | **24 GB** | 456 GB/s | **A$1,240** | **yes** | 27.7 tok/s | **16.0 / 42.3 with drafter** |
+| RTX 3090 | 24 GB | 936 GB/s | — | yes | 56.9 tok/s | — |
+| RX 7900 XTX | 24 GB | 960 GB/s | — | yes | 58.3 tok/s | — |
+| RTX 4090 | 24 GB | 1008 GB/s | — | yes | 61.2 tok/s | — |
+| RTX 5090 | 32 GB | 1792 GB/s | A$5,999 | yes | 108.9 tok/s | — |
+
+The B60 is the cheapest card in the list that holds a 27B agent with a working context, and speculative decoding takes it past its own bandwidth ceiling. Faster cards would gain from a drafter too, so measured results for them are very welcome: [add your card](../../issues/new?template=benchmark.yml).
 
 ## The stack
 
@@ -74,6 +107,7 @@ flowchart LR
 | Agents | Claude Code in "FAST mode" (a 6.6K-token system prompt instead of about 19K) and Codex with a live context window and early compaction | [agents/](agents/), [docs/AGENTS.md](docs/AGENTS.md) |
 | Voice | Phone voice assistant: Whisper speech-to-text and Kokoro neural voice, both on CPU, spoken sentence by sentence | [voice/](voice/), [docs/VOICE.md](docs/VOICE.md) |
 | Benchmarks | A 55-second regression test, sweep scripts, and every raw log | [bench/](bench/), [data/](data/) |
+| Charts and site | Static charts, animated SVGs and the interactive Pages site, all regenerated from the CSVs | [tools/](tools/), [docs/index.html](docs/index.html) |
 | Reliability | 100 real tasks with hidden checkers, plus 48–64K sustained-session tests | [evalsuite/](evalsuite/), [docs/RELIABILITY.md](docs/RELIABILITY.md) |
 | Operations | `qwen doctor` (26 health checks), `qwen snapshot/rollback` (config history in git), nightly regression run | [governor/](governor/) |
 
