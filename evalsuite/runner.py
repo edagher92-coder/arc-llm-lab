@@ -1,4 +1,4 @@
-"""ARC-PC Phase-3 runner: runs the 100-task suite against Claude Code (claude-qwen) or Codex (codex-qwen), unattended.
+"""arc-llm-lab runner: runs the 100-task suite against Claude Code (claude-qwen) or Codex (codex-qwen), unattended.
 Usage:  python runner.py --agent claude|codex [--run NAME] [--cap 32768] [--ids a,b] [--cats coding,tool] [--limit N]
 Resumable: re-running with the same --run skips tasks already recorded in results/<run>.jsonl.
 Each task gets a fresh workspace, a hard timeout, and a hidden checker run AFTER the agent exits."""

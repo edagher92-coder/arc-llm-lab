@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Discussions (setup help, ideas)
-    url: https://github.com/edagher92-coder/arc-llm-lab/discussions
-    about: Ask setup questions and share what you're running
+  - name: FAQ and setup docs
+    url: https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/FAQ.md
+    about: Vulkan or SYCL, Ollama and LM Studio, IPEX-LLM, context limits, agent safety

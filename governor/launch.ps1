@@ -36,7 +36,7 @@ else {
   try { $need = [int](Get-Content "$dir\session-need.txt" -ErrorAction Stop) } catch { $need = 0 }
   if ($need -gt 0 -and $ctx -lt ($need + 8192)) {
     $want = [int]([math]::Ceiling(($need + 8192) / 4096) * 4096)
-    $emerg = [int]([math]::Floor(((($cfg.vram.total_gib - 1.15 - $others) - $v.base_gib) * 1MB) / $kvKiB / 4096) * 4096)   # 1.15 GiB = just above the measured slowdown cliff
+    $emerg = [int]([math]::Floor(((($cfg.vram.total_gib - 1.15 - $others) - $v.base_gib) * 1MB) / $kvKiB / 4096) * 4096)   # 1.15 GiB = emergency floor, just above the 0.96 GiB free that slowed one run (threshold not isolated, see docs/TUNING-LOG.md)
     $new = [math]::Min([math]::Min($want, $emerg), [int]$v.ctx_max)
     if ($new -gt $ctx) { $draftNote = "session-protect: raised ctx $ctx -> $new for live session of $need tokens"; $ctx = $new }
     if ($ctx -lt ($need + 4096)) { $draftNote += " WARNING: cannot fit live session ($need tokens) - client will get an explicit context error, never silent truncation" }

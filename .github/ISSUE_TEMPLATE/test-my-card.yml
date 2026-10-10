@@ -1,0 +1,31 @@
+name: Test on my card
+description: Tell us which Intel GPU you can test so nobody duplicates the work
+title: "[test] <GPU>"
+labels: ["good first issue", "benchmark"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pick a task from [GOOD-FIRST-ISSUES.md](https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/GOOD-FIRST-ISSUES.md) (B580 or B570 numbers, A770 numbers, a Linux and Mesa run, SYCL versus Vulkan, or an Ollama and LM Studio endpoint guide), or propose your own. When you have results, open a [benchmark result](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) issue.
+  - type: input
+    id: gpu
+    attributes: { label: GPU you can test, placeholder: "Arc B580 12GB" }
+    validations: { required: true }
+  - type: dropdown
+    id: task
+    attributes:
+      label: Which task?
+      options:
+        - B580 or B570 numbers
+        - A770 numbers
+        - Linux and Mesa run
+        - SYCL versus Vulkan
+        - Ollama or LM Studio endpoint guide
+        - Something else (describe below)
+    validations: { required: true }
+  - type: input
+    id: system
+    attributes: { label: "OS and driver", placeholder: "Windows 11 + driver 32.0.101.xxxx / Ubuntu + Mesa x.y" }
+  - type: textarea
+    id: notes
+    attributes: { label: Anything we should know }

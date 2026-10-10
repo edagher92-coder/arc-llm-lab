@@ -1,4 +1,4 @@
-# qwen - control the local Qwen server on ARC-PC
+# qwen - control the local Qwen server on this PC
 #   qwen status | qwen mode auto|max|balanced|lean|off | qwen load [fast] | qwen unload | qwen restart | qwen log
 param([string]$Cmd = 'status', [string]$Arg = '')
 $dir = 'C:\AI\governor'; $swap = 'http://127.0.0.1:8090'

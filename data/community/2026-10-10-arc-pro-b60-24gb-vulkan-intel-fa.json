@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "contributor": "Elie Dagher",
+  "date": "2026-10-10",
+  "gpu": "Intel Arc Pro B60 24GB",
+  "vram_gb": 24,
+  "cpu": "AMD Ryzen 7 3700X",
+  "ram_gb": 32,
+  "driver": "32.0.101.8976",
+  "os": "Windows 11",
+  "backend": "Vulkan",
+  "model": "Qwen3.8-27B-UD-Q4_K_M.gguf",
+  "quant": "UD-Q4_K_M",
+  "kv_cache": {
+    "k": "f16",
+    "v": "f16"
+  },
+  "flash_attn": true,
+  "repeats": 1,
+  "raw_log_url": "https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt",
+  "llama_cpp_build": "b11526 (c85e6c598)",
+  "patches": [
+    "61cc4c25a6878bfcff2d2d76870ba1948ee0f3e2",
+    "1a5137a44fe7b2c921fe6b5f7d62704226bac599"
+  ],
+  "flags": "GGML_VK_FORCE_MMVQ=1 llama-bench -ngl 99 -lm dio -fa 1 -ctk f16 -ctv f16 -p 8,2048 -n 32 -d 0,16384,32768 -r 1",
+  "depth_results": {
+    "0": {
+      "pp_tok_s": 653.28,
+      "tg_tok_s": 16.05
+    },
+    "16384": {
+      "pp_tok_s": 513.33,
+      "tg_tok_s": 15.2
+    },
+    "32768": {
+      "pp_tok_s": 420.05,
+      "tg_tok_s": 14.46
+    }
+  },
+  "notes": "Maintainer's own run (bench/compare-f16.ps1). llama.cpp b11524 plus the two Intel FA prefill patches in engine/patches, built with MinGW GNU 16.2.0. No speculative decoding in llama-bench; with the DFlash2 drafter (n=7) generation is 42.3 tok/s eval-suite throughput (wall-clock, prompt processing included; per-request decode 47-58 tok/s, mean 53.3; data/raw/tune.txt). One run per cell. The extra pp8 test in the raw log is not recorded here."
+}

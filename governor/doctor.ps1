@@ -1,4 +1,4 @@
-# qwen doctor - one-command health check of the whole local AI stack on ARC-PC. Read-only: changes nothing.
+# qwen doctor - one-command health check of the whole local AI stack on this PC. Read-only: changes nothing.
 $ErrorActionPreference = 'SilentlyContinue'
 $dir = 'C:\AI\governor'; $swap = 'http://127.0.0.1:8090'
 $script:fails = 0; $script:warns = 0

@@ -29,6 +29,18 @@ tailscale serve --bg --https=8445 --set-path=/stt http://127.0.0.1:8091
 tailscale serve --bg --https=8445 --set-path=/tts http://127.0.0.1:8092
 ```
 
+## OpenAI-compatible routes (for Open WebUI and other apps)
+
+[voice/tts_server.py](../voice/tts_server.py) also speaks the OpenAI audio API on `127.0.0.1:8092`, so apps that expect OpenAI-style speech endpoints can use it without changes:
+
+| Route | Does |
+|---|---|
+| `POST /v1/audio/speech` (also `POST /tts`) | `{"input" or "text", "voice", "speed"}` to a WAV from Kokoro. OpenAI voice names map to the nearest curated voice (alloy to heart, echo to michael, fable to george, onyx to lewis, nova to emma, shimmer to isabella). |
+| `POST /v1/audio/transcriptions` | Forwards the request to whisper.cpp (`WHISPER_URL`, default `http://127.0.0.1:8091/inference`) and returns its JSON. Returns 502 if whisper.cpp is not running. |
+| `GET /voices` | The six curated voices |
+
+Set the Base URL to `http://127.0.0.1:8092/v1`. The file is a single copy-ready script: it needs only the Kokoro model files from `setup-tts.ps1` and the Python packages that script installs. Step-by-step Open WebUI settings are in [PLATFORM.md](PLATFORM.md#4-voice).
+
 ## Personalise
 
 Edit `SYS` (who you are, your units, your business context) and `STT_VOCAB` (names and jargon Whisper should spell correctly) at the top of the script in `voice.html`.

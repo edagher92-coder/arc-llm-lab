@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use these benchmarks, scripts or findings, please cite this repository."
+title: "arc-llm-lab"
+abstract: "Reproducible llama.cpp (Vulkan) benchmarks, tuning notes and an agent stack for running a 27B local LLM on an Intel Arc Pro B60 24GB, with raw logs, versions and a 100-task agent reliability suite."
+type: software
+authors:
+  - family-names: "Dagher"
+    given-names: "Elie"
+license: MIT
+repository-code: "https://github.com/edagher92-coder/arc-llm-lab"
+url: "https://edagher92-coder.github.io/arc-llm-lab/"
+version: 2.0.0
+date-released: 2026-10-10
+keywords:
+  - Intel Arc
+  - Arc Pro B60
+  - llama.cpp
+  - Vulkan
+  - local LLM
+  - benchmarks
+  - speculative decoding

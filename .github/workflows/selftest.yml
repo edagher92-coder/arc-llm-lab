@@ -1,0 +1,68 @@
+name: selftest
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  evalsuite:
+    name: evalsuite checkers (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - name: Validate all 100 hidden checkers (untouched must fail, reference must pass)
+        working-directory: evalsuite
+        run: python selftest.py --ci
+
+  repo:
+    name: docs, data and scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install jsonschema pyyaml
+      - name: Relative links in Markdown and the site resolve (including heading anchors)
+        run: python tools/check_links.py
+      - name: Generated tables are up to date
+        run: python tools/build_tables.py --check
+      - name: Site is up to date
+        run: |
+          python tools/build_site.py
+          git diff --exit-code -- docs/index.html docs/sitemap.xml docs/robots.txt
+      - name: Community schema, issue templates, CSVs, patch checksums, benchmark scripts
+        run: python tools/validate_repo.py
+      - name: PowerShell and bash scripts parse
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $e = $null; $t = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$t, [ref]$e) | Out-Null
+            if ($e) { $e | ForEach-Object { "$($_.Extent.File):$($_.Extent.StartLineNumber) $($_.Message)" }; $bad = 1 }
+          }
+          foreach ($f in 'engine/build-linux.sh', 'bench/arc-bench.sh') { bash -n $f; if ($LASTEXITCODE) { $bad = 1 } }
+          exit $bad
+
+  patches:
+    name: Intel FA patches apply to llama.cpp b11524
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checksums
+        run: cd engine/patches && sha256sum -c SHA256SUMS
+      - name: Apply to the b11524 tag
+        run: |
+          git clone --depth 1 --branch b11524 https://github.com/ggml-org/llama.cpp "$RUNNER_TEMP/llama.cpp"
+          cd "$RUNNER_TEMP/llama.cpp"
+          git -c user.name=ci -c user.email=ci@example.invalid am --3way "$GITHUB_WORKSPACE"/engine/patches/0*.patch
+          git log --oneline -3

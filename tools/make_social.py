@@ -14,11 +14,12 @@ ax.add_patch(Circle((1090, 330), 92, color="#12245C", linewidth=0)); ax.add_patc
 ax.add_patch(Circle((1062, 362), 14, color="#FFFFFF", alpha=.55, linewidth=0))
 ax.text(70, 520, "arc-llm-lab", color="#E6EEFF", fontsize=58, fontweight="bold")
 ax.text(72, 462, "A 27B coding agent on one Intel Arc Pro B60 24GB", color="#8E9BC4", fontsize=24)
-stats = [("42 tok/s", "generation, 2.6x"), ("420 tok/s", "reading at 32K, 3.6x"), ("201s → 55s", "3 agent turns"), ("64K", "context, 1.6 GiB spare")]
+stats = [("42 tok/s", "generation (eval throughput), 2.6x vs no drafter"), ("420 tok/s", "reading at 32K, 3.6x"), ("201s\u2020 → 55-57s", "3 agent turns"), ("up to 64K", "context (57-61K typical in use)")]
 for i, (big, small) in enumerate(stats):
     x = 72 + (i % 2) * 380; y = 330 - (i // 2) * 120
     ax.text(x, y, big, color="#FF7A2F" if i == 2 else "#E6EEFF", fontsize=34, fontweight="bold")
     ax.text(x, y - 38, small, color="#8E9BC4", fontsize=16)
 ax.text(72, 60, "llama.cpp Vulkan, Intel FA kernel, speculative decoding, Claude Code and Codex local, raw data", color="#8E9BC4", fontsize=16)
+ax.text(72, 24, "\u2020 observed before logging was in place; raw log not retained", color="#6F7BA3", fontsize=12)
 out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "social-preview.png")
 fig.savefig(out, facecolor=fig.get_facecolor()); print(out)

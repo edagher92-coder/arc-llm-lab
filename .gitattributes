@@ -1,0 +1,7 @@
+# Keep vendored patches and raw evidence byte-for-byte (no line-ending conversion on checkout).
+*.patch -text
+engine/patches/SHA256SUMS text eol=lf
+data/raw/** -text
+data/raw/README.md text
+*.cmd text eol=crlf
+*.bat text eol=crlf

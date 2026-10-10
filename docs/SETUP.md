@@ -21,11 +21,11 @@ C:\AI\claude-local\               agents\claude-local\ (LOCAL-SYSTEM.md, mcp.jso
 powershell -ExecutionPolicy Bypass -File engine\build.ps1
 ```
 
-This needs git and Python on PATH. It downloads a portable toolchain and writes `C:\AI\llama.cpp\vulkan-intelfa\llama-server.exe`.
+This needs git and Python on PATH. It downloads a portable toolchain, checks and applies the two vendored Intel FA patches ([engine/patches/](../engine/patches/)) to llama.cpp b11524, and writes `C:\AI\llama.cpp\vulkan-intelfa\llama-server.exe`. Our own build log shows 3 min 21 s from start to `BUILD OK` on a run where the toolchain was already in place ([build.log](../data/raw/build.log)); a first run also downloads the toolchain. On Linux use [engine/build-linux.sh](../engine/build-linux.sh) (patch application verified; not run on Linux with an Arc GPU by the author). Background: [INTEL-FA.md](INTEL-FA.md).
 
 ## 2. Models
 
-Download the Qwen3.8-27B GGUF (UD-Q4_K_M), its `mmproj-F16` for vision, and the DFlash2 draft GGUF into `C:\AI\models\qwen3.8-27b\`. Optional extras: `Qwen3.8-27B-Q4_0.gguf` for the turbo variant, and an MTP draft for the 262K variant.
+Download `Qwen3.8-27B-UD-Q4_K_M.gguf` and `mmproj-F16.gguf` (vision) from [unsloth/Qwen3.8-27B-GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF) on Hugging Face, plus the DFlash2 draft GGUF (`Qwen3.8-27B-DFlash2-Q4_K_M.gguf`), into `C:\AI\models\qwen3.8-27b\`. We did not record where we downloaded the drafter from, so look for a Qwen3.8-27B DFlash2 draft on Hugging Face and check its licence; if you know the right source, please [tell us](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=bug.yml). Optional extras: `Qwen3.8-27B-Q4_0.gguf` for the turbo variant, and an MTP draft for the 262K variant.
 
 ## 3. Key and server
 
@@ -45,7 +45,7 @@ conhost.exe --headless powershell.exe -NoProfile -NonInteractive -ExecutionPolic
 
 ```powershell
 qwen doctor      # 26 checks: server, governor, VRAM headroom, no-context-shift, voice, Tailscale routes, tasks, agents, power, disks, last benchmark
-qwen bench       # 3-turn agent test at 30-37K context. Expect ~55 s, coding 7/7, tools 3/3
+qwen bench       # 3-turn agent test at 30-37K context. We measured 55-57 s, coding 7/7, tools 3/3 (details: INTEL-FA.md)
 qwen snapshot "first working config"
 ```
 
@@ -59,6 +59,10 @@ tailscale serve --bg --https=8445 --set-path=/governor/ C:\AI\governor\public  #
 ```
 
 Keep everything **tailnet-only**. Don't use `tailscale funnel` for the model API.
+
+## 5b. A chat UI, voice and tools (optional)
+
+[PLATFORM.md](PLATFORM.md) adds Open WebUI on top of this setup, with voice in and out ([VOICE.md](VOICE.md)), MCP tools and phone access over Tailscale, and the settings that keep it from disturbing the prompt cache.
 
 ## 6. Nightly regression (optional)
 

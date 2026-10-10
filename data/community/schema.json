@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://edagher92-coder.github.io/arc-llm-lab/data/community/schema.json",
+  "title": "arc-llm-lab community benchmark result",
+  "description": "One llama-bench run (prompt processing and token generation at several context depths) on one GPU. Written by bench/arc-bench.ps1 or bench/arc-bench.sh.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contributor", "date", "gpu", "vram_gb", "driver", "os", "backend", "llama_cpp_build", "patches", "model", "quant", "kv_cache", "depth_results"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contributor": { "type": "string", "minLength": 1, "description": "Name or handle to credit in the results table." },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Date of the run, YYYY-MM-DD." },
+    "gpu": { "type": "string", "minLength": 1, "examples": ["Intel Arc Pro B60 24GB", "Intel Arc B580 12GB", "Intel Arc A770 16GB"] },
+    "vram_gb": { "type": "number", "exclusiveMinimum": 0 },
+    "cpu": { "type": "string" },
+    "ram_gb": { "type": "number", "exclusiveMinimum": 0 },
+    "driver": { "type": "string", "minLength": 1, "examples": ["32.0.101.8976", "Mesa 26.1.0 (ANV)"] },
+    "os": { "type": "string", "minLength": 1, "examples": ["Windows 11 24H2", "Ubuntu 26.04"] },
+    "backend": { "type": "string", "minLength": 1, "examples": ["Vulkan", "SYCL", "OpenVINO"] },
+    "llama_cpp_build": { "type": "string", "minLength": 1, "description": "Build number and commit as printed by llama-bench, for example b11526 (c85e6c598).", "examples": ["b11524 (86a283532)"] },
+    "patches": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extra patches applied on top of the build, one entry per patch (commit SHA or name). Empty for an unpatched build."
+    },
+    "model": { "type": "string", "minLength": 1, "description": "Model name or GGUF file name.", "examples": ["Qwen3.8-27B-UD-Q4_K_M.gguf"] },
+    "quant": { "type": "string", "minLength": 1, "examples": ["UD-Q4_K_M", "Q4_K_M", "Q8_0"] },
+    "kv_cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k", "v"],
+      "properties": { "k": { "type": "string" }, "v": { "type": "string" } }
+    },
+    "flash_attn": { "type": "boolean" },
+    "flags": { "type": "string", "description": "The exact llama-bench flags used, including any environment variables." },
+    "depth_results": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Keyed by context depth in tokens (the llama-bench -d value). pp_tok_s is prompt processing (pp_tokens-token prompt) and tg_tok_s is generation (tg_tokens tokens), both at that depth.",
+      "patternProperties": {
+        "^[0-9]+$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pp_tok_s", "tg_tok_s"],
+          "properties": {
+            "pp_tok_s": { "type": "number", "minimum": 0 },
+            "tg_tok_s": { "type": "number", "minimum": 0 },
+            "pp_tokens": { "type": "integer", "minimum": 1, "default": 2048 },
+            "tg_tokens": { "type": "integer", "minimum": 1, "default": 32 },
+            "pp_stddev": { "type": "number", "minimum": 0 },
+            "tg_stddev": { "type": "number", "minimum": 0 }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "repeats": { "type": "integer", "minimum": 1, "description": "llama-bench -r value. One repeat means one run per cell." },
+    "raw_log_url": { "type": "string", "format": "uri", "description": "Link to the raw llama-bench output (gist, issue comment or file in this repository)." },
+    "notes": { "type": "string" }
+  }
+}

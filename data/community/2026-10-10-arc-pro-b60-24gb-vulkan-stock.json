@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "contributor": "Elie Dagher",
+  "date": "2026-10-10",
+  "gpu": "Intel Arc Pro B60 24GB",
+  "vram_gb": 24,
+  "cpu": "AMD Ryzen 7 3700X",
+  "ram_gb": 32,
+  "driver": "32.0.101.8976",
+  "os": "Windows 11",
+  "backend": "Vulkan",
+  "model": "Qwen3.8-27B-UD-Q4_K_M.gguf",
+  "quant": "UD-Q4_K_M",
+  "kv_cache": {
+    "k": "f16",
+    "v": "f16"
+  },
+  "flash_attn": true,
+  "repeats": 1,
+  "raw_log_url": "https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt",
+  "llama_cpp_build": "b11524 (86a283532)",
+  "patches": [],
+  "flags": "GGML_VK_FORCE_MMVQ=1 llama-bench -ngl 99 -lm dio -fa 1 -ctk f16 -ctv f16 -p 8,2048 -n 32 -d 0,16384,32768 -r 1",
+  "depth_results": {
+    "0": {
+      "pp_tok_s": 589.22,
+      "tg_tok_s": 16.01
+    },
+    "16384": {
+      "pp_tok_s": 198.44,
+      "tg_tok_s": 15.14
+    },
+    "32768": {
+      "pp_tok_s": 118.0,
+      "tg_tok_s": 14.45
+    }
+  },
+  "notes": "Maintainer's own run (bench/compare-f16.ps1): stock upstream llama.cpp b11524, built with Clang 20.1.8, same card and model as the Intel FA entry. One run per cell."
+}

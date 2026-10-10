@@ -1,11 +1,23 @@
 name: Benchmark result
-description: Share numbers from your Intel GPU so everyone can compare
+description: Share llama-bench numbers from your Intel GPU so everyone can compare
 title: "[bench] <GPU> <model> <backend>"
 labels: ["benchmark"]
 body:
   - type: markdown
     attributes:
-      value: "Thanks! Paste raw output where you can - raw logs make results trustworthy. Every accepted result is credited in docs/COMMUNITY-RESULTS.md."
+      value: |
+        Thanks! The easiest way is one command, which writes a JSON file for you:
+
+        - Windows: `powershell -ExecutionPolicy Bypass -File bench\arc-bench.ps1 -Model <model.gguf> -VramGb <N> -Contributor "<your name>"`
+        - Linux: `bench/arc-bench.sh -m <model.gguf> --vram-gb <N> --contributor "<your name>"`
+
+        Paste the JSON below, and the raw output if you can. Accepted results are added to [COMMUNITY-RESULTS.md](https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/COMMUNITY-RESULTS.md) with credit. Format: [schema.json](https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/community/schema.json).
+  - type: textarea
+    id: result_json
+    attributes:
+      label: Result JSON from arc-bench
+      description: The file the script wrote (it follows data/community/schema.json). Leave empty only if you ran llama-bench by hand.
+      render: json
   - type: input
     id: gpu
     attributes: { label: GPU, placeholder: "Arc Pro B60 24GB / Arc A770 16GB / Arc B580 12GB ..." }
@@ -16,22 +28,34 @@ body:
     validations: { required: true }
   - type: input
     id: build
-    attributes: { label: "llama.cpp build and backend", placeholder: "b11524 Vulkan + Intel FA (PR #29357) / SYCL / official release" }
+    attributes: { label: "llama.cpp build and backend", placeholder: "b11524 Vulkan + Intel FA patches / SYCL / official release" }
     validations: { required: true }
   - type: input
     id: model
-    attributes: { label: "Model and quant", placeholder: "Qwen3.8-27B UD-Q4_K_M, KV f16, drafter DFlash2 n=7" }
+    attributes: { label: "Model and quant", placeholder: "Qwen3.8-27B UD-Q4_K_M, KV f16" }
     validations: { required: true }
   - type: textarea
     id: bench
     attributes:
-      label: "llama-bench output (pp2048 / tg32 at depth 0, 16384, 32768 if possible)"
+      label: "Raw llama-bench output"
+      description: "pp2048 and tg32 at depth 0, 16384 and 32768 if possible. Required if you did not use the script. A number without a log can't be checked."
       render: text
   - type: textarea
     id: agent
     attributes:
-      label: "qwen bench output (3-turn agent test) - optional"
+      label: "qwen bench output (3-turn agent test), optional"
       render: text
   - type: textarea
     id: notes
-    attributes: { label: Notes, description: "Anything that helped or hurt: flags, VRAM free, power, temperatures" }
+    attributes: { label: Notes, description: "Anything that helped or hurt: flags, free VRAM, power, temperatures, extra patches" }
+  - type: input
+    id: credit
+    attributes: { label: "Name or handle to credit", description: "Shown in docs/COMMUNITY-RESULTS.md" }
+    validations: { required: true }
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Publishing
+      options:
+        - label: I'm happy for these numbers to be published in this repository under the name above.
+          required: true

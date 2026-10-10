@@ -12,8 +12,8 @@ $files = @(
   'C:\AI\tts\tts_server.py', 'C:\AI\bench\regression.ps1'
 )
 function Rel($p) { ($p -replace '^C:\\', '' -replace '\\', '/') }
-function G { & git -C $repo -c user.name='ARC-PC' -c user.email='local@arc-pc' @args }
-if (-not (Test-Path "$repo\.git")) { New-Item -ItemType Directory -Force $repo | Out-Null; G init -q -b main; G config core.autocrlf false; Set-Content "$repo\README.md" "Local config history for the ARC-PC Qwen stack. Managed by qwen snapshot / qwen rollback." }
+function G { & git -C $repo -c user.name='qwen-snapshot' -c user.email='qwen-snapshot@localhost' @args }
+if (-not (Test-Path "$repo\.git")) { New-Item -ItemType Directory -Force $repo | Out-Null; G init -q -b main; G config core.autocrlf false; Set-Content "$repo\README.md" "Local config history for the local Qwen stack. Managed by qwen snapshot / qwen rollback." }
 switch ($Action) {
   'snapshot' {
     foreach ($f in $files) { if (Test-Path $f) { $d = Join-Path $repo (Rel $f); New-Item -ItemType Directory -Force (Split-Path $d) | Out-Null; Copy-Item $f $d -Force } }

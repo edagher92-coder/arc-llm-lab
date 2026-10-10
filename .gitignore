@@ -7,3 +7,6 @@ evalsuite/work/
 evalsuite/results/*.progress.json
 venv/
 .venv/
+*.pyc
+bench/eval-*.json
+engine/build.log

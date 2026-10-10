@@ -1,0 +1,22 @@
+﻿== queue armed 2026-10-10T10:49:25
+== queue2 armed 2026-10-10T11:02:05
+== sustained-claude-48k start 2026-10-10T11:46:57
+== queue3 armed 2026-10-10T12:04:47
+== sustained-claude-48k end 2026-10-10T12:49:59
+== sustained-claude-64k start 2026-10-10T12:49:59
+== sustained-claude-64k end 2026-10-10T13:09:05
+== queue done 2026-10-10T13:09:06
+== codex python check: passed=True wall=68.1s turns=3 python_blocked=False
+== codex-32k start 2026-10-10T13:10:34
+== queue3b armed 2026-10-10T15:22:49
+== codex-32k end 2026-10-10T15:45:26
+== sustained-codex-48k start 2026-10-10T15:45:26
+== sustained-codex-48k end 2026-10-10T16:25:33
+== sustained-codex-64k start 2026-10-10T16:25:33
+== sustained-codex-64k end 2026-10-10T16:58:12
+== queue2 done 2026-10-10T16:58:13
+== claude-32k-v2 start 2026-10-10T16:58:52
+== claude-32k-v2 end 2026-10-10T18:21:39
+== sustained-claude-48k-v2 start 2026-10-10T18:21:39
+== queue3b stopped after claude-32k-v2 (v2 regressed); v1 config restored 2026-10-10T18:25:27
+== sustained-claude-48k-fixed start 2026-10-10T18:25:27

@@ -53,7 +53,7 @@ S["tool-pytest-count"] = _pt
 S["tool-git-log"] = lambda ws: A(ws, len(subprocess.run(["git", "log", "--format=%H", "--", "config.yaml"], cwd=ws, capture_output=True, text=True).stdout.split()))
 def _gb(ws):
     g = lambda *a: subprocess.run(["git", "-c", "user.name=x", "-c", "user.email=x@x"] + list(a), cwd=ws, check=True, capture_output=True)
-    g("checkout", "-q", "-b", "fix/readme-typo"); W(ws, "README.md", R(ws, "README.md").replace("Snowflwo", "FrostLine")); g("commit", "-qam", "Fix README typo"); g("checkout", "-q", "main")
+    g("checkout", "-q", "-b", "fix/readme-typo"); W(ws, "README.md", R(ws, "README.md").replace("Frostlnie", "FrostLine")); g("commit", "-qam", "Fix README typo"); g("checkout", "-q", "main")
 S["tool-git-branch"] = _gb
 S["tool-largest"] = lambda ws: A(ws, max((f for f in os.listdir(os.path.join(ws, "assets")) if os.path.isfile(os.path.join(ws, "assets", f))), key=lambda f: os.path.getsize(os.path.join(ws, "assets", f))))
 def _ip(ws):

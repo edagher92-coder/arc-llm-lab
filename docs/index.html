@@ -3,11 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>arc-llm-lab: Intel Arc Pro B60 LLM benchmarks</title>
-<meta name="description" content="A 27B coding agent on one Intel Arc Pro B60 24GB: llama.cpp Vulkan + Intel FA kernel, speculative decoding, 64K context, Claude Code and Codex local. Interactive benchmarks with raw data.">
-<meta property="og:title" content="arc-llm-lab: Intel Arc Pro B60 LLM benchmarks">
-<meta property="og:description" content="42 tok/s generation, 420 tok/s long-context reading, 64K context on a single 24GB Intel Arc card. Raw data and reproducible charts.">
-<meta property="og:image" content="https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/assets/social-preview.png">
+<title>Intel Arc LLM benchmarks: Arc Pro B60 24GB, llama.cpp Vulkan | arc-llm-lab</title>
+<meta name="description" content="Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: 42.3 tok/s Qwen3.8-27B generation, 420 tok/s prompt reading at 32K, agent reliability, community results.">
+<meta name="author" content="Elie Dagher">
+<meta name="keywords" content="Intel Arc, Arc Pro B60, B580, B570, Arc B50, Arc B70, A770, Battlemage, Xe2, Vulkan, llama.cpp, Ollama, LM Studio, local LLM, 24GB VRAM, Qwen 27B, speculative decoding, flash attention, benchmarks, Claude Code, Codex">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/">
+<meta property="og:title" content="Intel Arc LLM benchmarks: Arc Pro B60 24GB, llama.cpp Vulkan">
+<meta property="og:description" content="Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: 42.3 tok/s Qwen3.8-27B generation, 420 tok/s prompt reading at 32K, agent reliability, community results.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="arc-llm-lab: Intel Arc Pro B60 24GB running a 27B coding agent with llama.cpp Vulkan">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Intel Arc LLM benchmarks: Arc Pro B60 24GB, llama.cpp Vulkan">
+<meta name="twitter:description" content="Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: 42.3 tok/s Qwen3.8-27B generation, 420 tok/s prompt reading at 32K, agent reliability, community results.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "Dataset",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/#dataset",
+   "name": "arc-llm-lab benchmark data: llama.cpp on an Intel Arc Pro B60 24GB",
+   "description": "Raw and tabulated measurements of Qwen3.8-27B on a single Intel Arc Pro B60 24GB with llama.cpp on Vulkan: prompt-processing and generation speed by context depth, speculative-decoding sweep, VRAM budget, agent-turn timings, GPU comparison and peer results, with raw logs.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/",
+   "creator": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "license": "https://opensource.org/licenses/MIT",
+   "isAccessibleForFree": true,
+   "keywords": [
+    "Intel Arc",
+    "Arc Pro B60",
+    "B580",
+    "B570",
+    "Arc B50",
+    "Arc B70",
+    "A770",
+    "Battlemage",
+    "Xe2",
+    "Vulkan",
+    "llama.cpp",
+    "Ollama",
+    "LM Studio",
+    "local LLM",
+    "24GB VRAM",
+    "Qwen 27B",
+    "speculative decoding",
+    "flash attention",
+    "benchmarks",
+    "Claude Code",
+    "Codex"
+   ],
+   "datePublished": "2026-10-10",
+   "distribution": [
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/prompt-speed-vs-depth.csv"
+    },
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/speculative-decoding-sweep.csv"
+    },
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/agent-turns.csv"
+    },
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/vram-budget-64k.csv"
+    },
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/gpu-comparison.csv"
+    },
+    {
+     "@type": "DataDownload",
+     "encodingFormat": "text/csv",
+     "contentUrl": "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main/data/peer-benchmarks.csv"
+    }
+   ]
+  },
+  {
+   "@type": "SoftwareSourceCode",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code",
+   "name": "arc-llm-lab",
+   "description": "Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: 42.3 tok/s Qwen3.8-27B generation, 420 tok/s prompt reading at 32K, agent reliability, community results.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/",
+   "codeRepository": "https://github.com/edagher92-coder/arc-llm-lab",
+   "creator": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "license": "https://opensource.org/licenses/MIT",
+   "keywords": [
+    "Intel Arc",
+    "Arc Pro B60",
+    "B580",
+    "B570",
+    "Arc B50",
+    "Arc B70",
+    "A770",
+    "Battlemage",
+    "Xe2",
+    "Vulkan",
+    "llama.cpp",
+    "Ollama",
+    "LM Studio",
+    "local LLM",
+    "24GB VRAM",
+    "Qwen 27B",
+    "speculative decoding",
+    "flash attention",
+    "benchmarks",
+    "Claude Code",
+    "Codex"
+   ],
+   "programmingLanguage": [
+    "PowerShell",
+    "Python"
+   ],
+   "runtimePlatform": "Windows 11, Linux"
+  }
+ ]
+}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -32,8 +162,9 @@ h1 { font-size:clamp(34px,5vw,54px); line-height:1.05; letter-spacing:-.025em; m
 .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:30px 0 8px }
 .kpi { border-top:3px solid var(--line); padding:14px 2px 6px }
 .kpi.hot { border-top-color:var(--opt) }
-.kpi b { display:block; font-size:34px; letter-spacing:-.02em; font-weight:800 }
+.kpi b { display:block; font-size:clamp(28px,2.4vw,31px); letter-spacing:-.02em; font-weight:800 }
 .kpi span { color:var(--ink2); font-size:14px }
+.kpi b .nb { display:inline; color:inherit; font-size:inherit; white-space:nowrap }
 section { padding:40px 0 10px; border-top:1px solid var(--grid); margin-top:36px }
 h2 { font-size:26px; letter-spacing:-.015em; margin:0 0 6px }
 .sub { color:var(--ink2); margin:0 0 18px; max-width:72ch }
@@ -50,6 +181,12 @@ h2 { font-size:26px; letter-spacing:-.015em; margin:0 0 6px }
 details { margin-top:10px; color:var(--ink2); font-size:14px }
 details table { border-collapse:collapse; margin-top:8px; width:100%; font-size:13.5px }
 details th, details td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--grid) }
+.tablewrap { overflow-x:auto; -webkit-overflow-scrolling:touch }
+.tablewrap table { border-collapse:collapse; min-width:100%; font-size:14px }
+.tablewrap th, .tablewrap td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--grid); vertical-align:top }
+.tablewrap th { color:var(--ink2); font-weight:600; white-space:nowrap }
+.note { color:var(--ink2); font-size:14px; max-width:80ch }
+.navlinks { display:flex; flex-wrap:wrap; gap:6px 18px; margin:10px 0 0; padding:0; list-style:none; font-size:15px }
 .race { display:grid; grid-template-columns:1fr 1fr; gap:14px }
 .term { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-height:250px; position:relative }
 .term h3 { margin:0 0 10px; font-size:14px; display:flex; align-items:center; gap:8px }
@@ -60,7 +197,9 @@ details th, details td { text-align:left; padding:6px 8px; border-bottom:1px sol
 .toggle { display:inline-flex; gap:8px; align-items:center; font-size:14px; color:var(--ink2) }
 .toggle input { accent-color:var(--opt); width:18px; height:18px }
 footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px solid var(--grid); margin-top:40px }
-@media (max-width:720px) { .race { grid-template-columns:1fr } header { padding-top:32px } }
+.chartwrap { overflow-x:auto; -webkit-overflow-scrolling:touch }
+.swipe { display:none; margin:2px 0 0; font-size:12px }
+@media (max-width:720px) { .race { grid-template-columns:1fr } header { padding-top:32px } svg.chart { min-width:680px } .swipe { display:block } .tablewrap table { min-width:640px } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto } .tip { transition:none } }
 </style>
 </head>
@@ -68,27 +207,50 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
 <div class="tip" id="tip" role="tooltip"></div>
 <div class="wrap">
 <header>
-  <h1>A 27B coding agent on one Intel Arc Pro B60</h1>
-  <p class="lede">llama.cpp on Vulkan with Intel's flash-attention kernel and a speculative draft model. Claude Code and Codex run fully local on a 24GB card. Every number below links to its raw log.</p>
+  <h1>Local LLMs on Intel Arc: a 27B coding agent on one Arc Pro B60 24GB</h1>
+  <p class="lede">llama.cpp on Vulkan with Intel's flash-attention prefill kernel and a speculative draft model. Claude Code and Codex run fully local on a 24GB Intel Arc card. Raw logs, versions and caveats are published; the few figures without a log are marked.</p>
   <div class="links">
     <a class="btn primary" href="https://github.com/edagher92-coder/arc-llm-lab">View on GitHub</a>
     <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">Raw data</a>
+    <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/PEERS.md">Compare with other B60 results</a>
     <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">Add your card</a>
   </div>
   <div class="kpis">
-    <div class="kpi hot"><b>42.3 tok/s</b><span>generation on coding tasks, up from 16 (2.6×)</span></div>
-    <div class="kpi"><b>420 tok/s</b><span>reading new input at 32K context, up from 118 (3.6×)</span></div>
-    <div class="kpi"><b>201 s → 55 s</b><span>three agent turns at 30–37K context</span></div>
-    <div class="kpi"><b>64K</b><span>context, with 1.59 GiB VRAM spare</span></div>
+    <div class="kpi hot"><b>42.3 tok/s</b><span>eval-suite throughput (wall-clock, prompt processing included) with the DFlash2 draft model; per-request decode 47&ndash;58 tok/s, mean 53.3 (16.0 without a drafter, llama-bench tg32)</span></div>
+    <div class="kpi"><b>420 tok/s</b><span>reading new input at 32K context, up from 118 on stock llama.cpp (3.6×)</span></div>
+    <div class="kpi"><b>201 s&dagger; <span class="nb">&rarr; 55&ndash;57 s</span></b><span>three agent turns at 30&ndash;37K context</span></div>
+    <div class="kpi"><b>up to 64K</b><span>context window (57&ndash;61K typical while the PC is in use)</span></div>
   </div>
+  <p class="note">&Dagger; 42.3 tok/s is eval-suite throughput: generated tokens divided by total wall-clock across the 8 eval requests (7 coding tasks and 1 web page), prompt processing and HTTP included. The per-request server decode speeds in the same run average 53.3 tok/s (range 47&ndash;58). We quote 42.3 as the conservative headline. 16.0 tok/s is <code>llama-bench</code> tg32 with no drafter, a different measurement. All speed figures are single runs unless noted.<br>&dagger; Observed before logging was in place; the raw log was not retained and a re-run is planned. 55&ndash;57 s: 54.9 s on the first Intel FA build, 56.7 s on the final tuned configuration (57,344 context). 64K is the configured maximum; the logged runs loaded 61,440 and 57,344 tokens.</p>
 </header>
+
+<section id="at-a-glance">
+  <h2>The results in text</h2>
+  <p class="sub">One Intel Arc Pro B60 24GB, Qwen3.8-27B Q4_K_M, llama.cpp on Vulkan (upstream b11524 plus Intel's two FA prefill commits). Versions and flags: <a href="https://github.com/edagher92-coder/arc-llm-lab#versions-used">README, Versions used</a>.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Measure</th><th>Stock llama.cpp Vulkan</th><th>arc-llm-lab</th><th>Raw data</th></tr></thead>
+    <tbody>
+      <tr><td>Generation speed</td><td>16.0 tok/s &Dagger; (no draft model, llama-bench tg32)</td><td><b>42.3 tok/s</b> (DFlash2 draft model, n=7; eval-suite throughput, wall-clock, prompt processing included; per-request decode 47&ndash;58, mean 53.3) &Dagger;</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a></td></tr>
+      <tr><td>Prompt reading at 32K context</td><td>118 tok/s</td><td><b>420 tok/s</b> (f16 KV cache only)</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a></td></tr>
+      <tr><td>3 agent turns at 30&ndash;37K</td><td>201 s&dagger;</td><td><b>55&ndash;57 s</b></td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-test.txt">server-test.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/bench-history.csv">bench-history.csv</a></td></tr>
+      <tr id="glance-rel"><td>100-task hidden-checker agent eval, 32K window</td><td>n/a</td><td id="glance-rel-val"><b>97/100</b> (Claude Code @32K, single run, 95% CI 91.5&ndash;99%), 1.54 completed tasks/min</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">RELIABILITY.md</a></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="cards">
+  <h2>Which Intel Arc card, and which model fits?</h2>
+  <p class="sub">Only the Arc Pro B60 row is measured. The rest are specifications and arithmetic: &ldquo;fits&rdquo; is an <b>ESTIMATE</b> for a 16.46 GB Qwen3.8-27B Q4_K_M weights file plus its drafter, buffers and a 32K f16 KV cache (about 2 GiB), roughly 21 GB in all. Rule of thumb for other models: the GGUF file should be no larger than your VRAM minus about 3 GiB.</p>
+  <div class="tablewrap"><table><thead><tr><th>Card</th><th>VRAM</th><th>Bandwidth</th><th>AU price (dated)</th><th>27B Q4 + 32K context fits?</th><th>Measured</th></tr></thead><tbody><tr><td>Arc B570</td><td>10 GB</td><td>380 GB/s</td><td>no sourced price</td><td>no (ESTIMATE)</td><td>not measured</td></tr><tr><td>Arc B580</td><td>12 GB</td><td>456 GB/s</td><td><a href="https://gpuprix.com/australia/gpus/arc-b580">A$419</a> (2026-10-07)</td><td>no (ESTIMATE)</td><td>not measured</td></tr><tr><td>Arc Pro B50</td><td>16 GB</td><td>224 GB/s</td><td>no sourced price</td><td>no (ESTIMATE)</td><td>not measured</td></tr><tr><td>Arc A770 16GB</td><td>16 GB</td><td>560 GB/s</td><td><a href="https://gpuprix.com/australia/gpus/arc-a770">A$540</a> (2026-09-30)</td><td>no (ESTIMATE)</td><td>not measured</td></tr><tr><td>Arc Pro B60</td><td>24 GB</td><td>456 GB/s</td><td><a href="https://gpuprix.com/australia/gpus/arc-pro-b60">A$1240</a> (2026-10-07)</td><td>yes (measured)</td><td><b>16.0 tok/s</b>, 42.3 with the draft model</td></tr><tr><td>Arc Pro B70</td><td>32 GB</td><td>608 GB/s</td><td>no sourced price</td><td>yes (ESTIMATE)</td><td>not measured</td></tr></tbody></table></div>
+  <p class="note">Specs are from the sources named in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/gpu-comparison-notes.md">gpu-comparison-notes.md</a>; prices are Australian street prices on the stated dates. A passive B60 listing (A$999 including GST, PCCaseGear, 2026-10-10) needs strong case airflow.</p>
+</section>
 
 <section id="race">
   <h2>See the difference</h2>
-  <p class="sub">The same code, replayed at the two measured generation speeds on the same card and model.</p>
+  <p class="sub">The same code, replayed at two measured generation speeds on the same card and model. 16.0 tok/s is llama-bench tg32 with no draft model; 42.3 tok/s is eval-suite throughput (generated tokens over total wall-clock, prompt processing included) with the DFlash2 draft model; per-request decode ran 47 to 58 tok/s, mean 53.3.</p>
   <div class="race">
-    <div class="term"><h3><i style="background:var(--stock)"></i>Stock llama.cpp Vulkan, 16.0 tok/s</h3><pre id="t0"></pre><div class="done" id="d0" style="color:var(--stock)"></div></div>
-    <div class="term"><h3><i style="background:var(--opt)"></i>arc-llm-lab, 42.3 tok/s</h3><pre id="t1"></pre><div class="done" id="d1" style="color:var(--opt)"></div></div>
+    <div class="term"><h3><i style="background:var(--stock)"></i>No draft model, 16.0 tok/s</h3><pre id="t0"></pre><div class="done" id="d0" style="color:var(--stock)"></div></div>
+    <div class="term"><h3><i style="background:var(--opt)"></i>With DFlash2 draft model, 42.3 tok/s</h3><pre id="t1"></pre><div class="done" id="d1" style="color:var(--opt)"></div></div>
   </div>
   <div class="controls"><button class="btn" id="replay" type="button">Replay</button></div>
 </section>
@@ -97,14 +259,14 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
   <h2>Long context: the Intel FA kernel, with f16 KV only</h2>
   <p class="sub">Prompt processing speed (llama-bench pp2048) as the conversation grows. Hover or tab to a point for values.</p>
   <div class="legend" id="lg-depth"></div>
-  <svg class="chart" id="c-depth" viewBox="0 0 900 380" role="img" aria-label="Prompt processing speed versus context depth"></svg>
+  <div class="chartwrap"><svg class="chart" id="c-depth" viewBox="0 0 900 380" role="img" aria-label="Prompt processing speed versus context depth"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
   <details><summary>Data table and source</summary><div id="tb-depth"></div><p>Raw: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-q4.txt">compare-q4.txt</a></p></details>
 </section>
 
 <section id="spec">
-  <h2>Speculative decoding: biggest win, until VRAM runs out</h2>
-  <p class="sub">DFlash2 draft model at different draft lengths. Every setting kept 7/7 coding and 3/3 tool-call quality. Below about 1.1 GiB free VRAM, generation collapses.</p>
-  <svg class="chart" id="c-spec" viewBox="0 0 900 340" role="img" aria-label="Generation speed by speculative draft length"></svg>
+  <h2>Speculative decoding: the biggest win for generation speed</h2>
+  <p class="sub">DFlash2 draft model at different draft lengths. Every setting kept 7/7 coding and 3/3 tool-call quality. n=15 left 0.96 GiB of VRAM free and fell to 27 tok/s (cause not isolated).</p>
+  <div class="chartwrap"><svg class="chart" id="c-spec" viewBox="0 0 900 340" role="img" aria-label="Generation speed by speculative draft length"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
   <details><summary>Data table and source</summary><div id="tb-spec"></div><p>Raw: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a></p></details>
 </section>
 
@@ -112,31 +274,48 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
   <h2>Compared with other cards</h2>
   <p class="sub">First: price against VRAM, using Australian street prices from the sources shown (cards without a reliable AUD price aren't plotted). Second: each card's no-drafter generation ceiling (memory bandwidth ÷ 16.46 GB of weights), an estimate, against what the B60 actually measured.</p>
   <div class="toggle"><label class="toggle"><input type="checkbox" id="showTheo" checked> Show theoretical ceilings</label></div>
-  <svg class="chart" id="c-price" viewBox="0 0 900 360" role="img" aria-label="GPU price versus VRAM"></svg>
-  <svg class="chart" id="c-ceil" viewBox="0 0 900 360" role="img" aria-label="Generation ceiling by GPU versus measured B60"></svg>
-  <details><summary>Data table, method and sources</summary><div id="tb-gpu"></div><p>Method: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/gpu-comparison-notes.md">gpu-comparison-notes.md</a>. Specs: TechPowerUp GPU database.</p></details>
+  <div class="chartwrap"><svg class="chart" id="c-price" viewBox="0 0 900 360" role="img" aria-label="GPU price versus VRAM"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
+  <div class="chartwrap"><svg class="chart" id="c-ceil" viewBox="0 0 900 360" role="img" aria-label="Generation ceiling by GPU versus measured B60"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
+  <details><summary>Data table, method and sources</summary><div id="tb-gpu"></div><p>Method: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/gpu-comparison-notes.md">gpu-comparison-notes.md</a>. Spec sources are named per card in the CSV (mostly the TechPowerUp GPU database).</p></details>
+</section>
+
+<section id="community">
+  <h2>Community results</h2>
+  <p class="sub">Numbers from real Intel GPUs, measured with <code>llama-bench</code> by one script. Self-reported unless the notes say otherwise. <a href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">Add your card</a> or see <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/GOOD-FIRST-ISSUES.md">what we most want to see</a>.</p>
+  <div class="tablewrap"><table><thead><tr><th>GPU</th><th>Backend / build</th><th>Patches</th><th>Model</th><th>Depths</th><th>pp (tok/s)</th><th>tg (tok/s)</th><th>Driver / OS</th><th>By</th></tr></thead><tbody><tr><td>Intel Arc Pro B60 24GB <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">log</a></td><td>Vulkan b11524 (86a283532)</td><td>none</td><td>Qwen3.8-27B-UD-Q4_K_M.gguf (KV f16/f16)</td><td>empty / 16K / 32K</td><td>589 / 198 / 118</td><td>16.01 / 15.14 / 14.45</td><td>32.0.101.8976, Windows 11</td><td>Elie Dagher</td></tr><tr><td>Intel Arc Pro B60 24GB <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">log</a></td><td>Vulkan b11526 (c85e6c598)</td><td>2</td><td>Qwen3.8-27B-UD-Q4_K_M.gguf (KV f16/f16)</td><td>empty / 16K / 32K</td><td>653 / 513 / 420</td><td>16.05 / 15.20 / 14.46</td><td>32.0.101.8976, Windows 11</td><td>Elie Dagher</td></tr></tbody></table></div>
+  <p class="note">pp is prompt processing of 2048 tokens and tg is generation of 32 tokens, in tokens per second, at the stated context depths. No speculative decoding. Full table with notes: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/COMMUNITY-RESULTS.md">COMMUNITY-RESULTS.md</a>.</p>
 </section>
 
 <section id="vram">
   <h2>Where 24GB goes at 64K context</h2>
-  <p class="sub">23.88 GiB usable. The governor always keeps at least 1.35–1.5 GiB free.</p>
-  <svg class="chart" id="c-vram" viewBox="0 0 900 150" role="img" aria-label="VRAM budget at 64K context"></svg>
+  <p class="sub">23.88 GiB usable. This is the budget for a 64K load; the logged runs loaded 61,440 and 57,344 tokens. The governor aims to keep 1.35 GiB or more free as a precaution.</p>
+  <div class="chartwrap"><svg class="chart" id="c-vram" viewBox="0 0 900 150" role="img" aria-label="VRAM budget at 64K context"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
 </section>
 
 <section id="reliability">
   <h2>Reliability: 100 real agent tasks</h2>
   <p class="sub">Coding, debugging, tool use, file operations, long-context retrieval, business maths and error recovery, each scored by hidden checkers. The headline metric is completed tasks per minute.</p>
   <div id="rel"></div>
-  <svg class="chart" id="c-rel" viewBox="0 0 900 300" role="img" aria-label="Pass rate by task category"></svg>
+  <div class="chartwrap"><svg class="chart" id="c-rel" viewBox="0 0 900 300" role="img" aria-label="Pass rate by task category"></svg></div><p class="note swipe">Swipe sideways to see the whole chart.</p>
 </section>
 
 <footer>
-  Built and measured by Elie Dagher on an Arc Pro B60 24GB, Ryzen 7 3700X, Windows 11. Charts are generated from <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">data/</a> by <code>tools/build_site.py</code>. MIT licensed.
+  <ul class="navlinks">
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab">Repository</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/SETUP.md">Setup</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/INTEL-FA.md">Intel FA kernel</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/TUNING-LOG.md">Tuning log</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/TOKEN-EFFICIENCY.md">Token efficiency</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/PLATFORM.md">Chat UI, voice and tools</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">Reliability</a></li>
+    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/FAQ.md">FAQ</a></li>
+  </ul>
+  <p>Built and measured by Elie Dagher on an Arc Pro B60 24GB, Ryzen 7 3700X, Windows 11. Charts and tables are generated from <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">data/</a> by <code>tools/build_site.py</code>. MIT licensed. Cite via <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/CITATION.cff">CITATION.cff</a>.</p>
 </footer>
 </div>
 
 <script>
-const D = {"depth":[{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"589.22","pp8_tok_s":"81.57","tg32_tok_s":"16.01","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"198.44","pp8_tok_s":"22.37","tg32_tok_s":"15.14","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"118.00","pp8_tok_s":"13.14","tg32_tok_s":"14.45","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"653.28","pp8_tok_s":"82.15","tg32_tok_s":"16.05","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"513.33","pp8_tok_s":"69.99","tg32_tok_s":"15.20","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"420.05","pp8_tok_s":"63.24","tg32_tok_s":"14.46","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.03","pp8_tok_s":"81.41","tg32_tok_s":"15.82","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.92","pp8_tok_s":"26.82","tg32_tok_s":"12.01","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.91","pp8_tok_s":"16.28","tg32_tok_s":"9.71","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.44","pp8_tok_s":"81.57","tg32_tok_s":"15.86","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.90","pp8_tok_s":"26.91","tg32_tok_s":"12.09","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.87","pp8_tok_s":"16.31","tg32_tok_s":"9.73","source":"raw/compare-q4.txt"}],"sweep":[{"setting":"no drafter","draft_n_max":"0","ubatch":"512","draft_kv":"-","code_avg_tok_s":"16.05","chat_tok_s":"","free_vram_gib":"","coding_pass":"","tools_pass":"","note":"llama-bench tg32 (no speculative decoding)","source":"raw/compare-f16.txt"},{"setting":"DFlash2 n=5","draft_n_max":"5","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"41.4","chat_tok_s":"44.06","free_vram_gib":"1.04","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=7 (chosen)","draft_n_max":"7","ubatch":"256","draft_kv":"q8_0","code_avg_tok_s":"42.3","chat_tok_s":"41.64","free_vram_gib":"1.59","coding_pass":"7/7","tools_pass":"3/3","note":"ub256 + q8 draft KV frees 0.55 GiB for 64K context","source":"raw/tune.txt"},{"setting":"DFlash2 n=10","draft_n_max":"10","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"42.2","chat_tok_s":"43.39","free_vram_gib":"1.23","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=15","draft_n_max":"15","ubatch":"512","draft_kv":"f16","code_avg_tok_s":"27.0","chat_tok_s":"28.56","free_vram_gib":"0.96","coding_pass":"7/7","tools_pass":"3/3","note":"VRAM starved (<1.1 GiB free) - generation collapses","source":"raw/tune.txt"}],"gpus":[{"gpu":"Intel Arc B580","vram_gb":"12","bandwidth_gbs":"456","price_aud":"419","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-b580","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"Intel Arc A770 16GB","vram_gb":"16","bandwidth_gbs":"560","price_aud":"540","price_date":"2026-09-30","price_source":"https://gpuprix.com/australia/gpus/arc-a770","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"Intel Arc Pro B60","vram_gb":"24","bandwidth_gbs":"456","price_aud":"1240","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-pro-b60","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"27.7","measured_decode_tok_s":"16.0","measured_with_drafter_tok_s":"42.3"},{"gpu":"NVIDIA RTX 3090","vram_gb":"24","bandwidth_gbs":"936","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"56.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"AMD RX 7900 XTX","vram_gb":"24","bandwidth_gbs":"960","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"58.3","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"NVIDIA RTX 4090","vram_gb":"24","bandwidth_gbs":"1008","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"61.2","measured_decode_tok_s":"","measured_with_drafter_tok_s":""},{"gpu":"NVIDIA RTX 5090","vram_gb":"32","bandwidth_gbs":"1792","price_aud":"5999","price_date":"2026-03","price_source":"https://www.glukhov.org/hardware/gpu/nvidia-rtx-5080-rtx-5090-prices-march-2026/","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"108.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":""}],"vram":[{"segment":"Model weights + DFlash2 drafter + buffers","gib":"17.15","note":"Qwen3.8-27B UD-Q4_K_M + DFlash2 Q4_K_M draft (q8_0 draft KV)"},{"segment":"KV cache 64K tokens (f16)","gib":"4.03","note":"64.5 KiB per token x 65536"},{"segment":"Other apps (Windows desktop)","gib":"1.10","note":"measured during tuning"},{"segment":"Free headroom","gib":"1.59","note":"generation collapses below ~1.1 GiB free"}],"turns":[{"config":"stock Vulkan + drafter (before Intel FA)","context_depth_tokens":"30000-37000","three_turn_wall_s":"201","turn_prompt_tok_s":"~100","turn_gen_tok_s":"~11","source":"observed (README history; raw log not retained)"},{"config":"Intel FA f16 KV (first build)","context_depth_tokens":"30000-37000","three_turn_wall_s":"54.9","turn_prompt_tok_s":"357-389","turn_gen_tok_s":"36-45","source":"raw/server-test.txt"},{"config":"Intel FA f16 KV live 61K ctx","context_depth_tokens":"30000-37000","three_turn_wall_s":"52.2","turn_prompt_tok_s":"377","turn_gen_tok_s":"43.9","source":"raw/bench-history.csv"},{"config":"Intel FA tuned 64K ctx (final)","context_depth_tokens":"30000-37000","three_turn_wall_s":"56.7","turn_prompt_tok_s":"333","turn_gen_tok_s":"42.2","source":"raw/bench-history.csv"}],"reliability":null};
+const D = {"depth":[{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"589.22","pp8_tok_s":"81.57","tg32_tok_s":"16.01","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"198.44","pp8_tok_s":"22.37","tg32_tok_s":"15.14","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"118.00","pp8_tok_s":"13.14","tg32_tok_s":"14.45","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"0","pp2048_tok_s":"653.28","pp8_tok_s":"82.15","tg32_tok_s":"16.05","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"16384","pp2048_tok_s":"513.33","pp8_tok_s":"69.99","tg32_tok_s":"15.20","source":"raw/compare-f16.txt"},{"config":"intel-fa","kv_cache":"f16","depth_tokens":"32768","pp2048_tok_s":"420.05","pp8_tok_s":"63.24","tg32_tok_s":"14.46","source":"raw/compare-f16.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.03","pp8_tok_s":"81.41","tg32_tok_s":"15.82","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.92","pp8_tok_s":"26.82","tg32_tok_s":"12.01","source":"raw/compare-q4.txt"},{"config":"stock-vulkan","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.91","pp8_tok_s":"16.28","tg32_tok_s":"9.71","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"0","pp2048_tok_s":"584.44","pp8_tok_s":"81.57","tg32_tok_s":"15.86","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"16384","pp2048_tok_s":"181.90","pp8_tok_s":"26.91","tg32_tok_s":"12.09","source":"raw/compare-q4.txt"},{"config":"intel-fa","kv_cache":"q4_0","depth_tokens":"32768","pp2048_tok_s":"100.87","pp8_tok_s":"16.31","tg32_tok_s":"9.73","source":"raw/compare-q4.txt"}],"sweep":[{"setting":"no drafter","draft_n_max":"0","ubatch":"512","draft_kv":"-","eval_tok_s":"16.05","chat_tok_s":"","free_vram_gib":"","coding_pass":"","tools_pass":"","note":"llama-bench tg32 (no speculative decoding)","source":"raw/compare-f16.txt"},{"setting":"DFlash2 n=5","draft_n_max":"5","ubatch":"512","draft_kv":"f16","eval_tok_s":"41.4","chat_tok_s":"44.06","free_vram_gib":"1.04","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=7 (chosen)","draft_n_max":"7","ubatch":"256","draft_kv":"q8_0","eval_tok_s":"42.3","chat_tok_s":"41.64","free_vram_gib":"1.59","coding_pass":"7/7","tools_pass":"3/3","note":"ub256 + q8 draft KV frees 0.55 GiB for 64K context; eval_tok_s = generated tokens / total wall-clock over the 8 eval requests (7 coding + 1 web page; prompt processing and HTTP included); per-request server decode 47-58 tok/s mean 53.3","source":"raw/tune.txt"},{"setting":"DFlash2 n=10","draft_n_max":"10","ubatch":"512","draft_kv":"f16","eval_tok_s":"42.2","chat_tok_s":"43.39","free_vram_gib":"1.23","coding_pass":"7/7","tools_pass":"3/3","note":"","source":"raw/tune.txt"},{"setting":"DFlash2 n=15","draft_n_max":"15","ubatch":"512","draft_kv":"f16","eval_tok_s":"27.0","chat_tok_s":"28.56","free_vram_gib":"0.96","coding_pass":"7/7","tools_pass":"3/3","note":"0.96 GiB free; generation fell (cause not isolated: draft length and free VRAM changed together)","source":"raw/tune.txt"}],"gpus":[{"gpu":"Intel Arc B570","vram_gb":"10","bandwidth_gbs":"380","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://flopper.io/compare/intel-arc-b570-10gb-vs-intel-arc-pro-b50-16gb"},{"gpu":"Intel Arc B580","vram_gb":"12","bandwidth_gbs":"456","price_aud":"419","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-b580","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"Intel Arc Pro B50","vram_gb":"16","bandwidth_gbs":"224","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://flopper.io/compare/intel-arc-b570-10gb-vs-intel-arc-pro-b50-16gb"},{"gpu":"Intel Arc A770 16GB","vram_gb":"16","bandwidth_gbs":"560","price_aud":"540","price_date":"2026-09-30","price_source":"https://gpuprix.com/australia/gpus/arc-a770","fits_27b_q4_32k":"no","theoretical_decode_tok_s":"","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"Intel Arc Pro B60","vram_gb":"24","bandwidth_gbs":"456","price_aud":"1240","price_date":"2026-10-07","price_source":"https://gpuprix.com/australia/gpus/arc-pro-b60","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"27.7","measured_decode_tok_s":"16.0","measured_with_drafter_tok_s":"42.3","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"Intel Arc Pro B70","vram_gb":"32","bandwidth_gbs":"608","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"36.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.storagereview.com/review/intel-arc-pro-b70-review"},{"gpu":"NVIDIA RTX 3090","vram_gb":"24","bandwidth_gbs":"936","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"56.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"AMD RX 7900 XTX","vram_gb":"24","bandwidth_gbs":"960","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"58.3","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"NVIDIA RTX 4090","vram_gb":"24","bandwidth_gbs":"1008","price_aud":"","price_date":"","price_source":"","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"61.2","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"},{"gpu":"NVIDIA RTX 5090","vram_gb":"32","bandwidth_gbs":"1792","price_aud":"5999","price_date":"2026-03","price_source":"https://www.glukhov.org/hardware/gpu/nvidia-rtx-5080-rtx-5090-prices-march-2026/","fits_27b_q4_32k":"yes","theoretical_decode_tok_s":"108.9","measured_decode_tok_s":"","measured_with_drafter_tok_s":"","spec_source":"https://www.techpowerup.com/gpu-specs/"}],"vram":[{"segment":"Model weights + DFlash2 drafter + buffers","gib":"17.15","note":"Qwen3.8-27B UD-Q4_K_M + DFlash2 Q4_K_M draft (q8_0 draft KV)"},{"segment":"KV cache 64K tokens (f16)","gib":"4.03","note":"64.5 KiB per token x 65536"},{"segment":"Other apps (Windows desktop)","gib":"1.10","note":"measured during tuning"},{"segment":"Free headroom","gib":"1.59","note":"rule of thumb: keep at least 1.1 GiB free (one run with 0.96 GiB free slowed to 27 tok/s; threshold not isolated)"}],"turns":[{"config":"stock Vulkan + drafter (before Intel FA)","context_depth_tokens":"30000-37000","three_turn_wall_s":"201","turn_prompt_tok_s":"~100","turn_gen_tok_s":"~11","source":"observed before logging; raw log not retained"},{"config":"Intel FA f16 KV (first build)","context_depth_tokens":"30000-37000","three_turn_wall_s":"54.9","turn_prompt_tok_s":"357-389","turn_gen_tok_s":"36-45","source":"raw/server-test.txt"},{"config":"Intel FA f16 KV live 61K ctx","context_depth_tokens":"30000-37000","three_turn_wall_s":"52.2","turn_prompt_tok_s":"377","turn_gen_tok_s":"43.9","source":"raw/bench-history.csv"},{"config":"Intel FA tuned (final; ctx 57344 loaded)","context_depth_tokens":"30000-37000","three_turn_wall_s":"56.7","turn_prompt_tok_s":"333","turn_gen_tok_s":"42.2","source":"raw/bench-history.csv"}],"reliability":{"generated":"2026-10-10","note":"Single run per agent on the 100-task suite; categories pool Claude Code @32K and Codex @32K (n=40 coding/debugging, 30 tool/files, 20 others). Codex files-extract-emails re-scored as pass after the BOM-tolerant checker fix (evalsuite/results/rescore-bom.json).","runs":{"claude-32k":{"agent":"claude","tasks":100,"passed":97,"completed_per_min":1.54,"median_pass_s":24.2,"wall_min":63.2,"cache_hit_pct":92.2,"prompt_tok_per_pass":3425,"gen_tok_per_pass":1003,"model_reloads":0,"failures":[["long-needle-log","wrong_result"],["long-contract-clause","wrong_result"],["files-tabs-to-spaces","wrong_result"]]},"codex-32k":{"agent":"codex","tasks":100,"passed":95,"completed_per_min":0.62,"median_pass_s":69.6,"wall_min":152.3,"cache_hit_pct":83.7,"prompt_tok_per_pass":18217,"gen_tok_per_pass":900,"model_reloads":0,"failures":[["tool-git-branch","timeout"],["debug-bsearch","timeout"],["biz-price-update","api_error"],["tool-unique-suburbs","api_error"],["recover-circular-import","api_error"]]},"claude-32k-v2 (rejected config)":{"agent":"claude-v2","tasks":100,"passed":93,"completed_per_min":1.13,"median_pass_s":22.7,"wall_min":82.2,"cache_hit_pct":91.4,"prompt_tok_per_pass":4030,"gen_tok_per_pass":1170,"model_reloads":3,"failures":[["long-needle-log","wrong_result"],["recover-wrong-path","timeout"],["long-contract-clause","context_overflow"],["files-license-header","wrong_result"],["long-count-decorated","wrong_result"],["tool-json-sum","max_turns"],["files-tabs-to-spaces","wrong_result"]]}},"categories":{"coding":{"pass_rate":1.0,"attempts":40,"median_s":63.9,"tier":"Autonomous (provisional)"},"debugging":{"pass_rate":0.975,"attempts":40,"median_s":42.7,"tier":"Autonomous (provisional)"},"fileops":{"pass_rate":0.967,"attempts":30,"median_s":62.4,"tier":"Supervised","note":"capped at Supervised: one destructive overwrite (files-tabs-to-spaces) in the Claude Code run"},"business":{"pass_rate":0.95,"attempts":20,"median_s":66.5,"tier":"Autonomous (provisional)"},"recovery":{"pass_rate":0.95,"attempts":20,"median_s":39.6,"tier":"Autonomous (provisional)"},"tool calling":{"pass_rate":0.933,"attempts":30,"median_s":47.3,"tier":"Supervised"},"longctx":{"pass_rate":0.9,"attempts":20,"median_s":58.6,"tier":"Supervised"}},"sustained":{"codex-48k":"10/10 (steps 1-9 own tests pass; step-10 memory probe correct, re-scored after BOM fix)","codex-64k":"10/10 (same)","claude-48k/64k v1 spec":"steps 1-4 pass; steps 5-10 invalid (harness spec defect, fixed); re-run on fixed spec in progress"}}};
 const NS = 'http://www.w3.org/2000/svg';
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const tip = document.getElementById('tip');
@@ -151,8 +330,11 @@ function bindTip(node, html) {
 }
 function table(id, head, body) {
   const t = document.createElement('table'); t.innerHTML = '<thead><tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>' + body.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody>';
-  document.getElementById(id).replaceChildren(t);
+  const w = document.createElement('div'); w.className = 'tablewrap'; w.appendChild(t);
+  document.getElementById(id).replaceChildren(w);
 }
+// one decimal, or two when the value really has two (16.05 must not be shown as 16.1)
+const fmtTok = v => Math.abs(v * 10 - Math.round(v * 10)) < 1e-6 ? v.toFixed(1) : v.toFixed(2);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---- token race ---- */
@@ -195,14 +377,14 @@ function spec() {
   const n = D.sweep.length, bw = 90, gap = (820 - n * bw) / (n + 1), Y = v => 280 - v / 50 * 250;
   for (let v = 0; v <= 50; v += 10) { el('line', { x1: 60, x2: 880, y1: Y(v), y2: Y(v), stroke: css('--grid') }, svg); el('text', { x: 50, y: Y(v) + 4, 'text-anchor': 'end' }, svg, v); }
   D.sweep.forEach((r, i) => {
-    const x = 60 + gap + i * (bw + gap), v = +r.code_avg_tok_s, col = r.draft_n_max === '0' ? '--stock' : (r.setting.includes('chosen') ? '--opt' : '--third');
+    const x = 60 + gap + i * (bw + gap), v = +r.eval_tok_s, col = r.draft_n_max === '0' ? '--stock' : (r.setting.includes('chosen') ? '--opt' : '--third');
     const b = el('rect', { x, y: Y(v), width: bw, height: 280 - Y(v), rx: 5, fill: css(col) }, svg);
     bindTip(b, `<b>${v} tok/s</b><br>${r.setting}${r.free_vram_gib ? '<br>' + r.free_vram_gib + ' GiB VRAM free' : ''}${r.coding_pass ? '<br>quality: coding ' + r.coding_pass + ', tools ' + r.tools_pass : ''}${r.note ? '<br>' + r.note : ''}`);
-    el('text', { x: x + bw / 2, y: Y(v) - 8, 'text-anchor': 'middle', class: 'val' }, svg, v.toFixed(1));
+    el('text', { x: x + bw / 2, y: Y(v) - 8, 'text-anchor': 'middle', class: 'val' }, svg, fmtTok(v));
     el('text', { x: x + bw / 2, y: 302, 'text-anchor': 'middle', class: 'lab' }, svg, r.setting.replace('DFlash2 ', '').replace(' (chosen)', ', chosen'));
     el('text', { x: x + bw / 2, y: 322, 'text-anchor': 'middle' }, svg, r.free_vram_gib ? r.free_vram_gib + ' GiB free' : 'no draft model');
   });
-  table('tb-spec', ['Setting', 'tok/s (coding avg)', 'Free VRAM GiB', 'Coding', 'Tools', 'Note'], D.sweep.map(r => [r.setting, r.code_avg_tok_s, r.free_vram_gib || '-', r.coding_pass || '-', r.tools_pass || '-', r.note || '']));
+  table('tb-spec', ['Setting', 'tok/s (eval-suite throughput)', 'Free VRAM GiB', 'Coding', 'Tools', 'Note'], D.sweep.map(r => [r.setting, r.eval_tok_s, r.free_vram_gib || '-', r.coding_pass || '-', r.tools_pass || '-', r.note || '']));
 }
 
 /* ---- GPU comparison ---- */
@@ -256,7 +438,9 @@ function vram() {
 /* ---- reliability ---- */
 function reliability() {
   const R = D.reliability, box = document.getElementById('rel'), svg = document.getElementById('c-rel');
-  if (!R) { box.innerHTML = '<p class="sub">Results are being collected; this section is published as soon as the run completes.</p>'; svg.style.display = 'none'; return; }
+  if (!R) { box.innerHTML = '<p class="sub">The headline figures are in the table at the top. Per-category results and the sustained-session tests are published here once the final run summary is added to the repository; the full write-up is in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">RELIABILITY.md</a>.</p>'; svg.style.display = 'none'; return; }
+  const first = Object.values(R.runs).find(r => r.agent === 'claude');
+  if (first) { const n = +first.tasks, p = first.passed / n, z = 1.96, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; document.getElementById('glance-rel-val').innerHTML = `<b>${first.passed}/${first.tasks}</b> (Claude Code @32K, single run, 95% CI ${((c - h) * 100).toFixed(1)}&ndash;${Math.round((c + h) * 100)}%), ${(+first.completed_per_min).toFixed(2)} completed tasks/min`; }
   box.innerHTML = '<div class="kpis">' + Object.entries(R.runs).map(([k, r]) => `<div class="kpi ${r.agent === 'claude' ? 'hot' : ''}"><b>${r.passed}/${r.tasks}</b><span>${k}: ${(r.completed_per_min).toFixed(2)} completed tasks/min, median ${r.median_pass_s}s</span></div>`).join('') + '</div>';
   svg.replaceChildren(); const cats = Object.entries(R.categories); const bh = 260 / cats.length, XV = v => 200 + v * 640;
   cats.forEach(([c, r], i) => { const y = 10 + i * bh, v = r.pass_rate, col = v >= .9 ? '--opt' : v >= .6 ? '--stock' : '--third';

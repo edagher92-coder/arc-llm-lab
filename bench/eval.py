@@ -29,7 +29,7 @@ PY = [
   "assert int_to_roman(1994)=='MCMXCIV' and int_to_roman(3999)=='MMMCMXCIX' and int_to_roman(4)=='IV'\nassert all(roman_to_int(int_to_roman(i))==i for i in range(1,4000))\n"),
 ]
 JS = [("slugify_debounce", "Write a JavaScript (Node, CommonJS) module that exports slugify(str) (lowercase, strip accents via normalize('NFD'), replace non-alphanumerics with single hyphens, trim hyphens) and debounce(fn, ms) (trailing-edge). Use module.exports = { slugify, debounce }. Return only the code.",
-  "const {slugify,debounce}=require(process.argv[2]);const assert=require('assert');\nassert.strictEqual(slugify('  Héllo, Wörld!! Slushie  Hire '),'hello-world-slushie-hire');\nassert.strictEqual(slugify('--a__b--'),'a-b');\nlet n=0;const d=debounce(()=>n++,30);d();d();d();setTimeout(()=>{assert.strictEqual(n,1);console.log('ok')},80);\n")]
+  "const {slugify,debounce}=require(process.argv[2]);const assert=require('assert');\nassert.strictEqual(slugify('  Héllo, Wörld!! Frozen  Hire '),'hello-world-frozen-hire');\nassert.strictEqual(slugify('--a__b--'),'a-b');\nlet n=0;const d=debounce(()=>n++,30);d();d();d();setTimeout(()=>{assert.strictEqual(n,1);console.log('ok')},80);\n")]
 res = {"label": LABEL, "coding": [], "tools": [], "web": None}
 tok = 0; gen_t = 0.0
 for name, prompt, test in PY:
@@ -64,7 +64,7 @@ for q, want, chk in TC:
         except Exception: ok = False
     res["tools"].append({"want": want, "pass": ok, "got": [c["function"]["name"] for c in calls]})
 # web build
-out, n, tps, dt = chat("Build a complete single-file responsive HTML5 landing page (inline CSS + a little vanilla JS) for 'FrostLine Hire - slushie machine hire'. Include: sticky nav with 4 anchor links, hero with CTA button, 3 service cards, an FAQ accordion using <details>, a contact form with name/email/phone/message and client-side validation, and a footer. Use [CONFIRM: price] placeholders instead of prices. Return only the HTML.", 6000)
+out, n, tps, dt = chat("Build a complete single-file responsive HTML5 landing page (inline CSS + a little vanilla JS) for 'FrostLine Hire - party ice-machine hire'. Include: sticky nav with 4 anchor links, hero with CTA button, 3 service cards, an FAQ accordion using <details>, a contact form with name/email/phone/message and client-side validation, and a footer. Use [CONFIRM: price] placeholders instead of prices. Return only the HTML.", 6000)
 tok += n; gen_t += dt
 h = code_block(out, "html")
 class P(html.parser.HTMLParser):
@@ -77,5 +77,11 @@ res["web"] = {"pass": not miss and "</html>" in h.lower() and "[CONFIRM" in h, "
 res["coding_pass"] = sum(c["pass"] for c in res["coding"]); res["coding_total"] = len(res["coding"])
 res["tools_pass"] = sum(t["pass"] for t in res["tools"]); res["tools_total"] = len(res["tools"])
 res["avg_gen_tps_wall"] = round(tok / gen_t, 1) if gen_t else 0
+# Full JSON copy goes next to this script (override with EVAL_OUT_DIR). stdout's last line stays the JSON summary for regression.ps1.
+out_dir = os.environ.get("EVAL_OUT_DIR") or os.path.dirname(os.path.abspath(__file__))
+try:
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, f"eval-{LABEL}.json"), "w", encoding="utf-8") as fh: fh.write(json.dumps(res, indent=1))
+except OSError as e:
+    print(f"warning: could not write eval-{LABEL}.json to {out_dir}: {e}", file=sys.stderr)
 print(json.dumps(res))
-open(f"C:/backups/eval-{LABEL}.json", "w").write(json.dumps(res, indent=1))

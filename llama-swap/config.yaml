@@ -1,6 +1,8 @@
-# llama-swap - on-request local Qwen for ARC-PC (Intel Arc Pro B60, Vulkan llama.cpp b11524)
+# llama-swap - on-request local Qwen (Intel Arc Pro B60 24GB, llama.cpp Vulkan: upstream b11524 + the vendored Intel FA prefill patches, see engine/patches/)
 # The 27B is started through the governor launcher, which applies the current AUTO profile
-# (MAX 152k ctx when the PC is idle / BALANCED 128k when you use it / LEAN 64k under heavy load).
+# (MAX when the PC is idle / BALANCED while you use it / LEAN under heavy load). Context is sized at each load
+# from the VRAM free at that moment minus the profile's free-VRAM margin (MAX 1.35 / BALANCED 1.5 / LEAN 3.0 GiB),
+# capped at 64K (65536) for the f16-KV default model: 57-61K typical while the PC is in use. See governor/profiles.json.
 # Endpoints: /v1/chat/completions, /v1/responses (Codex), /v1/messages (Claude Code). Browser UI: /upstream/qwen3.8-27b/
 healthCheckTimeout: 300
 logLevel: info
@@ -10,7 +12,7 @@ apiKeys:
 
 models:
   "qwen3.8-27b":
-    name: "Qwen3.8 27B FAST - Intel FA engine, f16 KV, ~57-61k ctx, DFlash, vision, AUTO profile"
+    name: "Qwen3.8 27B FAST - Intel FA engine, f16 KV, up to 64K ctx (57-61K typical), DFlash2, vision, AUTO profile"
     cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant default
     proxy: http://127.0.0.1:10001
     ttl: 7200          # backstop only; the governor manages unloading
@@ -50,21 +52,21 @@ models:
             enable_thinking: true
 
   "qwen3.8-27b-turbo":
-    name: "Qwen3.8 27B TURBO (Q4_0, ~30% faster, vision, MTP, AUTO profile)"
+    name: "Qwen3.8 27B TURBO (Q4_0 weights, DFlash2 drafter, vision, AUTO profile; speed not benchmarked in this repo)"
     cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant turbo
     proxy: http://127.0.0.1:10003
     ttl: 7200
     aliases: ["qwen-turbo", "turbo"]
 
   "qwen3.8-27b-big":
-    name: "Qwen3.8 27B BIG - ~150-200k ctx (q4 KV), DFlash, vision; slower when deep"
+    name: "Qwen3.8 27B BIG - q4 KV, up to 262144 ctx (about 150-200k fits in 24GB), DFlash2, vision; no Intel FA speed-up (f16 KV only), slower when deep"
     cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant big
     proxy: http://127.0.0.1:10005
     ttl: 7200
     aliases: ["qwen-big", "big"]
 
   "qwen3.8-27b-long":
-    name: "Qwen3.8 27B LONG - full native 262k context, vision, no drafter (~15 tok/s)"
+    name: "Qwen3.8 27B LONG - fixed 262144 ctx (q4 KV), vision; no drafter by default (about 15 tok/s), optional MTP draft when VRAM allows"
     cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant long
     proxy: http://127.0.0.1:10004
     ttl: 3600

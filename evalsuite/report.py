@@ -75,7 +75,7 @@ def summarise(recs):
     return S
 
 def markdown(S):
-    L = ["# ARC-PC Phase 3 — agent reliability report", ""]
+    L = ["# arc-llm-lab: agent reliability report", ""]
     L += ["## Runs", "", "| Run | Agent | Ctx cap | Pass | Completed/min | Median pass time | p90 | Min free VRAM | Reloads | Ctx overflows | Gen tok/s |", "|---|---|---|---|---|---|---|---|---|---|---|"]
     for run, x in S["runs"].items():
         L.append("| %s | %s | %dk | %d/%d (%s) | **%.2f** | %ss | %ss | %s GB | %d | %d | %s |" % (run, x["agent"], x["cap"] // 1024, x["passed"], x["tasks"], pct(x["pass_rate"]), x["completed_per_min"],
@@ -101,17 +101,21 @@ def sustained_md():
         if not rs: continue
         run = os.path.basename(p)[:-6]; ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs)
         probe = [r for r in rs if r["step"] == 10]
-        L += ["", "### %s — %d/%d steps passed, %.1f min, peak prompt %d tokens, compactions %d, overflow errors %d, reloads %d, memory probe %s" % (
-            run, ok, len(rs), wall / 60, max(r["peak_prompt_tok"] for r in rs), max(r["compactions_total"] for r in rs),
+        # new_test_passed = only this step's own hidden test (older result files do not have it, so it is optional).
+        has_new = any("new_test_passed" in r for r in rs); new_ok = sum(bool(r.get("new_test_passed")) for r in rs)
+        L += ["", "### %s — %d/%d steps passed (cumulative tests)%s, %.1f min, peak prompt %d tokens, compactions %d, overflow errors %d, reloads %d, memory probe %s" % (
+            run, ok, len(rs), (", %d/%d own-step tests passed" % (new_ok, len(rs))) if has_new else "", wall / 60, max(r["peak_prompt_tok"] for r in rs), max(r["compactions_total"] for r in rs),
             sum(r["overflow_error"] for r in rs), sum(r["model_reloaded"] for r in rs), ("PASS" if probe and probe[0]["passed"] else "FAIL" if probe else "n/a")), "",
-            "| Step | Rules | Pass | Time | Peak prompt | Server ctx | Compactions | Failure |", "|---|---|---|---|---|---|---|---|"]
+            "| Step | Rules | Pass (cumulative) | This step's own test | Time | Peak prompt | Server ctx | Compactions | Failure |", "|---|---|---|---|---|---|---|---|---|"]
         for r in rs:
-            L.append("| %d | v%d | %s | %ss | %d | %s | %d | %s |" % (r["step"], r["rules"], "PASS" if r["passed"] else "FAIL", r["wall_s"], r["peak_prompt_tok"], r["srv_n_ctx"], r["compactions_total"], r["failure"] or ""))
+            nt = "-" if "new_test_passed" not in r else ("PASS" if r["new_test_passed"] else "FAIL")
+            L.append("| %d | v%d | %s | %s | %ss | %d | %s | %d | %s |" % (r["step"], r["rules"], "PASS" if r["passed"] else "FAIL", nt, r["wall_s"], r["peak_prompt_tok"], r["srv_n_ctx"], r["compactions_total"], r["failure"] or ""))
     return ("\n## Sustained sessions (48K-64K)\n" + "\n".join(L) + "\n") if L else ""
 
 if __name__ == "__main__":
     runs = sys.argv[1].split(",") if len(sys.argv) > 1 else None
     S = summarise(load(runs))
+    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
     json.dump(S, open(os.path.join(HERE, "results", "summary.json"), "w"), indent=1)
     md = markdown(S) + sustained_md()
     open(os.path.join(HERE, "results", "report.md"), "w", encoding="utf-8").write(md)

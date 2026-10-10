@@ -35,7 +35,7 @@ TOKENS = 85  # approximate token count of CODE
 
 def token_race(theme):
     t = T[theme]; W, H = 1000, 420; cycle = 9.0
-    panels = [("Stock llama.cpp Vulkan", 16.0, t["stock"], 40), ("arc-llm-lab (Intel FA + DFlash2)", 42.3, t["opt"], 520)]
+    panels = [("No drafter (stock or Intel FA build)", 16.0, t["stock"], 40), ("arc-llm-lab (Intel FA + DFlash2)", 42.3, t["opt"], 520)]
     css = [f"text{{font-family:{SANS}}} .code{{font-family:{MONO};font-size:15px;fill:{t['code']}}}"]
     anim = []; body = []
     total_chars = sum(len(l) for l in CODE)
@@ -56,17 +56,20 @@ def token_race(theme):
         kd = f"d{pi}"
         anim.append(f"@keyframes {kd}{{0%,{endp:.2f}%{{opacity:0}}{min(endp+2,100):.2f}%,100%{{opacity:1}}}}.{kd}{{animation:{kd} {cycle}s linear {ITER} forwards}}")
         body.append(f'<text class="{kd}" x="{x0+418}" y="335" text-anchor="end" font-size="15" font-weight="700" fill="{col}">done in {dur:.1f} s at {rate:g} tok/s</text>')
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Same code generated at 16 tokens per second on stock llama.cpp versus 42.3 tokens per second with arc-llm-lab on an Intel Arc Pro B60">'
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Same code generated at 16 tokens per second without a draft model (llama-bench) versus 42.3 tokens per second with the DFlash2 draft model (eval-suite throughput) on an Intel Arc Pro B60">'
            f'<style>{"".join(css)}{motion(anim)}</style><rect width="{W}" height="{H}" fill="{t["bg"]}"/>'
-           f'<text x="40" y="44" font-size="22" font-weight="700" fill="{t["ink"]}">Same 27B model, same Arc Pro B60: 2.6x faster generation</text>'
+           f'<text x="40" y="44" font-size="22" font-weight="700" fill="{t["ink"]}">Same 27B model, same Arc Pro B60: 2.6x faster generation with speculative decoding</text>'
            f'<text x="40" y="68" font-size="14" fill="{t["ink2"]}">Real-time replay at measured speeds, Qwen3.8-27B Q4_K_M, ~{TOKENS} tokens</text>'
            + "".join(body) +
-           f'<text x="40" y="395" font-size="12" fill="{t["ink2"]}">Rates: data/speculative-decoding-sweep.csv (no drafter 16.0, DFlash2 n=7 42.3 tok/s coding average)</text></svg>')
+           f'<text x="40" y="395" font-size="12" fill="{t["ink2"]}">Rates: data/speculative-decoding-sweep.csv (no drafter 16.0 = llama-bench tg32, identical on stock and Intel FA builds; DFlash2 n=7 42.3 = eval-suite throughput, wall-clock; per-request decode 47-58, mean 53.3)</text></svg>')
     save("anim-token-race", theme, svg)
 
 def agent_race(theme):
-    t = T[theme]; W, H = 1000, 300; scale = 20.0  # 1 s of animation = 20 s of real time
-    rows = [("Before: stock Vulkan + drafter", 201.0, t["stock"]), ("arc-llm-lab: Intel FA, f16 KV, 64K", 56.7, t["opt"])]
+    import csv
+    t = T[theme]; W, H = 1000, 318; scale = 20.0  # 1 s of animation = 20 s of real time
+    turns = list(csv.DictReader(open(os.path.join(ROOT, "data", "agent-turns.csv"), encoding="utf-8")))
+    secs_of = lambda prefix: float(next(r["three_turn_wall_s"] for r in turns if r["config"].startswith(prefix)))
+    rows = [("Before\u2020: stock Vulkan + drafter", secs_of("stock Vulkan + drafter"), t["stock"]), ("arc-llm-lab: Intel FA, f16 KV, final tuned", secs_of("Intel FA tuned"), t["opt"])]
     cycle = 201 / scale + 3.0; x0, maxw = 330, 560
     css = [f"text{{font-family:{SANS}}}"]; anim = []; body = []
     for i, (lab, secs, col) in enumerate(rows):
@@ -78,12 +81,13 @@ def agent_race(theme):
         body.append(f'<rect x="{x0}" y="{y}" width="{maxw}" height="40" rx="6" fill="{t["grid"]}" opacity="0.6"/>')
         body.append(f'<rect class="{k}" x="{x0}" y="{y}" width="{w:.1f}" height="40" rx="6" fill="{col}"/>')
         body.append(f'<text class="{kl}" x="{x0+w+12:.1f}" y="{y+27}" font-size="18" font-weight="700" fill="{t["ink"]}">{secs:g} s</text>')
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Three agent turns at 30K context: 201 seconds before, 56.7 seconds with arc-llm-lab">'
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Three agent turns at 30K context: 201 seconds before (observed before logging was in place, no raw log), 56.7 seconds with arc-llm-lab">'
            f'<style>{"".join(css)}{motion(anim)}</style><rect width="{W}" height="{H}" fill="{t["bg"]}"/>'
            f'<text x="40" y="44" font-size="22" font-weight="700" fill="{t["ink"]}">Three agentic coding turns at 30K+ context</text>'
            f'<text x="40" y="68" font-size="14" fill="{t["ink2"]}">Time-lapse, 20x speed. Each turn: ~3K new tokens on a 30-37K conversation, 400 tokens written.</text>'
            + "".join(body) +
-           f'<text x="40" y="282" font-size="12" fill="{t["ink2"]}">Source: data/agent-turns.csv (final tuned 64K config shown; first Intel FA build: 54.9 s)</text></svg>')
+           f'<text x="40" y="282" font-size="12" fill="{t["ink2"]}">Source: data/agent-turns.csv (final tuned config shown: 56.7 s; first Intel FA build: 54.9 s)</text>'
+           f'<text x="40" y="300" font-size="12" fill="{t["ink2"]}">\u2020 Observed before logging was in place; raw log not retained; re-run planned.</text></svg>')
     save("anim-agent-race", theme, svg)
 
 def depth_draw(theme):

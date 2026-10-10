@@ -1,0 +1,15 @@
+{
+ "codex-32k": [
+  "files-extract-emails"
+ ],
+ "sustained-codex-48k": [
+  "step10-probe"
+ ],
+ "sustained-codex-64k": [
+  "step10-probe"
+ ],
+ "sustained-claude-48k": [
+  "step10-probe"
+ ],
+ "note": "Re-checked with the BOM-tolerant reader (tasks.rd uses utf-8-sig). These verdicts change from fail to pass: the agent's answer was correct but the file started with a UTF-8 BOM written by PowerShell."
+}

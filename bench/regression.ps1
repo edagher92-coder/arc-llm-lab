@@ -1,4 +1,4 @@
-# Permanent regression benchmark for the local Qwen on ARC-PC.
+# Permanent regression benchmark for the local Qwen on this PC.
 # Core metric: the 3-turn agentic coding test at 30-37k tokens deep (baseline 54.9 s on 10 Oct 2026, Intel-FA engine).
 # Usage: qwen bench   (or: powershell -File C:\AI\bench\regression.ps1 [-Port 18080] [-Label name])
 param([int]$Port = 0, [string]$Label = 'live')

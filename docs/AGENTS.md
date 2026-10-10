@@ -6,9 +6,11 @@ Both CLIs work against the local server with no cloud calls. The wrappers in [ag
 
 Claude Code talks to llama-swap's Anthropic-compatible `/v1/messages` endpoint.
 
-- **FAST mode (default).** `--system-prompt-file agents/claude-local/LOCAL-SYSTEM.md` replaces Claude Code's roughly 19K-token system prompt with a 6.6K-token one, keeping the full core toolset (`Bash, Read, Edit, Write, Glob, Grep, WebFetch, Agent, TodoWrite`). Every turn re-sends the system prompt, so this matters more than almost anything else for local speed.
-- **Live window.** The wrapper asks `qwen window` for the server's current context and subtracts 8K of headroom. It caps that at `QWEN_CLIENT_CAP` (default 32768) and sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW` to match, so Claude Code compacts before the server could overflow.
-- **Output caps.** `CLAUDE_CODE_MAX_OUTPUT_TOKENS=8000`, `BASH_MAX_OUTPUT_LENGTH=15000`.
+- **FAST mode (default).** `--system-prompt-file agents/claude-local/LOCAL-SYSTEM.md` replaces Claude Code's standard system prompt with a compact one (1,118 bytes, about 1.1 KB, [LOCAL-SYSTEM.md](../agents/claude-local/LOCAL-SYSTEM.md)), keeping the full core toolset (`Bash, Read, Edit, Write, Glob, Grep, WebFetch, Agent, TodoWrite`). Every turn re-sends the system prompt, so a small one matters for local speed.
+  - **What "6.6K versus 19K" means.** The "6.6K-token" figure is the observed *total fixed prefix* of a request in FAST mode (our system prompt plus the tool definitions Claude Code adds), and about 19K was the same measurement with the standard prompt. It is **not** the size of `LOCAL-SYSTEM.md`, which is only about 1.1 KB. We measured both numbers during development and did not keep the raw log, so treat them as approximate. To re-measure on your setup, restart the server, send one trivial prompt through `claude-qwen`, and read the processed prompt tokens from the server's `/metrics` counter `llamacpp:prompt_tokens_total` (method in [TOKEN-EFFICIENCY.md](TOKEN-EFFICIENCY.md#how-to-measure)).
+- **Live window.** The wrapper asks `qwen window` for the server's current context and subtracts 8K of headroom. It caps that at `QWEN_CLIENT_CAP` (default 32768) and passes the result as `CLAUDE_CODE_MAX_CONTEXT_TOKENS`, so Claude Code compacts before the server could overflow. (v1 also set `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; v2 removes it because its documented range starts at 100000, above any window used here.)
+- **Output caps.** `CLAUDE_CODE_MAX_OUTPUT_TOKENS=8000`, `BASH_MAX_OUTPUT_LENGTH=15000`, `MAX_MCP_OUTPUT_TOKENS=8000`.
+- **Stable prompt prefix (v2).** `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`, `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1` and `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH=512` keep the start of every request identical and small, so the server's prompt cache keeps hitting. The full list with what each one saves is in [TOKEN-EFFICIENCY.md](TOKEN-EFFICIENCY.md).
 - **Separate config dir** (`CLAUDE_CONFIG_DIR`), so your cloud Claude Code settings, hooks and plugins don't load into the small context.
 - **Avoid:**
   - `--bare` leaves only 3 tools.
@@ -16,7 +18,7 @@ Claude Code talks to llama-swap's Anthropic-compatible `/v1/messages` endpoint.
 - **Options:**
   - `set QWEN_MODEL=qwen3.8-27b:plan` for deep thinking.
   - `set QWEN_FULL=1` for the standard prompt.
-  - `set QWEN_BROWSER=1` for Playwright.
+  - `set QWEN_BROWSER=1` for Playwright browser tools. This repo does **not** ship `mcp-browser.json`: browser tool schemas are large and load on every turn, so create `C:\AI\claude-local\mcp-browser.json` yourself (same format as [mcp.json](../agents/claude-local/mcp.json)) if you want it. Without the file the wrapper prints a notice and carries on without browser tools.
 
 ## Codex: `codex-qwen`
 

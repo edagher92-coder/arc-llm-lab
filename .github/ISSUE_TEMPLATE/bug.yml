@@ -1,0 +1,23 @@
+name: Bug report
+description: A script, build step, doc or checker that doesn't work as described
+title: "[bug] <short description>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Please include what you ran and the exact output. Never paste API keys, tailnet names or other private details.
+  - type: textarea
+    id: what
+    attributes: { label: "What happened, and what did you expect?" }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps and exact commands }
+    validations: { required: true }
+  - type: input
+    id: system
+    attributes: { label: "GPU, OS, driver, llama.cpp build", placeholder: "Arc B580, Windows 11, driver 32.0.101.xxxx, b11524 + Intel FA patches" }
+    validations: { required: true }
+  - type: textarea
+    id: logs
+    attributes: { label: "Output or log", render: text }

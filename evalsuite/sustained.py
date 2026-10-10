@@ -1,7 +1,8 @@
-"""ARC-PC Phase-3 sustained-session test (48K-64K).
+"""Sustained-session test (48K-64K) for the arc-llm-lab agent stack.
 One continuous agent session builds a small hire/invoicing package over 10 dependent steps, re-reading a large
 requirements doc, so the conversation grows past the client window and must compact.
-Measures per step: pass (cumulative hidden tests = regression check), wall time, PEAK live prompt tokens (llama-server /slots),
+Measures per step: pass (cumulative hidden tests = regression check), new_test_passed (only THIS step's own hidden test, so one early
+slip does not hide later work), wall time, PEAK live prompt tokens (llama-server /slots),
 server n_ctx, model reloads, compaction events, explicit overflow errors. Step 10 is a memory probe: a code given only
 in conversation at step 1 must be recalled after compaction -> detects silent context loss.
 Usage: python sustained.py --agent claude|codex --cap 49152|65536 [--run NAME]"""
@@ -14,7 +15,7 @@ sys.path.insert(0, HERE)
 import runner as RN
 import tasks as SUITE
 
-PROBE = "SF-7731-KESTREL"
+PROBE = "FL-7731-KESTREL"
 D = Decimal
 def cents(x): return D(x).quantize(D("0.01"), ROUND_HALF_UP)
 
@@ -44,7 +45,7 @@ def requirements_md():
     filler_words = ("machine hire customers must receive clear written terms before delivery and the driver confirms power access cleaning "
                     "syrup ratios ice levels safety tags insurance certificates are kept on file for every school event and council permit").split()
     def para(n): return " ".join(r.choice(filler_words) for _ in range(n)).capitalize() + "."
-    S = ["# SnowHire platform requirements (v3)", "", "Owner: the owner. Status: approved. This document is long; the rules that matter for code are in sections 2, 3, 4, 5 and 7.", ""]
+    S = ["# FrostLine platform requirements (v3)", "", "Owner: the owner. Status: approved. This document is long; the rules that matter for code are in sections 2, 3, 4, 5 and 7.", ""]
     S += ["## 1. Background", ""] + [para(r.randrange(60, 120)) for _ in range(8)] + [""]
     S += ["## 2. Data model", "", "- Machine: id (str), kind (str), daily_rate (Decimal, AUD ex GST).",
           "- Booking: id (str), machine_id (str), customer (str), start (date), end (date). Dates are INCLUSIVE: a booking from 3 Nov to 3 Nov is one day.",
@@ -84,27 +85,27 @@ def ref_month(month, ver):
 # ---------------- cumulative hidden tests ----------------
 def tests_upto(step, ver):
     T = ["import datetime as dt, subprocess, sys\nfrom decimal import Decimal as D\n"]
-    T.append("from snowhire.models import Machine, Booking\n"
+    T.append("from frosthire.models import Machine, Booking\n"
              "M = Machine(id='DBL-1', kind='double', daily_rate=D('120.00'))\n"
              "def B(i, s, e, m='DBL-1'): return Booking(id=i, machine_id=m, customer='X', start=s, end=e)\n"
              "def test_models():\n    b = B('B1', dt.date(2026,11,2), dt.date(2026,11,3)); assert b.machine_id == 'DBL-1' and M.daily_rate == D('120.00')\n")
     if step >= 2:
         cases = [(date(2026, 11, 2), date(2026, 11, 2)), (date(2026, 11, 6), date(2026, 11, 9)), (date(2026, 12, 24), date(2026, 12, 28)), (date(2026, 10, 3), date(2026, 10, 5))]
-        T.append("from snowhire.pricing import booking_price\ndef test_price():\n" + "".join(
+        T.append("from frosthire.pricing import booking_price\ndef test_price():\n" + "".join(
             "    assert booking_price(B('P', dt.date(%d,%d,%d), dt.date(%d,%d,%d)), M) == D('%s')\n" % (s.year, s.month, s.day, e.year, e.month, e.day, ref_price(s, e, "120.00", ver)) for s, e in cases))
     if step >= 3:
-        T.append("from snowhire.conflicts import find_conflicts\ndef test_conflicts():\n"
+        T.append("from frosthire.conflicts import find_conflicts\ndef test_conflicts():\n"
                  "    bs = [B('A', dt.date(2026,11,1), dt.date(2026,11,3)), B('B', dt.date(2026,11,3), dt.date(2026,11,4)), B('C', dt.date(2026,11,5), dt.date(2026,11,5)), B('D', dt.date(2026,11,1), dt.date(2026,11,9), m='SGL-1')]\n"
                  "    assert [tuple(x) for x in find_conflicts(bs)] == [('A', 'B')]\n")
     if step >= 4:
         a = ref_price(date(2026, 11, 6), date(2026, 11, 9), "120.00", ver); b = ref_price(date(2026, 11, 2), date(2026, 11, 2), "120.00", ver)
         g = cents(a * D("0.1")) + cents(b * D("0.1"))
-        T.append("from snowhire.invoice import make_invoice\ndef test_invoice():\n"
+        T.append("from frosthire.invoice import make_invoice\ndef test_invoice():\n"
                  "    inv = make_invoice([B('I1', dt.date(2026,11,6), dt.date(2026,11,9)), B('I2', dt.date(2026,11,2), dt.date(2026,11,2))], {'DBL-1': M})\n"
                  "    assert D(str(inv['subtotal'])) == D('%s') and D(str(inv['gst'])) == D('%s') and D(str(inv['total'])) == D('%s') and len(inv['lines']) == 2\n" % (a + b, g, a + b + g))
     if step >= 5:
         i, m, cu, s, e = BOOK[17]
-        T.append("from snowhire.io import load_bookings, load_machines\ndef test_io():\n"
+        T.append("from frosthire.io import load_bookings, load_machines\ndef test_io():\n"
                  "    bs = load_bookings('data/bookings.csv'); ms = load_machines('data/machines.csv')\n"
                  "    assert len(bs) == 200 and len(ms) == 6\n"
                  "    b = [x for x in bs if x.id == '%s'][0]\n    assert b.customer == %r and b.start == dt.date(%d,%d,%d) and b.end == dt.date(%d,%d,%d) and b.machine_id == '%s'\n"
@@ -112,32 +113,35 @@ def tests_upto(step, ver):
     if step >= 6:
         busy = {m for _, m, _, s, e in BOOK if s <= date(2026, 12, 20) and e >= date(2026, 12, 18)}
         free = sorted(x[0] for x in MACH if x[0] not in busy)
-        T.append("from snowhire.availability import available_machines\ndef test_avail():\n"
+        T.append("from frosthire.availability import available_machines\ndef test_avail():\n"
                  "    assert list(available_machines(load_machines('data/machines.csv'), load_bookings('data/bookings.csv'), dt.date(2026,12,18), dt.date(2026,12,20))) == %r\n" % free)
     if step >= 7:
-        T.append("from snowhire.reports import monthly_revenue\ndef test_monthly():\n"
+        T.append("from frosthire.reports import monthly_revenue\ndef test_monthly():\n"
                  "    r = monthly_revenue(load_bookings('data/bookings.csv'), load_machines('data/machines.csv'))\n"
                  "    assert D(str(r['2026-11'])) == D('%s') and D(str(r['2026-12'])) == D('%s')\n" % (ref_month("2026-11", ver), ref_month("2026-12", ver)))
     if step >= 8:
-        T.append("def test_cli():\n    p = subprocess.run([sys.executable, '-m', 'snowhire', 'report', '--month', '2026-11', '--data', 'data/bookings.csv', '--machines', 'data/machines.csv'], capture_output=True, text=True, timeout=60)\n"
+        T.append("def test_cli():\n    p = subprocess.run([sys.executable, '-m', 'frosthire', 'report', '--month', '2026-11', '--data', 'data/bookings.csv', '--machines', 'data/machines.csv'], capture_output=True, text=True, timeout=60)\n"
                  "    assert p.returncode == 0 and '2026-11 revenue: $%s' in p.stdout.replace(',', ''), p.stdout + p.stderr\n" % ref_month("2026-11", ver))
     return "".join(T)
 
+# The hidden tests are cumulative, so one early mistake fails every later step. NEWTEST names the test that belongs to each step,
+# so a run can also report whether THIS step's own deliverable works (new_test_passed) independently of earlier steps.
+NEWTEST = {1: "test_models", 2: "test_price", 3: "test_conflicts", 4: "test_invoice", 5: "test_io", 6: "test_avail", 7: "test_monthly", 8: "test_cli"}
 S_SUFFIX = " Work inside the current folder only. Run your code to verify it before you finish."
 STEPS = [
- ("Read docs/requirements.md (all of it, it is long) and data/. We are building a Python package snowhire/ step by step over this session. "
-  "Step 1: create snowhire/__init__.py and snowhire/models.py with dataclasses Machine(id, kind, daily_rate) and Booking(id, machine_id, customer, start, end) as per section 2 (daily_rate a Decimal, start/end datetime.date). "
+ ("Read docs/requirements.md (all of it, it is long) and data/. We are building a Python package frosthire/ step by step over this session. "
+  "Step 1: create frosthire/__init__.py and frosthire/models.py with dataclasses Machine(id, kind, daily_rate) and Booking(id, machine_id, customer, start, end) as per section 2 (daily_rate a Decimal, start/end datetime.date). "
   "Also, remember this for later in our session: the client reference code is " + PROBE + ". Do NOT write that code into any file." + S_SUFFIX, 1),
- ("Step 2: create snowhire/pricing.py with booking_price(booking, machine) -> Decimal implementing pricing rules version 1 from section 3 of docs/requirements.md." + S_SUFFIX, 1),
- ("Step 3: create snowhire/conflicts.py with find_conflicts(bookings) returning a sorted list of (id1, id2) tuples (id1 < id2) per section 4." + S_SUFFIX, 1),
- ("Step 4: create snowhire/invoice.py with make_invoice(bookings, machines_by_id, gst_rate=Decimal('0.10')) returning a dict with keys lines (list of dicts with booking, amount, gst), subtotal, gst, total (Decimals) per section 5. "
+ ("Step 2: create frosthire/pricing.py with booking_price(booking, machine) -> Decimal implementing pricing rules version 1 from section 3 of docs/requirements.md." + S_SUFFIX, 1),
+ ("Step 3: create frosthire/conflicts.py with find_conflicts(bookings) returning a sorted list of (id1, id2) tuples (id1 < id2) per section 4." + S_SUFFIX, 1),
+ ("Step 4: create frosthire/invoice.py with make_invoice(bookings, machines_by_id, gst_rate=Decimal('0.10')) returning a dict with keys lines (list of dicts with booking, amount, gst), subtotal, gst, total (Decimals) per section 5. "
   "Use pricing.booking_price." + S_SUFFIX, 1),
- ("Step 5: create snowhire/io.py with load_machines(path) and load_bookings(path) that read data/machines.csv and data/bookings.csv into the dataclasses (see section 2 for the date format and quoting). "
+ ("Step 5: create frosthire/io.py with load_machines(path) -> list[Machine] and load_bookings(path) -> list[Booking] (plain lists in file order) that read data/machines.csv and data/bookings.csv into the dataclasses (see section 2 for the date format and quoting). "
   "Check that all 200 bookings load." + S_SUFFIX, 1),
- ("Step 6: create snowhire/availability.py with available_machines(machines, bookings, start, end) returning the sorted list of machine ids that have no booking overlapping any day of the inclusive range." + S_SUFFIX, 1),
- ("Step 7: create snowhire/reports.py with monthly_revenue(bookings, machines) returning a dict 'YYYY-MM' -> Decimal: every booked day's charge (daily_rate, with the weekend surcharge on weekend days) is attributed to the month of that day; "
+ ("Step 6: create frosthire/availability.py with available_machines(machines, bookings, start, end) returning the sorted list of machine ids that have no booking overlapping any day of the inclusive range." + S_SUFFIX, 1),
+ ("Step 7: create frosthire/reports.py with monthly_revenue(bookings, machines) returning a dict 'YYYY-MM' -> Decimal: every booked day's charge (daily_rate, with the weekend surcharge on weekend days) is attributed to the month of that day; "
   "sum per month and round each month's total to the cent half-up at the end." + S_SUFFIX, 1),
- ("Step 8: add a command line interface so that `python -m snowhire report --month 2026-11 --data data/bookings.csv --machines data/machines.csv` prints exactly one line like `2026-11 revenue: $12345.67` "
+ ("Step 8: add a command line interface so that `python -m frosthire report --month 2026-11 --data data/bookings.csv --machines data/machines.csv` prints exactly one line like `2026-11 revenue: $12345.67` "
   "(no thousands separator) using monthly_revenue." + S_SUFFIX, 1),
  ("Step 9: the pricing rules changed to rules version 2: the weekend surcharge is now 12.5% instead of 10%, and public holidays listed in section 7 of docs/requirements.md are charged like weekend days (surcharge applies once). "
   "Update every part of the package that depends on the surcharge (pricing, invoice, monthly revenue, CLI) so they all use version 2, keeping one source of truth for the rule. Re-verify everything." + S_SUFFIX, 2),
@@ -204,13 +208,19 @@ def main():
         r1 = RN.running(); m1 = RN.metrics(r1.get("port", port))
         if k < 10:
             ok, why = SUITE.run_hidden(ws, tests_upto(k if k < 9 else 8, ver))
+            new_ok = ok
+            if k < 9 and not ok:
+                # Re-run with every earlier test switched off (def test_X -> def _off_X) so only this step's own test counts.
+                src = re.sub(r"def test_(\w+)\(", lambda m: m.group(0) if "test_" + m.group(1) == NEWTEST[k] else "def _off_" + m.group(1) + "(", tests_upto(k, ver))
+                new_ok, _ = SUITE.run_hidden(ws, src)
         else:
             got = SUITE.ans(ws); ok = SUITE.norm(got) == SUITE.norm(PROBE); why = "" if ok else "answer.txt=%r" % got[:60]
+            new_ok = ok
             leaked = [f for f in glob.glob(os.path.join(ws, "**", "*"), recursive=True) if os.path.isfile(f) and not f.endswith("answer.txt")
                       and PROBE in open(f, encoding="utf-8", errors="ignore").read()]
             if leaked: why += " PROBE WRITTEN TO FILES (retention not provable): %s" % [os.path.relpath(x, ws) for x in leaked][:3]
         d = lambda key: (m1.get(key, 0) - m0.get(key, 0)) if m1.get(key, 0) >= m0.get(key, 0) else m1.get(key, 0)
-        rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
+        rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok), new_test_passed=bool(new_ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
                    failure=RN.classify(ok, timed_out, info, log, rc), turns=info.get("turns"), peak_prompt_tok=poll.peak, srv_n_ctx=sorted(x for x in poll.nctx if x),
                    compactions_total=compactions(a.agent, ws, log), overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
                    srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
@@ -218,7 +228,7 @@ def main():
                    vram_min_free_gib=smp.min_free, model_reloaded=len(smp.starts | {r0.get("started"), r1.get("started")} - {None}) > 1,
                    final=(info.get("final") or "")[-300:], ended=datetime.now().isoformat(timespec="seconds"))
         open(out, "a", encoding="utf-8").write(json.dumps(rec) + "\n")
-        print("step %2d %s %6.1fs peak_prompt=%6d ctx=%s compactions=%d %s" % (k, "PASS" if ok else "FAIL", wall, poll.peak, rec["srv_n_ctx"], rec["compactions_total"], rec["failure"] or ""), flush=True)
+        print("step %2d %s new=%s %6.1fs peak_prompt=%6d ctx=%s compactions=%d %s" % (k, "PASS" if ok else "FAIL", "PASS" if new_ok else "FAIL", wall, poll.peak, rec["srv_n_ctx"], rec["compactions_total"], rec["failure"] or ""), flush=True)
 
 if __name__ == "__main__":
     main()

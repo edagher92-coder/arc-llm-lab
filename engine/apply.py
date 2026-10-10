@@ -1,3 +1,6 @@
+"""Point the governor at the Intel FA engine build and set the f16-KV variants (run once after engine/build.ps1).
+This script does not patch llama.cpp. The Intel FA patches are vendored in engine/patches/ and are applied by
+engine/build.ps1 (Windows) or engine/build-linux.sh (Linux). Edit the path below if you keep profiles.json elsewhere."""
 import json, shutil, copy, time
 p = r"C:\AI\governor\profiles.json"
 shutil.copy(p, p + ".bak-before-intelfa-" + time.strftime("%H%M"))

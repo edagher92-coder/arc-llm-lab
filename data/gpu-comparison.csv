@@ -1,8 +1,11 @@
-gpu,vram_gb,bandwidth_gbs,price_aud,price_date,price_source,fits_27b_q4_32k,theoretical_decode_tok_s,measured_decode_tok_s,measured_with_drafter_tok_s
-Intel Arc B580,12,456,419,2026-10-07,https://gpuprix.com/australia/gpus/arc-b580,no,,,
-Intel Arc A770 16GB,16,560,540,2026-09-30,https://gpuprix.com/australia/gpus/arc-a770,no,,,
-Intel Arc Pro B60,24,456,1240,2026-10-07,https://gpuprix.com/australia/gpus/arc-pro-b60,yes,27.7,16.0,42.3
-NVIDIA RTX 3090,24,936,,,,yes,56.9,,
-AMD RX 7900 XTX,24,960,,,,yes,58.3,,
-NVIDIA RTX 4090,24,1008,,,,yes,61.2,,
-NVIDIA RTX 5090,32,1792,5999,2026-03,https://www.glukhov.org/hardware/gpu/nvidia-rtx-5080-rtx-5090-prices-march-2026/,yes,108.9,,
+gpu,vram_gb,bandwidth_gbs,price_aud,price_date,price_source,fits_27b_q4_32k,theoretical_decode_tok_s,measured_decode_tok_s,measured_with_drafter_tok_s,spec_source
+Intel Arc B570,10,380,,,,no,,,,https://flopper.io/compare/intel-arc-b570-10gb-vs-intel-arc-pro-b50-16gb
+Intel Arc B580,12,456,419,2026-10-07,https://gpuprix.com/australia/gpus/arc-b580,no,,,,https://www.techpowerup.com/gpu-specs/
+Intel Arc Pro B50,16,224,,,,no,,,,https://flopper.io/compare/intel-arc-b570-10gb-vs-intel-arc-pro-b50-16gb
+Intel Arc A770 16GB,16,560,540,2026-09-30,https://gpuprix.com/australia/gpus/arc-a770,no,,,,https://www.techpowerup.com/gpu-specs/
+Intel Arc Pro B60,24,456,1240,2026-10-07,https://gpuprix.com/australia/gpus/arc-pro-b60,yes,27.7,16.0,42.3,https://www.techpowerup.com/gpu-specs/
+Intel Arc Pro B70,32,608,,,,yes,36.9,,,https://www.storagereview.com/review/intel-arc-pro-b70-review
+NVIDIA RTX 3090,24,936,,,,yes,56.9,,,https://www.techpowerup.com/gpu-specs/
+AMD RX 7900 XTX,24,960,,,,yes,58.3,,,https://www.techpowerup.com/gpu-specs/
+NVIDIA RTX 4090,24,1008,,,,yes,61.2,,,https://www.techpowerup.com/gpu-specs/
+NVIDIA RTX 5090,32,1792,5999,2026-03,https://www.glukhov.org/hardware/gpu/nvidia-rtx-5080-rtx-5090-prices-march-2026/,yes,108.9,,,https://www.techpowerup.com/gpu-specs/

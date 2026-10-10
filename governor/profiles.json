@@ -1,5 +1,5 @@
 {
-  "_comment": "Qwen governor v2 (measured on this B60, 10 Oct 2026). AUTO picks MAX (PC idle) / BALANCED (you are on the PC) / LEAN (heavy load). Context is sized at each load from the VRAM free at that moment minus the profile's free-VRAM margin. DFlash2 drafter (7 tokens) ~43-50 tok/s; generation collapses if free VRAM < ~1.1 GiB, so margins stay >= 1.2 GiB. Variants: default UD-Q4_K_M (best quality), turbo Q4_0 (faster, slightly lower quality), long = native 262k context, no drafter (~15 tok/s).",
+  "_comment": "Qwen governor v2 (measured on this B60, 10 Oct 2026). AUTO picks MAX (PC idle) / BALANCED (you are on the PC) / LEAN (heavy load). Context is sized at each load from the VRAM free at that moment minus the profile's free-VRAM margin. DFlash2 drafter (7 tokens) ~43-50 tok/s. One run with 0.96 GiB free slowed to 27 tok/s (the exact threshold was not isolated, see docs/TUNING-LOG.md), so the profile margins stay at 1.35 GiB or more. Variants: default UD-Q4_K_M (best quality), turbo Q4_0 (faster, slightly lower quality), long = native 262k context, no drafter (~15 tok/s).",
   "exe": "C:/AI/llama.cpp/vulkan-intelfa/llama-server.exe",
   "mmproj": "C:/AI/models/qwen3.8-27b/mmproj-F16.gguf",
   "vram": {

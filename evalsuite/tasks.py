@@ -1,4 +1,4 @@
-"""ARC-PC Phase-3 evaluation suite: 100 reproducible agent tasks with hidden automatic checkers.
+"""arc-llm-lab evaluation suite: 100 reproducible agent tasks with hidden automatic checkers.
 Each task: id, cat, prompt, files ({relpath: str|bytes} or callable(ws)), check(ws) -> (ok: bool, reason: str).
 Categories: coding 20, debugging 20, tool 15, fileops 15, longctx 10, business 10, recovery 10.
 Checkers run only AFTER the agent finishes; hidden tests are never visible to the agent."""
@@ -29,7 +29,7 @@ def materialize(task, ws):
 
 def rd(ws, p):
     try:
-        return open(os.path.join(ws, p), encoding="utf-8").read()
+        return open(os.path.join(ws, p), encoding="utf-8-sig").read()  # utf-8-sig: accept a BOM (PowerShell writes one)
     except Exception:
         return None
 
@@ -221,7 +221,7 @@ DEBUG = [
   "from fibo import fib\ndef test_fib():\n    assert [fib(i) for i in range(10)] == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]\n",
   "def test_big():\n    assert fib(80) == 23416728348467685\n"),
  ("csvout", "import csv\n\ndef write_rows(path, rows):\n    \"\"\"Write rows (lists of strings) to a UTF-8 CSV file that opens cleanly in Excel and csv.reader.\"\"\"\n    with open(path, 'w') as f:\n        w = csv.writer(f)\n        for r in rows:\n            w.writerow(r)\n",
-  "import csv\nfrom csvout import write_rows\ndef test_csv(tmp_path):\n    p = str(tmp_path / 'o.csv')\n    rows = [['item', 'price'], ['Caf\u00e9 frapp\u00e9', '6.50'], ['Slushie \u2603', '5.00']]\n    write_rows(p, rows)\n    raw = open(p, 'rb').read()\n    assert b'\\r\\r\\n' not in raw\n    with open(p, encoding='utf-8', newline='') as f:\n        assert list(csv.reader(f)) == rows\n",
+  "import csv\nfrom csvout import write_rows\ndef test_csv(tmp_path):\n    p = str(tmp_path / 'o.csv')\n    rows = [['item', 'price'], ['Caf\u00e9 frapp\u00e9', '6.50'], ['Shaved ice \u2603', '5.00']]\n    write_rows(p, rows)\n    raw = open(p, 'rb').read()\n    assert b'\\r\\r\\n' not in raw\n    with open(p, encoding='utf-8', newline='') as f:\n        assert list(csv.reader(f)) == rows\n",
   "def test_empty(tmp_path):\n    p = str(tmp_path / 'e.csv'); write_rows(p, []); assert open(p, 'rb').read() == b''\n"),
  ("chunks", "def chunk(lst, n):\n    \"\"\"Split lst into consecutive chunks of size n; the last chunk may be shorter.\"\"\"\n    return [lst[i:i + n] for i in range(0, len(lst) - n + 1, n)]\n",
   "from chunks import chunk\ndef test_c():\n    assert chunk([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]\n",
@@ -292,7 +292,7 @@ def _repo_cfg(ws):
         _git(ws, "add", "-A"); _git(ws, "commit", "-q", "-m", "change %d: %s" % (i, p))
 T("tool-git-log", "tool", "This folder is a git repository. How many commits changed the file config.yaml (in the repository root)?" + ANS, _repo_cfg, answer_num(3))
 
-_readme_typo = "# Snowflwo Hire\n\nSlushie machine hire across Sydney.\n"
+_readme_typo = "# Frostlnie Hire\n\nParty ice-machine hire across Sydney.\n"
 def _repo_typo(ws):
     os.makedirs(ws, exist_ok=True)
     _git(ws, "init", "-q", "-b", "main")
@@ -302,12 +302,12 @@ def _repo_typo(ws):
 def _chk_branch(ws):
     b = _git(ws, "show", "fix/readme-typo:README.md")
     if b.returncode != 0: return False, "branch fix/readme-typo missing or README absent"
-    if "Snowflwo" in b.stdout or "FrostLine Hire" not in b.stdout: return False, "README on branch not fixed"
+    if "Frostlnie" in b.stdout or "FrostLine Hire" not in b.stdout: return False, "README on branch not fixed"
     m = _git(ws, "log", "-1", "--format=%s", "fix/readme-typo").stdout.strip()
     if m != "Fix README typo": return False, "commit message is %r" % m
     if _git(ws, "show", "main:README.md").stdout != _readme_typo: return False, "main branch was changed"
     return True, ""
-T("tool-git-branch", "tool", "This folder is a git repository. Create a branch named fix/readme-typo, fix the spelling 'Snowflwo' -> 'FrostLine' in README.md and commit it on that branch with the message 'Fix README typo'. Leave the main branch unchanged." + SUFFIX, _repo_typo, _chk_branch)
+T("tool-git-branch", "tool", "This folder is a git repository. Create a branch named fix/readme-typo, fix the spelling 'Frostlnie' -> 'FrostLine' in README.md and commit it on that branch with the message 'Fix README typo'. Leave the main branch unchanged." + SUFFIX, _repo_typo, _chk_branch)
 
 def _assets():
     r = random.Random(307); f = {}; sizes = {}
@@ -392,7 +392,7 @@ _libsrc, _libln = _lib()
 T("tool-line-number", "tool", "On which line number of lib.py is the function reconcile defined (the 'def reconcile' line; line 1 is the first line)?" + ANS, {"lib.py": _libsrc}, answer_num(_libln))
 
 def _docs():
-    r = random.Random(314); vocab = "slushie machine hire event sydney ice syrup flavour delivery booking invoice quote party school fete".split()
+    r = random.Random(314); vocab = "ice-machine machine hire event sydney ice syrup flavour delivery booking invoice quote party school fete".split()
     f = {}; tot = 0
     for i in range(9):
         paras = []
@@ -557,7 +557,7 @@ def _chk_header(ws):
 T("files-license-header", "fileops", "Add the line '%s' as the very first line of every .py file under src/ (recursively) that does not already start with it. Do not duplicate it and do not change anything else." % _HDR + SUFFIX, _srcf, _chk_header)
 
 def _inbox():
-    r = random.Random(410); emails = ["jon@frostline.com.au", "accounts@chillco.com", "bob.smith@gmail.com", "events@school.nsw.edu.au", "j-li@outlook.com", "orders+hire@frostline.com.au", "Ana.Rossi@Example.org"]
+    r = random.Random(410); emails = ["jon@frostline.com.au", "accounts@chillco.com", "bob.smith@mailbox.example", "events@school.nsw.edu.au", "j-li@outlook.com", "orders+hire@frostline.com.au", "Ana.Rossi@Example.org"]
     f = {}
     tpl = ["Hi team, please contact {e} about the booking.", "From: {e}\nSubject: quote", "Reply to <{e}> asap.", "My email is {e}.", "cc: {e}, thanks"]
     for i in range(6):
@@ -723,7 +723,7 @@ def _meeting():
     for m in range(1, 13):
         lines += ["", "## Meeting %d (2026-%02d-02)" % (m, min(m, 9)), "", "Attendees: Jon, Sam, Priya, Tom, Mia, Jo (contractor), Joan (casual)", ""]
         for _ in range(r.randrange(8, 16)):
-            lines.append(r.choice(["- Discussed winter demand for slushie hire and how school fetes book.", "- Reviewed supplier pricing for cups and lids; no change.",
+            lines.append(r.choice(["- Discussed winter demand for ice-machine hire and how school fetes book.", "- Reviewed supplier pricing for cups and lids; no change.",
                                    "- Jon noted the van service is overdue (informational, no action).", "- Sam presented the booking funnel numbers for the month."]))
         for _ in range(r.randrange(2, 6)):
             o = r.choice(owners); done = r.random() < 0.3
@@ -772,7 +772,7 @@ def _dec_eq(a, b):
 
 def _gst_order():
     r = random.Random(601)
-    items = [{"sku": "HIRE-DBL", "desc": "Double slushie machine hire", "qty": 3, "unit_price_ex": "4.15", "gst_free": False}]
+    items = [{"sku": "HIRE-DBL", "desc": "Double ice-machine hire", "qty": 3, "unit_price_ex": "4.15", "gst_free": False}]
     for i in range(9):
         items.append({"sku": "SKU%02d" % i, "desc": "item %d" % i, "qty": r.randrange(1, 13), "unit_price_ex": "%.2f" % (r.randrange(105, 9999) / 100), "gst_free": r.random() < 0.25})
     sub = sum(Decimal(x["unit_price_ex"]) * x["qty"] for x in items)
@@ -807,7 +807,7 @@ def _chk_conf(ws):
     got = [l.strip().replace(" ", "") for l in (rd(ws, "conflicts.txt") or "").splitlines() if l.strip()]
     return got == _bkc, "" if got == _bkc else "conflicts.txt has %d lines, expected %d (%s...)" % (len(got), len(_bkc), _bkc[:3])
 T("biz-booking-conflicts", "business",
-  "bookings.csv lists slushie machine hire bookings. Two bookings conflict if they are for the same machine and their time ranges overlap (a booking ending exactly when another starts is NOT a conflict). "
+  "bookings.csv lists ice-machine hire bookings. Two bookings conflict if they are for the same machine and their time ranges overlap (a booking ending exactly when another starts is NOT a conflict). "
   "Write conflicts.txt with one line per conflicting pair as 'B003,B007' (lower id first), lines sorted, no header." + SUFFIX, {"bookings.csv": _bk}, _chk_conf)
 
 def _stock():
@@ -1037,10 +1037,10 @@ def _chk_env(ws):
     return o == "mode=offline items=42", "" if o == "mode=offline items=42" else "out.txt=%r" % o
 T("recover-env-var", "recovery", "Run app.py to generate out.txt for offline use. Do not modify app.py." + SUFFIX, {"app.py": _app_py}, all_of(unchanged("app.py", _app_py), _chk_env))
 
-_menu = "Crème brûlée slushie;12.50\nMango ☀ splash;9.00\nCafé frappé;10.50\nKids cola;4.00\nPiña colada (NA);11.00\n"
+_menu = "Crème brûlée sundae;12.50\nMango ☀ splash;9.00\nCafé frappé;10.50\nKids cola;4.00\nPiña colada (NA);11.00\n"
 _menu_py = ("rows = [l.strip().split(';') for l in open('menu.txt') if l.strip()]\nwith open('menu_out.txt', 'w') as f:\n    for name, price in rows:\n"
             "        if float(price) > 10:\n            f.write(name.upper() + '\\n')\nprint('done')\n")
-_menu_want = "CRÈME BRÛLÉE SLUSHIE\nCAFÉ FRAPPÉ\nPIÑA COLADA (NA)\n"
+_menu_want = "CRÈME BRÛLÉE SUNDAE\nCAFÉ FRAPPÉ\nPIÑA COLADA (NA)\n"
 def _chk_menu(ws):
     try: os.remove(os.path.join(ws, "menu_out.txt"))
     except Exception: pass
