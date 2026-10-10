@@ -19,6 +19,14 @@ Every change, in order, with the number it produced. Each **Data** entry names a
 | 13 | Windows power plans (Saver / Balanced / Performance) | no effect on tok/s (about 40 on all), so the governor uses Saver when idle | observed |
 | 14 | Context shift disabled explicitly (`--no-context-shift`; current llama.cpp also defaults to disabled) | an overflow is an explicit HTTP 400 instead of silent truncation | evalsuite/overflow_test.py |
 | 15 | Agent window = server context − 8K (bug fix in `qwen window`) | agents compact before the server can overflow | governor/qwen.ps1 |
+| 16 | Slot save/restore to disk (`--slot-save-path`, 43,431-token agent prompt) | cold read 107-124 s; restore 1.29 s + 19 new tokens 3.25 s = **4.5 s** (about 27x faster resume after a restart). Works with the vision projector loaded | v3 bench (2026-10-11) |
+| 17 | `--spec-draft-p-min 0.5` with DFlash2 n_max 7 (3 interleaved rounds) | 42.0 -> **43.94 tok/s** (+4.6%), accept rate .627 -> .788. n_max 5 + p-min 0.5: 42.73 (accept .836). Embedded MTP n=2: 32.15 (DFlash2 is 37% faster) | v3 bench |
+| 18 | `llama-bench` re-check of the baseline (f16 KV) | pp512 611 tok/s, tg 16.1 (no drafter). Depth: pp512@16K 462; tg 16.0 / 15.6 / 15.2 / 14.3 at 0 / 8K / 16K / 32K. Without cooperative matrices pp512 falls to 203 (3x). Int-dot off: no change (611). SYCL pp512 162, tg 14.6 | v3 bench |
+| 19 | Long-context KV choices at 32K depth | FA off: pp 279. q8_0 KV: pp 117 (pp512 591). Only f16 KV with FA keeps the Intel prefill kernel | v3 bench |
+| 20 | ThinkingCap-Qwen3.8-27B (Q4_K_M) against the base quant, 16 tasks | At `xhigh`: base 15/16, 234 s (4.1 tasks/min); ThinkingCap **16/16, 60.5 s (15.9 tasks/min), 3.9x**, with 79% less thinking text (4,513 vs 21,298 chars). At `medium`: base 15/16 80 s; ThinkingCap 16/16 74.8 s. Phone eval 10/10 | v3 bench |
+| 21 | Qwen's template only accepts `reasoning_effort` of xhigh / medium / low | other values give HTTP 500; "high" maps to xhigh | v3 bench |
+| 22 | Windows audit: dwm.exe VRAM with two 3440x1440 monitors | dwm holds 2.6 GB of the 24 GB. Dropping both monitors to 1920x1080 did **not** shrink it (2.6 -> 3.3 GB right after the change, 2.8 GB a minute later). See [DISPLAY-POLICY.md](DISPLAY-POLICY.md) | observed on the PC |
+| 23 | Intel graphics services | Graphics Software Service 15 MB RAM, shader distributor 3 MB, PROSet monitoring small; no overlay process was running and none held VRAM. Switching them off is a tidy-up, not a speed-up | observed on the PC |
 
 ## Settings that matter (final)
 
@@ -63,5 +71,7 @@ llama-server -m Qwen3.8-27B-UD-Q4_K_M.gguf --mmproj mmproj-F16.gguf --no-mmproj-
 - **More draft tokens (n=15):** too much VRAM pressure (upstream's DFlash example uses 15 on a smaller model).
 - **The Intel FA kernel with a q4 KV cache:** no gain.
 - **Power-plan tuning:** no effect on speed.
+- **Lowering the display resolution to free the compositor's VRAM:** measured, no saving ([DISPLAY-POLICY.md](DISPLAY-POLICY.md)).
+- **Embedded MTP, n-gram stacking on top of DFlash2, int-dot, q8_0 KV and FA off:** all slower or no change (rows 17-19).
 - **SYCL:** slower than Vulkan here in our observation; the raw log wasn't kept, so please [submit a comparison](GOOD-FIRST-ISSUES.md).
 - **Chasing 55 tok/s average:** the B60's memory bandwidth caps a 27B dense model at about 42–45 tok/s average (56–60 peak on code), so the effort went into reliability instead.

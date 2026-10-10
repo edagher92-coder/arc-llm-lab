@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (2.3.0 draft)
+**Model and engine**
+- Production default is now ThinkingCap-Qwen3.8-27B Q4_K_M with its own projector (the base model stays as the `qwen3.8-27b-base` variant): 3.9x more tasks per minute at `xhigh` on our 16 tasks, 16/16 correct, phone eval 10/10 ([TUNING-LOG](docs/TUNING-LOG.md) rows 16-21).
+- `--spec-draft-p-min 0.5` added to the DFlash2 variants: +4.6% generation, higher accept rate.
+- Measured: saving the KV slot to disk lets a restart resume a 43K-token prompt in 4.5 s instead of about 2 minutes (the governor lane that automates it is still being finished).
+**Windows**
+- `tools/windows-lean.ps1`: dry-run-first, fully undoable trim of background services, startup entries and Game DVR (optional `-Intel`, `-BrowserAccel`, `-Apps`).
+- `governor/display-policy.ps1`: opt-in idle display policy. Works, but did not free VRAM on our PC, so it ships off ([docs/DISPLAY-POLICY.md](docs/DISPLAY-POLICY.md)).
+**Research**
+- `docs/SCOUT-PROMPT.md`: the reusable brief for scouting new speed, memory and UI ideas, with our baseline so agents skip what is already measured.
+
 ## 2.2.1 - 2026-10-11
 - Use the gateway from Claude Code, Claude Desktop or Codex: `gateway/make_agent_config.py` builds an agent config without the nested `pc` server, and [GATEWAY.md](docs/GATEWAY.md#use-it-from-claude-code-claude-desktop-or-codex) has the setup for each. Ready in 7.3 s warm, 51.8 s on the first start.
 - A second gateway instance no longer crashes when port 8093 is taken. It runs without an approvals page, changes fail safe, and `GW_APPROVAL_PORT` / `GW_APPROVAL_URL` give each instance its own page.
