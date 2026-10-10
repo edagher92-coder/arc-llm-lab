@@ -102,7 +102,7 @@ def classify(passed, timed_out, info, out, rc):
     if timed_out: return "timeout"
     if re.search(r"exceed_context_size|exceeds the available context|context length exceeded|prompt is too long", blob, re.I): return "context_overflow"
     if info.get("subtype") == "error_max_turns": return "max_turns"
-    if failed_run and re.search(r"ECONNREFUSED|connection refused|\b50[0-4] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)|stream disconnected|API Error: *[45]\d\d", blob): return "api_error"
+    if failed_run and re.search(r"ECONNREFUSED|connection refused|\b50[0-4] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)|stream disconnected|API Error: *(?:[45]\d\d|Connection error)", blob): return "api_error"
     if failed_run: return "agent_error"
     if (info.get("final") or "").strip().endswith("?"): return "asked_user"
     return "wrong_result"

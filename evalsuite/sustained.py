@@ -180,13 +180,13 @@ def main():
     ap.add_argument("--steps", type=int, default=len(STEPS))
     a = ap.parse_args()
     run = a.run or "sustained-%s-%dk" % (a.agent, a.cap // 1024)
+    out = os.path.join(HERE, "results", run + ".jsonl")
+    if os.path.exists(out) and os.path.getsize(out): sys.exit("refusing to overwrite existing results/%s.jsonl (rename it or pass --run)" % run)  # before the wipe, so a refused run deletes nothing
     ws = os.path.join(HERE, "work", run, "project"); shutil.rmtree(os.path.dirname(ws), ignore_errors=True); os.makedirs(ws)
     mcsv, bcsv = csv_files()
     for rel, c in {"docs/requirements.md": requirements_md(), "data/machines.csv": mcsv, "data/bookings.csv": bcsv}.items():
         p = os.path.join(ws, rel); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w", encoding="utf-8", newline="").write(c)
     meta = os.path.join(HERE, "work", run, "_meta"); os.makedirs(meta)
-    out = os.path.join(HERE, "results", run + ".jsonl")
-    if os.path.exists(out) and os.path.getsize(out): sys.exit("refusing to overwrite existing results/%s.jsonl (rename it or pass --run)" % run)
     open(out, "w").close()
     env = dict(os.environ, QWEN_CLIENT_CAP=str(a.cap)); thread = None; codex_comp = 0
     for k, (prompt, ver) in enumerate(STEPS[:a.steps], 1):
@@ -226,7 +226,7 @@ def main():
         d = lambda key: (m1.get(key, 0) - m0.get(key, 0)) if m1.get(key, 0) >= m0.get(key, 0) else m1.get(key, 0)
         rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok), new_test_passed=bool(new_ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
                    failure=RN.classify(ok, timed_out, info, log, rc), turns=info.get("turns"), peak_prompt_tok=poll.peak, srv_n_ctx=sorted(x for x in poll.nctx if x),
-                   compactions_total=cpt, overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
+                   compactions_total=cpt, compactions_counted_once=True, overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
                    srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
                    srv_gen_s=round(d("tokens_predicted_seconds_total"), 1), srv_prompt_s=round(d("prompt_seconds_total"), 1),
                    vram_min_free_gib=smp.min_free, model_reloaded=len(smp.starts | {r0.get("started"), r1.get("started")} - {None}) > 1,

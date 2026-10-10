@@ -106,6 +106,8 @@ def sustained_md():
             try: rs.append(json.loads(l))
             except Exception: pass  # truncated last line of a run that was killed mid-write
         if not rs: continue
+        for r in rs:  # Claude records written before 2.0.1 counted each compaction twice (compact_boundary + isCompactSummary)
+            if r.get("agent") == "claude" and not r.get("compactions_counted_once"): r["compactions_total"] = (r.get("compactions_total") or 0) // 2
         run = os.path.basename(p)[:-6]; ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs)
         probe = [r for r in rs if r["step"] == 10]
         # new_test_passed = only this step's own hidden test (older result files do not have it, so it is optional).

@@ -25,7 +25,7 @@ $row = [ordered]@{ time = (Get-Date -f s); label = $Label; ctx = $ctx; engine = 
   shallow_tg = $sh.tg_tps; eval_tps = $ev.avg_gen_tps_wall; coding = "$($ev.coding_pass)/$($ev.coding_total)"; tools = "$($ev.tools_pass)/$($ev.tools_total)" }
 if (-not (Test-Path $hist)) { ($row.Keys -join ',') | Set-Content $hist }
 ($row.Values -join ',') | Add-Content $hist
-$ok = ($null -ne $three) -and ($null -ne $ev) -and ($ev.coding_total -gt 0) -and ($three -le $BASE_3TURN * 1.10)  # a crashed test must never read as PASS -and ($ev.coding_pass -eq $ev.coding_total) -and ($ev.tools_pass -eq $ev.tools_total)
+$ok = ($null -ne $three) -and ($null -ne $ev) -and ($ev.coding_total -gt 0) -and ($three -le $BASE_3TURN * 1.10) -and ($ev.coding_pass -eq $ev.coding_total) -and ($ev.tools_pass -eq $ev.tools_total)  # a crashed test must never read as PASS
 Write-Host ''
 Write-Host ("3-turn coding test : {0} s   (baseline {1} s)" -f $three, $BASE_3TURN)
 Write-Host ("Deep generation    : {0} tok/s, deep reading {1} tok/s" -f $row.deep_tg, $row.deep_pp)

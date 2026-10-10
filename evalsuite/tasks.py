@@ -1055,7 +1055,7 @@ def _chk_menu(ws):
     except Exception: pass
     try: p = run_py(ws, ["menu.py"], timeout=60, env={"PYTHONUTF8": "0", "PYTHONIOENCODING": ""})
     except subprocess.TimeoutExpired: return False, "menu.py timed out"
-    got = (rd(ws, "menu_out.txt") or "").replace("\r\n", "\n")
+    got = (rdb(ws, "menu_out.txt") or b"").decode("utf-8", errors="replace").replace("\r\n", "\n")  # strict UTF-8 on purpose: output left in cp1252 is the bug this task tests
     return got == _menu_want, "" if got == _menu_want else "menu_out.txt (re-run) = %r rc=%s %s" % (got[:120], p.returncode, p.stderr[-150:])
 T("recover-encoding", "recovery", "menu.py should write the names of items priced over $10 in UPPERCASE to menu_out.txt, but the output comes out garbled on this Windows PC. Fix menu.py so it works correctly "
   "regardless of the system's default encoding, then run it." + SUFFIX, {"menu.txt": _menu, "menu.py": _menu_py}, _chk_menu)

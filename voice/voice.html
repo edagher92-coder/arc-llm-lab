@@ -139,7 +139,7 @@ const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem('qv.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('qv.' + k, JSON.stringify(v)); } catch (e) {} } };
 let key = ''; try { key = localStorage.getItem('qwenKey') || ''; } catch (e) {}
 const cfg = { voice: store.get('voice', 'emma'), speed: store.get('speed', 1.05), speak: store.get('speak', true), handsfree: store.get('handsfree', false), mode: store.get('mode', 'qwen3.8-27b:code') };
-let history = [], busy = false, ttsOK = true, muted = false;
+let history = [], busy = false, ttsOK = true, muted = false, ttsFails = 0;
 
 /* ---------- ui helpers ---------- */
 const orb = $('orb');
@@ -178,8 +178,8 @@ async function synth(job) {
   try {
     const r = await fetch('/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: job.text, voice: cfg.voice, speed: cfg.speed }) });
     if (!r.ok) throw new Error('tts ' + r.status);
-    job.buf = await audio().decodeAudioData(await r.arrayBuffer());
-  } catch (e) { ttsOK = false; job.fallback = true; }
+    job.buf = await audio().decodeAudioData(await r.arrayBuffer()); ttsFails = 0;
+  } catch (e) { if (++ttsFails >= 3) ttsOK = false; job.fallback = true; }   // one blip falls back for that sentence only; 3 in a row switch to the phone voice
 }
 function drain() {
   while (ttsQueue.length && ttsQueue[0].done) {
@@ -327,7 +327,7 @@ orb.onclick = () => {
   if (s === 'idle') listen().catch(e => setState('idle', 'Microphone blocked: ' + e.message));
   else if (s === 'listening') stopListening();
   else if (s === 'thinking') { muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Cancelled'); }
-  else if (s === 'speaking') { muted = true; stopSpeaking(); setState('idle', 'Stopped, tap to talk'); }
+  else if (s === 'speaking') { muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Stopped, tap to talk'); }
 };
 $('typeform').onsubmit = e => { e.preventDefault(); audio(); const t = $('text').value.trim(); if (t) { $('text').value = ''; ask(t); } };
 $('new').onclick = () => { stopSpeaking(); if (abortCtl) abortCtl.abort(); history = []; $('log').innerHTML = ''; setState('idle', 'New conversation'); };
@@ -342,7 +342,7 @@ function renderVoices() {
     $('voices').appendChild(b);
   }
 }
-function preview() { audio(); stopSpeaking(); ttsOK = true; enqueueSpeech("Hi, this is how I'll sound."); }
+function preview() { audio(); stopSpeaking(); muted = false; ttsOK = true; ttsFails = 0; enqueueSpeech("Hi, this is how I'll sound."); }
 $('gear').onclick = () => { renderVoices(); $('speed').value = cfg.speed; $('speedOut').textContent = cfg.speed.toFixed(2) + '×'; $('speak').checked = cfg.speak; $('handsfree').checked = cfg.handsfree; sheet.showModal(); };
 $('done').onclick = () => sheet.close();
 sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });

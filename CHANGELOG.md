@@ -14,6 +14,13 @@
 - Site and tools: contributor URLs need http(s); community table cells escaped; chart labels no longer clipped; accessibility fixes; CI hardening.
 - `agents/claude-qwen.cmd` also finds Claude Code installed by the Microsoft Store (MSIX) desktop app.
 
+**Follow-up fixes (second review, same day)**
+- `bench/regression.ps1`: a misplaced comment in the 2.0.1 fix had switched off the coding/tools pass checks; restored.
+- Voice: three TTS failures in a row (not one) switch to the phone voice; tapping the orb while it speaks also stops the stream; a voice preview un-mutes.
+- `recover-encoding` checker reads the output as strict UTF-8 again (the cp1252 fallback let a half-fix pass).
+- `sustained.py` refuses to overwrite before it wipes the old workspace; `report.py` halves the double-counted compactions in older Claude records.
+- Governor never learns the "other apps" VRAM figure while a model is still starting.
+
 ## 2.0.0 - 2026-10-10
 **Results**
 - Agent eval finished: Claude Code @32K **97/100** (1.54 completed tasks/min, 92% prompt-cache hit); Codex @32K **95/100** (0.62 tasks/min). Raw records in `evalsuite/results/`.

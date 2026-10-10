@@ -129,7 +129,7 @@ while ($true) {
     $cfg = Get-Content "$dir\profiles.json" -Raw | ConvertFrom-Json; $A = $cfg.auto
     $mode = Mode; $s = Sense; $m = ModelState; $now = Get-Date
     # model is ready but its per-process GPU counter reads ~0: its own VRAM would be booked as 'others' (bogus LEAN + unload). Keep last good value.
-    if ($m.loaded -and $s.vram_llama_gib -lt 4 -and $s.vram_used_gib -gt 12) { $s.vram_others_gib = $script:lastOthers; $s.vram_llama_gib = [math]::Round($s.vram_used_gib - $script:lastOthers, 2) } else { $script:lastOthers = $s.vram_others_gib }
+    if ($m.loaded -and $s.vram_llama_gib -lt 4 -and $s.vram_used_gib -gt 12) { $s.vram_others_gib = $script:lastOthers; $s.vram_llama_gib = [math]::Round($s.vram_used_gib - $script:lastOthers, 2) } elseif ($m.loaded -or $m.state -eq 'stopped') { $script:lastOthers = $s.vram_others_gib }   # never learn 'others' while a model is starting (its counter lags)
     # --- watchdog for llama-swap ---
     if ($m.state -eq 'swap-down') {
       $swapFails++
