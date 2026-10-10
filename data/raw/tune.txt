@@ -1,0 +1,7 @@
+start 2026-10-10T08:13:32
+n7 ub512 (current)   | model 7.37 GiB, free 1.01 GiB (others 15.49) | chat t0.6 9.27 tok/s acc 574/869 | code t0.2 avg 20.5 [27.1/27.7/35.6/15.0/31.3/29.7/25.6] | coding 7/7 tools 3/3
+n5                   | model 21.22 GiB, free 1.04 GiB (others 1.62) | chat t0.6 44.06 tok/s acc 555/719 | code t0.2 avg 41.4 [45.3/46.2/50.6/50.5/47.8/49.3/47.0] | coding 7/7 tools 3/3
+n10                  | model 21.09 GiB, free 1.23 GiB (others 1.56) | chat t0.6 43.39 tok/s acc 574/857 | code t0.2 avg 42.2 [47.4/45.8/60.0/53.2/51.4/51.6/50.8] | coding 7/7 tools 3/3
+n15                  | model 21.83 GiB, free 0.96 GiB (others 1.10) | chat t0.6 28.56 tok/s acc 579/831 | code t0.2 avg 27.0 [29.1/29.3/36.0/35.3/34.3/31.8/31.5] | coding 7/7 tools 3/3
+n7 ub256 dkv-q8      | model 21.18 GiB, free 1.59 GiB (others 1.10) | chat t0.6 41.64 tok/s acc 567/922 | code t0.2 avg 42.3 [49.1/47.1/58.0/56.4/53.0/56.5/52.7] | coding 7/7 tools 3/3
+END 2026-10-10T08:43:35

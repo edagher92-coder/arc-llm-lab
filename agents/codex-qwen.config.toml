@@ -1,0 +1,27 @@
+# Codex profile "qwen": local Qwen3.8-27B on an Intel Arc Pro B60 (llama-swap, loads on request).
+# Put this in your Codex config.toml as [profiles.qwen] (or merge the keys), plus the provider block below.
+#   codex-qwen                       interactive, live context window + early compaction (recommended)
+#   codex --profile qwen             interactive with the static values below
+#   codex exec --profile qwen "..."  one-shot
+model          = "qwen3.8-27b:code"   # presets: :code (fast agent loops), :plan (deep thinking), plain id (balanced)
+model_provider = "qwen-b60"
+model_reasoning_effort = "medium"
+
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+
+# Safe static values (FAST engine holds ~57-64k). codex-qwen overrides these with the live window.
+model_context_window           = 32768
+model_auto_compact_token_limit = 27000
+
+# Hosted web search is not available through llama.cpp.
+web_search            = "disabled"
+project_doc_max_bytes = 16384
+
+developer_instructions = "Local model. Context is ~32k: keep reads targeted and tool output small. Verify work by running it. When asked to write an output file, check it exists before finishing."
+
+# [model_providers.qwen-b60]
+# name = "Local Qwen on Arc B60"
+# base_url = "http://127.0.0.1:8090/v1"
+# env_key = "LOCAL_QWEN_KEY"
+# wire_api = "responses"

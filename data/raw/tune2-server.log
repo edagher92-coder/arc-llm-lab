@@ -1,0 +1,76 @@
+[34m0.00.119.715[0m [32mI [0msrv  llama_server: initializing ...
+[34m0.00.119.727[0m [32mI [0mcmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+[34m0.00.120.187[0m [35mW srv  llama_server: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)[0m
+[34m0.00.129.416[0m [32mI [0msrv    load_model: loading model 'C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf'
+[34m0.00.689.858[0m [35mW model has unused tensor blk.64.attn_norm.weight (size = 20480 bytes) -- ignoring[0m
+[34m0.00.689.873[0m [35mW model has unused tensor blk.64.post_attention_norm.weight (size = 20480 bytes) -- ignoring[0m
+[34m0.00.689.903[0m [35mW model has unused tensor blk.64.attn_q.weight (size = 51609600 bytes) -- ignoring[0m
+[34m0.00.689.913[0m [35mW model has unused tensor blk.64.attn_k.weight (size = 5570560 bytes) -- ignoring[0m
+[34m0.00.689.922[0m [35mW model has unused tensor blk.64.attn_v.weight (size = 5570560 bytes) -- ignoring[0m
+[34m0.00.689.958[0m [35mW model has unused tensor blk.64.attn_output.weight (size = 25804800 bytes) -- ignoring[0m
+[34m0.00.689.968[0m [35mW model has unused tensor blk.64.attn_q_norm.weight (size = 1024 bytes) -- ignoring[0m
+[34m0.00.689.978[0m [35mW model has unused tensor blk.64.attn_k_norm.weight (size = 1024 bytes) -- ignoring[0m
+[34m0.00.689.988[0m [35mW model has unused tensor blk.64.ffn_gate.weight (size = 73113600 bytes) -- ignoring[0m
+[34m0.00.689.998[0m [35mW model has unused tensor blk.64.ffn_down.weight (size = 73113600 bytes) -- ignoring[0m
+[34m0.00.690.007[0m [35mW model has unused tensor blk.64.ffn_up.weight (size = 73113600 bytes) -- ignoring[0m
+[34m0.00.690.017[0m [35mW model has unused tensor blk.64.nextn.eh_proj.weight (size = 43008000 bytes) -- ignoring[0m
+[34m0.00.690.028[0m [35mW model has unused tensor blk.64.nextn.enorm.weight (size = 20480 bytes) -- ignoring[0m
+[34m0.00.690.038[0m [35mW model has unused tensor blk.64.nextn.hnorm.weight (size = 20480 bytes) -- ignoring[0m
+[34m0.00.690.068[0m [35mW model has unused tensor blk.64.nextn.shared_head_norm.weight (size = 20480 bytes) -- ignoring[0m
+[34m0.06.867.169[0m [32mI [0mcmn          init: llama threadpool init, n_threads = 8
+[34m0.06.973.748[0m [32mI [0mcommon_speculative_init_result: loading draft model 'C:/AI/models/qwen3.8-27b/Qwen3.8-27B-DFlash2-Q4_K_M.gguf'
+[34m0.07.847.541[0m [35mW load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks[0m
+[34m0.07.847.547[0m [35mW load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024[0m
+[34m0.07.847.547[0m [35mW load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842[0m
+
+[34m0.08.110.899[0m [32mI [0msrv    load_model: loaded multimodal model, 'C:/AI/models/qwen3.8-27b/mmproj-F16.gguf'
+[34m0.08.110.918[0m [35mW srv    load_model: cache_reuse is not supported by multimodal, it will be disabled[0m
+[34m0.08.110.921[0m [32mI [0msrv    load_model: initializing, n_slots = 1, n_ctx_slot = 65536, kv_unified = 'false'
+[34m0.08.110.949[0m [32mI [0mcommon_speculative_impl_draft_dflash: adding speculative implementation 'draft-dflash'
+[34m0.08.110.951[0m [32mI [0mcommon_speculative_impl_draft_dflash: - n_max=7, n_min=0, p_min=0.00
+[34m0.08.110.951[0m [32mI [0mcommon_speculative_impl_draft_dflash: - block_size=8, mask_token_id=248070, n_extract=5, sample_from_anchor=true
+[34m0.08.206.069[0m [35mW srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)[0m
+[34m0.08.206.089[0m [32mI [0msrv  llama_server: model loaded
+[34m0.08.206.091[0m [32mI [0msrv  llama_server: listening on http://127.0.0.1:18080
+[34m0.10.175.934[0m [32mI [0mslot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+[34m0.10.175.981[0m [32mI [0mslot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+[34m0.13.817.763[0m [32mI [0mslot print_timing: id  0 | task 0 | n_gen =    108, tg =  34.78 t/s, tg_3s =  35.10 t/s
+[34m0.16.877.132[0m [32mI [0mslot print_timing: id  0 | task 0 | n_gen =    263, tg =  42.70 t/s, tg_3s =  50.66 t/s
+[34m0.19.944.243[0m [32mI [0mslot print_timing: id  0 | task 0 | n_gen =    392, tg =  42.49 t/s, tg_3s =  42.06 t/s
+[34m0.23.024.778[0m [32mI [0mslot print_timing: id  0 | task 0 | n_gen =    525, tg =  42.66 t/s, tg_3s =  43.17 t/s
+[34m0.26.105.147[0m [32mI [0mslot print_timing: id  0 | task 0 | n_gen =    656, tg =  42.63 t/s, tg_3s =  42.53 t/s
+[34m0.27.239.137[0m [32mI [0mslot print_timing: id  0 | task 0 | prompt eval time =     565.11 ms /    58 tokens (    9.74 ms per token,   102.64 tokens per second)
+[34m0.27.239.143[0m [32mI [0mslot print_timing: id  0 | task 0 |        eval time =   16497.83 ms /   700 tokens (   23.60 ms per token,    42.37 tokens per second)
+[34m0.27.239.144[0m [32mI [0mslot print_timing: id  0 | task 0 |       total time =   17062.94 ms /   758 tokens
+[34m0.27.239.144[0m [32mI [0mslot print_timing: id  0 | task 0 |    graphs reused =        125
+[34m0.27.239.155[0m [32mI [0mslot print_timing: id  0 | task 0 | draft acceptance = 0.63474 (  570 accepted /   898 generated), mean len =  5.42
+[34m0.27.239.205[0m [32mI [0mslot      release: id  0 | task 0 | stop processing: n_tokens = 757, truncated = 0
+[34m0.28.471.904[0m [32mI [0mslot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 27129168
+[34m0.28.565.065[0m [32mI [0mslot launch_slot_: id  0 | task 132 | processing task, is_child = 0
+[34m0.32.808.238[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =   2048, progress = 0.07, t =   3.70 s / 553.98 tokens per second
+[34m0.37.117.022[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =   4096, progress = 0.14, t =   8.02 s / 510.81 tokens per second
+[34m0.41.561.117[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =   6144, progress = 0.21, t =  12.45 s / 493.67 tokens per second
+[34m0.46.091.302[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =   8192, progress = 0.28, t =  16.97 s / 482.67 tokens per second
+[34m0.50.755.497[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  10240, progress = 0.35, t =  21.62 s / 473.53 tokens per second
+[34m0.55.535.281[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  12288, progress = 0.41, t =  26.40 s / 465.51 tokens per second
+[34m1.00.420.249[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  14336, progress = 0.48, t =  31.27 s / 458.46 tokens per second
+[34m1.05.456.020[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  16384, progress = 0.55, t =  36.30 s / 451.32 tokens per second
+[34m1.10.572.361[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  18432, progress = 0.62, t =  41.41 s / 445.14 tokens per second
+[34m1.15.781.879[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  20480, progress = 0.69, t =  46.61 s / 439.43 tokens per second
+[34m1.21.111.621[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  22528, progress = 0.76, t =  51.92 s / 433.88 tokens per second
+[34m1.26.560.468[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  24576, progress = 0.83, t =  57.37 s / 428.38 tokens per second
+[34m1.32.157.440[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  26624, progress = 0.90, t =  62.94 s / 423.01 tokens per second
+[34m1.37.978.379[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  28672, progress = 0.97, t =  68.75 s / 417.04 tokens per second
+[34m1.39.728.951[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  29291, progress = 0.99, t =  70.48 s / 415.61 tokens per second
+[34m1.40.858.941[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt processing, n_tokens =  29675, progress = 1.00, t =  71.24 s / 416.58 tokens per second
+[34m1.41.176.670[0m [32mI [0mslot print_timing: id  0 | task 132 | prompt eval time =   72455.45 ms / 29679 tokens (    2.44 ms per token,   409.62 tokens per second)
+[34m1.41.176.674[0m [32mI [0mslot print_timing: id  0 | task 132 |        eval time =     155.77 ms /     2 tokens (  155.77 ms per token,     6.42 tokens per second)
+[34m1.41.176.675[0m [32mI [0mslot print_timing: id  0 | task 132 |       total time =   72611.22 ms / 29681 tokens
+[34m1.41.176.676[0m [32mI [0mslot print_timing: id  0 | task 132 |    graphs reused =        125
+[34m1.41.176.681[0m [32mI [0mslot print_timing: id  0 | task 132 | draft acceptance = 0.00000 (    0 accepted /     6 generated), mean len =  1.00
+[34m1.41.177.075[0m [32mI [0mslot      release: id  0 | task 132 | stop processing: n_tokens = 29680, truncated = 0
+[34m1.41.205.078[0m [32mI [0mslot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.906 (> 0.100 thold), f_keep = 1.000
+[34m1.41.205.294[0m [32mI [0mslot launch_slot_: id  0 | task 151 | processing task, is_child = 0
+[34m1.47.468.859[0m [32mI [0mslot print_timing: id  0 | task 151 | prompt processing, n_tokens =   2050, progress = 0.97, t =   5.57 s / 368.29 tokens per second
+[34m1.49.268.715[0m [32mI [0mslot print_timing: id  0 | task 151 | prompt processing, n_tokens =   2688, progress = 0.99, t =   7.34 s / 366.03 tokens per second
+[34m1.50.398.319[0m [32mI [0mslot print_timing: id  0 | task 151 | prompt processing, n_tokens =   3072, progress = 1.00, t =   8.14 s / 377.57 tokens per second

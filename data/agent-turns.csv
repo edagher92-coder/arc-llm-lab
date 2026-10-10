@@ -1,0 +1,5 @@
+config,context_depth_tokens,three_turn_wall_s,turn_prompt_tok_s,turn_gen_tok_s,source
+stock Vulkan + drafter (before Intel FA),30000-37000,201,~100,~11,observed (README history; raw log not retained)
+Intel FA f16 KV (first build),30000-37000,54.9,357-389,36-45,raw/server-test.txt
+Intel FA f16 KV live 61K ctx,30000-37000,52.2,377,43.9,raw/bench-history.csv
+Intel FA tuned 64K ctx (final),30000-37000,56.7,333,42.2,raw/bench-history.csv

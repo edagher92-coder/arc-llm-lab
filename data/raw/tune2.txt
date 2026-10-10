@@ -1,0 +1,2 @@
+start 2026-10-10T09:28:24
+ub512 dkv-q8   | model 21.56 GiB, free 0.71 GiB (others 1.61) | 3-turn 52.6 s | deep tg 40.8 pp 376

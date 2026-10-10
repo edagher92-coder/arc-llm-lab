@@ -1,0 +1,15 @@
+start 2026-10-10T06:47:43
+6:47:43 AM gcc: gcc.exe (GCC) 16.2.0
+6:47:43 AM cmake: cmake version 4.4.3
+6:47:43 AM llama.cpp HEAD: c85e6c598 vulkan : adding check of max_bias/logit_softcap for Intel FA kernel path | 8be784610 vulkan : Intel customized FA shader for prefill usage | 86a283532 musa: drop mp_21 from the default architectures (#30203) | 
+6:47:43 AM glslc ok
+6:47:43 AM install SPIRV-Headers package
+6:47:50 AM -- GL_KHR_cooperative_matrix supported by glslc
+6:47:50 AM -- GL_NV_cooperative_matrix2 supported by glslc
+6:47:50 AM -- GL_NV_cooperative_matrix_decode_vector supported by glslc
+6:47:50 AM -- GL_EXT_integer_dot_product supported by glslc
+6:47:50 AM -- GL_EXT_bfloat16 supported by glslc
+6:47:50 AM -- GL_EXT_float_e2m1 supported by glslc
+6:47:50 AM -- GL_EXT_float_e4m3 supported by glslc
+6:51:04 AM BUILD OK -> C:\AI\llama.cpp\vulkan-intelfa
+END 2026-10-10T06:51:04

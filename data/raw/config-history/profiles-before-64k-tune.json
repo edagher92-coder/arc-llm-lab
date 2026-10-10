@@ -1,0 +1,165 @@
+{
+  "_comment": "Qwen governor v2 (measured on this B60, 10 Oct 2026). AUTO picks MAX (PC idle) / BALANCED (you are on the PC) / LEAN (heavy load). Context is sized at each load from the VRAM free at that moment minus the profile's free-VRAM margin. DFlash2 drafter (7 tokens) ~43-50 tok/s; generation collapses if free VRAM < ~1.1 GiB, so margins stay >= 1.2 GiB. Variants: default UD-Q4_K_M (best quality), turbo Q4_0 (faster, slightly lower quality), long = native 262k context, no drafter (~15 tok/s).",
+  "exe": "C:/AI/llama.cpp/vulkan-intelfa/llama-server.exe",
+  "mmproj": "C:/AI/models/qwen3.8-27b/mmproj-F16.gguf",
+  "vram": {
+    "total_gib": 23.88,
+    "budget_gib": 23.13
+  },
+  "env": {
+    "GGML_VK_FORCE_MMVQ": "1"
+  },
+  "common_args": [
+    "-ngl",
+    "99",
+    "-fa",
+    "on",
+    "-lm",
+    "dio",
+    "--jinja",
+    "-np",
+    "1",
+    "--cache-reuse",
+    "256",
+    "--metrics",
+    "--reasoning-budget",
+    "4096",
+    "--reasoning-budget-message",
+    "Thinking budget reached. Give the final answer now.",
+    "--no-mmproj-offload",
+    "-fit",
+    "off",
+    "--chat-template-file",
+    "C:/AI/governor/qwen38-template.jinja"
+  ],
+  "variants": {
+    "default": {
+      "id": "qwen3.8-27b",
+      "port": 10001,
+      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "ctk": "f16",
+      "ctv": "f16",
+      "base_gib": 17.46,
+      "kv_kib_per_token": 66.5,
+      "ctx_max": 65536,
+      "extra_args": [
+        "-ngld",
+        "99",
+        "-md",
+        "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "--spec-type",
+        "draft-dflash",
+        "--spec-draft-n-max",
+        "7"
+      ]
+    },
+    "turbo": {
+      "id": "qwen3.8-27b-turbo",
+      "port": 10003,
+      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-Q4_0.gguf",
+      "ctk": "f16",
+      "ctv": "f16",
+      "base_gib": 17.08,
+      "kv_kib_per_token": 66.5,
+      "ctx_max": 65536,
+      "extra_args": [
+        "-ngld",
+        "99",
+        "-md",
+        "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "--spec-type",
+        "draft-dflash",
+        "--spec-draft-n-max",
+        "7"
+      ]
+    },
+    "long": {
+      "id": "qwen3.8-27b-long",
+      "port": 10004,
+      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "ctk": "q4_0",
+      "ctv": "q4_0",
+      "fixed_ctx": 262144,
+      "extra_args": [],
+      "base_gib": 19.5,
+      "optional_draft": {
+        "cost_gib": 1.81,
+        "min_free_gib": 1.3,
+        "args": [
+          "-ngld",
+          "99",
+          "-md",
+          "C:/AI/models/qwen3.8-27b/mtp-Qwen3.8-27B-Q4_0.gguf",
+          "--spec-type",
+          "draft-mtp",
+          "--spec-draft-n-max",
+          "3",
+          "-ctkd",
+          "q4_0",
+          "-ctvd",
+          "q4_0"
+        ]
+      }
+    },
+    "big": {
+      "id": "qwen3.8-27b-big",
+      "port": 10005,
+      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "ctk": "q4_0",
+      "ctv": "q4_0",
+      "base_gib": 17.46,
+      "kv_kib_per_token": 18.6,
+      "ctx_max": 262144,
+      "extra_args": [
+        "-ngld",
+        "99",
+        "-md",
+        "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "--spec-type",
+        "draft-dflash",
+        "--spec-draft-n-max",
+        "7"
+      ]
+    }
+  },
+  "profiles": {
+    "MAX": {
+      "free_margin_gib": 1.35,
+      "ctx_min": 32768,
+      "threads": 14,
+      "cache_ram_mib": 8192,
+      "priority": "Normal",
+      "idle_unload_min": 0
+    },
+    "BALANCED": {
+      "free_margin_gib": 1.5,
+      "ctx_min": 32768,
+      "threads": 8,
+      "cache_ram_mib": 4096,
+      "priority": "BelowNormal",
+      "idle_unload_min": 30
+    },
+    "LEAN": {
+      "free_margin_gib": 3.0,
+      "ctx_min": 32768,
+      "threads": 4,
+      "cache_ram_mib": 1024,
+      "priority": "BelowNormal",
+      "idle_unload_min": 5
+    }
+  },
+  "auto": {
+    "idle_for_max_sec": 600,
+    "ram_floor_gb": 3.5,
+    "ram_for_max_gb": 8.0,
+    "others_vram_lean_gib": 3.5,
+    "others_vram_max_gib": 3.0,
+    "vram_free_pressure_gib": 1.1,
+    "others_cpu_lean_pct": 85,
+    "confirm_samples": 3,
+    "model_quiet_sec_before_reload": 120,
+    "max_upgrade_quiet_min": 20,
+    "prewarm_cooldown_min": 10,
+    "sample_sec": 15
+  }
+}

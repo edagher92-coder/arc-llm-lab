@@ -1,0 +1,5 @@
+segment,gib,note
+Model weights + DFlash2 drafter + buffers,17.15,Qwen3.8-27B UD-Q4_K_M + DFlash2 Q4_K_M draft (q8_0 draft KV)
+KV cache 64K tokens (f16),4.03,64.5 KiB per token x 65536
+Other apps (Windows desktop),1.10,measured during tuning
+Free headroom,1.59,generation collapses below ~1.1 GiB free

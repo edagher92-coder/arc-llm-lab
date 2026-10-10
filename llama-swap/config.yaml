@@ -1,0 +1,83 @@
+# llama-swap - on-request local Qwen for ARC-PC (Intel Arc Pro B60, Vulkan llama.cpp b11524)
+# The 27B is started through the governor launcher, which applies the current AUTO profile
+# (MAX 152k ctx when the PC is idle / BALANCED 128k when you use it / LEAN 64k under heavy load).
+# Endpoints: /v1/chat/completions, /v1/responses (Codex), /v1/messages (Claude Code). Browser UI: /upstream/qwen3.8-27b/
+healthCheckTimeout: 300
+logLevel: info
+globalTTL: 900
+apiKeys:
+  - "${env.LOCAL_QWEN_KEY}"
+
+models:
+  "qwen3.8-27b":
+    name: "Qwen3.8 27B FAST - Intel FA engine, f16 KV, ~57-61k ctx, DFlash, vision, AUTO profile"
+    cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant default
+    proxy: http://127.0.0.1:10001
+    ttl: 7200          # backstop only; the governor manages unloading
+    aliases: ["qwen", "local", "default"]
+    # Use-case presets on the SAME loaded model (no reload). Pick one by model name:
+    #   qwen3.8-27b          general: thinking on, capped at 2k thinking tokens, Qwen thinking sampling
+    #   qwen3.8-27b:code     agentic coding / tool loops (Claude Code, Codex, Continue, Cline): no thinking, fast turns
+    #   qwen3.8-27b:plan     architecture, schema migrations, design specs: deep thinking (16k budget)
+    #   qwen3.8-27b:vision   private charts, diagrams, reports, code screenshots: short thinking (1k), precise sampling
+    filters:
+      setParamsByID:
+        "${MODEL_ID}":
+          temperature: 0.6
+          top_p: 0.95
+          top_k: 20
+          thinking_budget_tokens: 2048
+        "${MODEL_ID}:code":
+          temperature: 0.7
+          top_p: 0.8
+          top_k: 20
+          presence_penalty: 0.5
+          chat_template_kwargs:
+            enable_thinking: false
+        "${MODEL_ID}:plan":
+          temperature: 0.6
+          top_p: 0.95
+          top_k: 20
+          thinking_budget_tokens: 16384
+          chat_template_kwargs:
+            enable_thinking: true
+        "${MODEL_ID}:vision":
+          temperature: 0.6
+          top_p: 0.95
+          top_k: 20
+          thinking_budget_tokens: 1024
+          chat_template_kwargs:
+            enable_thinking: true
+
+  "qwen3.8-27b-turbo":
+    name: "Qwen3.8 27B TURBO (Q4_0, ~30% faster, vision, MTP, AUTO profile)"
+    cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant turbo
+    proxy: http://127.0.0.1:10003
+    ttl: 7200
+    aliases: ["qwen-turbo", "turbo"]
+
+  "qwen3.8-27b-big":
+    name: "Qwen3.8 27B BIG - ~150-200k ctx (q4 KV), DFlash, vision; slower when deep"
+    cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant big
+    proxy: http://127.0.0.1:10005
+    ttl: 7200
+    aliases: ["qwen-big", "big"]
+
+  "qwen3.8-27b-long":
+    name: "Qwen3.8 27B LONG - full native 262k context, vision, no drafter (~15 tok/s)"
+    cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant long
+    proxy: http://127.0.0.1:10004
+    ttl: 3600
+    aliases: ["qwen-long", "long"]
+
+  "qwen3.6-35b-a3b":
+    name: "Qwen3.6 35B-A3B fast (text only, 128k ctx)"
+    cmd: >-
+      C:/AI/llama.cpp/vulkan/llama-server.exe --host 127.0.0.1 --port 10002
+      -m C:/AI/models/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
+      -ngl 99 -fa on -lm dio --jinja -np 1 --no-mmproj -t 8 -cram 4096 --cache-reuse 256 --metrics
+      -fit off -c 131072 -ctk q8_0 -ctv q8_0 -a qwen3.6-35b-a3b
+    proxy: http://127.0.0.1:10002
+    ttl: 900
+    aliases: ["qwen-fast", "fast"]
+

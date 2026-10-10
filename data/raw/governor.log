@@ -1,0 +1,116 @@
+2026-10-10T00:12:21 launch: qwen3.8-27b profile=BALANCED ctx=131072 port=10001
+2026-10-10T00:13:09 governor start pid=50116
+2026-10-10T00:20:07 launch: qwen3.8-27b profile=BALANCED ctx=131072 port=10001
+2026-10-10T00:46:30 launch: qwen3.8-27b profile=BALANCED ctx=131072 port=10001
+2026-10-10T00:54:33 governor start pid=41760
+2026-10-10T01:03:59 launch: qwen3.8-27b profile=BALANCED ctx=131072 port=10001
+2026-10-10T01:07:51 profile BALANCED -> MAX (idle=652s ram=16.12GB othersVRAM=1.82GiB cpuOthers=6%)
+2026-10-10T01:08:43 profile MAX -> BALANCED (idle=706s ram=20.81GB othersVRAM=1.82GiB cpuOthers=8%)
+2026-10-10T01:53:22 governor start pid=2716
+2026-10-10T01:53:45 launch: qwen3.8-27b profile=BALANCED ctx=196608 kv=q4_0/q4_0 others=1.25GiB port=10001 
+2026-10-10T01:53:57 profile BALANCED -> MAX (idle=1093s ram=19.96GB othersVRAM=1.19GiB cpuOthers=14%)
+2026-10-10T02:03:01 UNLOAD (free VRAM 0.91 GiB < 1.1 -> re-fit context (MAX))
+2026-10-10T02:03:01 PREWARM (re-fit as MAX)
+2026-10-10T02:03:03 launch: qwen3.8-27b profile=MAX ctx=180224 kv=q4_0/q4_0 others=1.85GiB port=10001 
+2026-10-10T02:05:31 profile MAX -> LEAN (idle=1789s ram=20.06GB othersVRAM=17.05GiB cpuOthers=10%)
+2026-10-10T02:21:17 profile LEAN -> MAX (idle=2735s ram=21.25GB othersVRAM=1.22GiB cpuOthers=12%)
+2026-10-10T02:21:33 profile MAX -> LEAN (idle=2751s ram=20.37GB othersVRAM=16.66GiB cpuOthers=13%)
+2026-10-10T02:24:16 profile LEAN -> MAX (idle=2912s ram=20.41GB othersVRAM=1.17GiB cpuOthers=11%)
+2026-10-10T02:34:11 profile MAX -> LEAN (idle=3508s ram=18.67GB othersVRAM=11.03GiB cpuOthers=11%)
+2026-10-10T02:34:29 profile LEAN -> MAX (idle=3525s ram=19.35GB othersVRAM=1.24GiB cpuOthers=6%)
+2026-10-10T02:46:46 profile MAX -> LEAN (idle=4264s ram=20.35GB othersVRAM=16.54GiB cpuOthers=9%)
+2026-10-10T02:50:14 profile LEAN -> MAX (idle=4472s ram=21.49GB othersVRAM=1.22GiB cpuOthers=8%)
+2026-10-10T02:50:30 profile MAX -> LEAN (idle=4488s ram=20.44GB othersVRAM=16.91GiB cpuOthers=6%)
+2026-10-10T02:52:38 profile LEAN -> MAX (idle=4617s ram=21.63GB othersVRAM=1.18GiB cpuOthers=11%)
+2026-10-10T02:52:38 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T02:52:40 launch: qwen3.8-27b profile=MAX ctx=217088 kv=q4_0/q4_0 others=1.19GiB port=10001 
+2026-10-10T04:52:53 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T04:52:55 launch: qwen3.8-27b profile=MAX ctx=212992 kv=q4_0/q4_0 others=1.22GiB port=10001 
+2026-10-10T05:22:54 governor start pid=32836
+2026-10-10T05:22:57 profile BALANCED -> MAX (idle=13633s ram=17.21GB othersVRAM=1.28GiB cpuOthers=7%)
+2026-10-10T05:33:32 governor start pid=41496
+2026-10-10T05:33:36 profile BALANCED -> MAX (idle=14271s ram=17.53GB othersVRAM=1.36GiB cpuOthers=9%)
+2026-10-10T05:53:01 profile MAX -> LEAN (idle=15439s ram=20.03GB othersVRAM=17.23GiB cpuOthers=14%)
+2026-10-10T05:58:37 profile LEAN -> MAX (idle=15776s ram=21.47GB othersVRAM=1.17GiB cpuOthers=10%)
+2026-10-10T05:58:38 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T05:58:39 launch: qwen3.8-27b profile=MAX ctx=217088 kv=q4_0/q4_0 others=1.18GiB port=10001 
+2026-10-10T05:58:57 power PERFORMANCE -> SAVER (idle=15792s modelQuiet=1524s cpu=8%)
+2026-10-10T06:05:25 governor start pid=33784
+2026-10-10T06:05:27 power  -> PERFORMANCE (idle=16184s modelQuiet=1s cpu=6.9%)
+2026-10-10T06:05:47 launch: qwen3.8-27b profile=BALANCED ctx=208896 kv=q4_0/q4_0 others=1.15GiB port=10001 
+2026-10-10T06:06:01 profile BALANCED -> MAX (idle=16217s ram=18.17GB othersVRAM=1.15GiB cpuOthers=10%)
+2026-10-10T06:11:10 power PERFORMANCE -> BALANCED (idle=16525s modelQuiet=181s cpu=7.1%)
+2026-10-10T06:12:58 power BALANCED -> PERFORMANCE (idle=16634s modelQuiet=0s cpu=21.4%)
+2026-10-10T06:17:49 power PERFORMANCE -> BALANCED (idle=16924s modelQuiet=181s cpu=8.9%)
+2026-10-10T06:20:50 power BALANCED -> SAVER (idle=17106s modelQuiet=363s cpu=6.8%)
+2026-10-10T06:35:02 UNLOAD (upgrade BALANCED -> MAX)
+2026-10-10T06:35:02 PREWARM (upgrade to MAX)
+2026-10-10T06:35:04 launch: qwen3.8-27b profile=MAX ctx=217088 kv=q4_0/q4_0 others=1.15GiB port=10001 
+2026-10-10T06:35:21 power SAVER -> PERFORMANCE (idle=17976s modelQuiet=0s cpu=11.7%)
+2026-10-10T06:38:22 power PERFORMANCE -> BALANCED (idle=18158s modelQuiet=181s cpu=8.2%)
+2026-10-10T06:41:23 power BALANCED -> SAVER (idle=18339s modelQuiet=363s cpu=13.7%)
+2026-10-10T06:42:18 power SAVER -> BALANCED (idle=18394s modelQuiet=418s cpu=36.4%)
+2026-10-10T06:43:31 power BALANCED -> SAVER (idle=18467s modelQuiet=490s cpu=17.1%)
+2026-10-10T06:44:26 power SAVER -> BALANCED (idle=18521s modelQuiet=545s cpu=98.6%)
+2026-10-10T06:44:46 power BALANCED -> PERFORMANCE (idle=18540s modelQuiet=565s cpu=100%)
+2026-10-10T06:46:53 power PERFORMANCE -> SAVER (idle=18669s modelQuiet=692s cpu=8.3%)
+2026-10-10T06:48:06 power SAVER -> BALANCED (idle=18741s modelQuiet=765s cpu=64.4%)
+2026-10-10T06:48:42 power BALANCED -> PERFORMANCE (idle=18760s modelQuiet=795s cpu=100%)
+2026-10-10T06:51:45 profile MAX -> LEAN (idle=18963s ram=19.63GB othersVRAM=15.49GiB cpuOthers=25%)
+2026-10-10T07:02:10 profile LEAN -> MAX (idle=19588s ram=20.84GB othersVRAM=1.12GiB cpuOthers=12%)
+2026-10-10T07:02:10 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T07:02:12 launch: qwen3.8-27b profile=MAX ctx=221184 kv=q4_0/q4_0 others=1.13GiB port=10001 
+2026-10-10T07:02:42 profile MAX -> LEAN (idle=19620s ram=19.81GB othersVRAM=16.38GiB cpuOthers=14%)
+2026-10-10T07:09:23 profile LEAN -> MAX (idle=20021s ram=20.94GB othersVRAM=1.14GiB cpuOthers=9%)
+2026-10-10T07:15:57 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T07:15:58 launch: qwen3.8-27b profile=MAX ctx=221184 kv=q4_0/q4_0 others=1.12GiB port=10001 
+2026-10-10T07:16:33 power PERFORMANCE -> SAVER (idle=20449s modelQuiet=2473s cpu=7.1%)
+2026-10-10T07:34:11 governor start pid=24512
+2026-10-10T07:34:12 power  -> PERFORMANCE (idle=21510s modelQuiet=1s cpu=6.5%)
+2026-10-10T07:34:36 launch: qwen3.8-27b profile=BALANCED ctx=61440 kv=f16/f16 others=1.12GiB port=10001 
+2026-10-10T07:34:47 profile BALANCED -> MAX (idle=21543s ram=18.75GB othersVRAM=1.09GiB cpuOthers=16%)
+2026-10-10T07:45:21 power PERFORMANCE -> BALANCED (idle=22176s modelQuiet=181s cpu=13.5%)
+2026-10-10T07:48:22 power BALANCED -> SAVER (idle=22358s modelQuiet=363s cpu=8.8%)
+2026-10-10T07:48:58 power SAVER -> PERFORMANCE (idle=22394s modelQuiet=0s cpu=9.1%)
+2026-10-10T07:55:37 power PERFORMANCE -> BALANCED (idle=22792s modelQuiet=181s cpu=12.6%)
+2026-10-10T07:55:55 power BALANCED -> PERFORMANCE (idle=22811s modelQuiet=0s cpu=6.6%)
+2026-10-10T08:13:26 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T08:13:27 launch: qwen3.8-27b profile=MAX ctx=61440 kv=f16/f16 others=1.14GiB port=10001 
+2026-10-10T08:14:02 profile MAX -> LEAN (idle=23898s ram=2.43GB othersVRAM=1.14GiB cpuOthers=22%)
+2026-10-10T08:18:43 profile LEAN -> MAX (idle=24178s ram=19.86GB othersVRAM=1.07GiB cpuOthers=23%)
+2026-10-10T08:19:46 profile MAX -> BALANCED (idle=6s ram=20.75GB othersVRAM=1.11GiB cpuOthers=34%)
+2026-10-10T08:30:22 profile BALANCED -> MAX (idle=610s ram=21.26GB othersVRAM=1.1GiB cpuOthers=8%)
+2026-10-10T08:43:51 PREWARM (PC idle - keep model warm in MAX)
+2026-10-10T08:43:53 launch: qwen3.8-27b profile=MAX ctx=61440 kv=f16/f16 others=1.09GiB port=10001 
+2026-10-10T08:44:46 power PERFORMANCE -> SAVER (idle=1474s modelQuiet=1581s cpu=10%)
+2026-10-10T09:20:24 power SAVER -> BALANCED (idle=4s modelQuiet=3719s cpu=9.5%)
+2026-10-10T09:20:24 UNLOAD (free VRAM 1.04 GiB < 1.1 -> re-fit context (MAX))
+2026-10-10T09:20:24 PREWARM (re-fit as MAX)
+2026-10-10T09:20:26 launch: qwen3.8-27b profile=MAX ctx=53248 kv=f16/f16 others=1.57GiB port=10001 
+2026-10-10T09:21:01 profile MAX -> BALANCED (idle=1s ram=21.23GB othersVRAM=1.61GiB cpuOthers=12%)
+2026-10-10T09:21:01 UNLOAD (idle 63 min in BALANCED)
+2026-10-10T09:21:53 governor start pid=7092
+2026-10-10T09:21:55 power  -> PERFORMANCE (idle=24s modelQuiet=1s cpu=8.1%)
+2026-10-10T09:22:03 launch: qwen3.8-27b profile=BALANCED ctx=57344 kv=f16/f16 others=1.6GiB port=10001 
+2026-10-10T09:32:10 profile BALANCED -> MAX (idle=607s ram=20.99GB othersVRAM=1.08GiB cpuOthers=1%)
+2026-10-10T09:33:02 WATCHDOG: tailscale-ipn was not running - started it
+2026-10-10T09:36:47 profile MAX -> BALANCED (idle=0s ram=23.03GB othersVRAM=1.44GiB cpuOthers=6%)
+2026-10-10T09:38:23 power PERFORMANCE -> BALANCED (idle=0s modelQuiet=626s cpu=14%)
+2026-10-10T09:44:55 launch: qwen3.8-27b profile=BALANCED ctx=57344 kv=f16/f16 others=1.46GiB port=10001 
+2026-10-10T09:45:06 power BALANCED -> PERFORMANCE (idle=8s modelQuiet=0s cpu=19.7%)
+2026-10-10T09:48:26 power PERFORMANCE -> BALANCED (idle=207s modelQuiet=181s cpu=6.6%)
+2026-10-10T09:54:09 power BALANCED -> PERFORMANCE (idle=204s modelQuiet=0s cpu=48.6%)
+2026-10-10T09:57:47 power PERFORMANCE -> BALANCED (idle=421s modelQuiet=181s cpu=23.5%)
+2026-10-10T09:59:29 governor start pid=30252
+2026-10-10T09:59:33 power  -> PERFORMANCE (idle=526s modelQuiet=4s cpu=8.8%)
+2026-10-10T10:01:39 profile BALANCED -> MAX (idle=654s ram=18.8GB othersVRAM=1.05GiB cpuOthers=12%)
+2026-10-10T10:07:42 power PERFORMANCE -> BALANCED (idle=1016s modelQuiet=181s cpu=7.6%)
+2026-10-10T10:10:43 power BALANCED -> SAVER (idle=1197s modelQuiet=362s cpu=7.6%)
+2026-10-10T10:24:55 UNLOAD (upgrade BALANCED -> MAX)
+2026-10-10T10:24:55 PREWARM (upgrade to MAX)
+2026-10-10T10:24:57 launch: qwen3.8-27b profile=MAX ctx=65536 kv=f16/f16 others=1.08GiB port=10001 
+2026-10-10T10:25:14 power SAVER -> PERFORMANCE (idle=2068s modelQuiet=0s cpu=8.2%)
+2026-10-10T10:28:15 power PERFORMANCE -> BALANCED (idle=2249s modelQuiet=181s cpu=7.7%)
+2026-10-10T10:31:16 power BALANCED -> SAVER (idle=2430s modelQuiet=363s cpu=8.3%)
+2026-10-10T10:36:24 power SAVER -> PERFORMANCE (idle=2738s modelQuiet=0s cpu=16.1%)
+2026-10-10T11:00:52 profile MAX -> BALANCED (idle=0s ram=14.91GB othersVRAM=1.48GiB cpuOthers=0%)

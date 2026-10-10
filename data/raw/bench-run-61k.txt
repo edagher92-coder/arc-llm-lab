@@ -1,0 +1,7 @@
+Benchmarking port 10001 (ctx 61440, engine C:/AI/llama.cpp/vulkan-intelfa/llama-server.exe) - takes ~4 min...
+
+3-turn coding test : 52.2 s   (baseline 54.9 s)
+Deep generation    : 43.9 tok/s, deep reading 377 tok/s
+Shallow generation : 45.11 tok/s (baseline 42.8)   eval avg 43.7 tok/s (baseline 43)
+Quality            : coding 7/7, tools 3/3
+RESULT: PASS

@@ -1,0 +1,7 @@
+setting,draft_n_max,ubatch,draft_kv,code_avg_tok_s,chat_tok_s,free_vram_gib,coding_pass,tools_pass,note,source
+no drafter,0,512,-,16.05,,,,,llama-bench tg32 (no speculative decoding),raw/compare-f16.txt
+DFlash2 n=5,5,512,f16,41.4,44.06,1.04,7/7,3/3,,raw/tune.txt
+DFlash2 n=7 (chosen),7,256,q8_0,42.3,41.64,1.59,7/7,3/3,ub256 + q8 draft KV frees 0.55 GiB for 64K context,raw/tune.txt
+DFlash2 n=10,10,512,f16,42.2,43.39,1.23,7/7,3/3,,raw/tune.txt
+DFlash2 n=15,15,512,f16,27.0,28.56,0.96,7/7,3/3,VRAM starved (<1.1 GiB free) - generation collapses,raw/tune.txt
+DFlash2 n=7 ub512 q8 draft KV,7,512,q8_0,,,0.71,,,3-turn 52.6 s but too little VRAM headroom,raw/tune2.txt

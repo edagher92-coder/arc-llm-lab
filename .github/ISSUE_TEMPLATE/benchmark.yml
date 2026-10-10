@@ -1,0 +1,37 @@
+name: Benchmark result
+description: Share numbers from your Intel GPU so everyone can compare
+title: "[bench] <GPU> <model> <backend>"
+labels: ["benchmark"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks! Paste raw output where you can - raw logs make results trustworthy. Every accepted result is credited in docs/COMMUNITY-RESULTS.md."
+  - type: input
+    id: gpu
+    attributes: { label: GPU, placeholder: "Arc Pro B60 24GB / Arc A770 16GB / Arc B580 12GB ..." }
+    validations: { required: true }
+  - type: input
+    id: system
+    attributes: { label: "CPU, RAM, OS, driver version", placeholder: "Ryzen 7 3700X, 32GB DDR4, Windows 11, driver 32.0.101.xxxx" }
+    validations: { required: true }
+  - type: input
+    id: build
+    attributes: { label: "llama.cpp build and backend", placeholder: "b11524 Vulkan + Intel FA (PR #29357) / SYCL / official release" }
+    validations: { required: true }
+  - type: input
+    id: model
+    attributes: { label: "Model and quant", placeholder: "Qwen3.8-27B UD-Q4_K_M, KV f16, drafter DFlash2 n=7" }
+    validations: { required: true }
+  - type: textarea
+    id: bench
+    attributes:
+      label: "llama-bench output (pp2048 / tg32 at depth 0, 16384, 32768 if possible)"
+      render: text
+  - type: textarea
+    id: agent
+    attributes:
+      label: "qwen bench output (3-turn agent test) - optional"
+      render: text
+  - type: textarea
+    id: notes
+    attributes: { label: Notes, description: "Anything that helped or hurt: flags, VRAM free, power, temperatures" }

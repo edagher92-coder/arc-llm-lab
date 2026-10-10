@@ -1,0 +1,9 @@
+api-key.txt
+*.gguf
+*.onnx
+voices-*.bin
+__pycache__/
+evalsuite/work/
+evalsuite/results/*.progress.json
+venv/
+.venv/
