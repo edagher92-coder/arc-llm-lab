@@ -1,0 +1,365 @@
+{
+ "name": "gw",
+ "max_results": 4,
+ "servers": {
+  "pc": {
+   "command": "cmd",
+   "args": [
+    "/c",
+    "C:\\AI\\gateway\\claude-mcp-gw.cmd"
+   ]
+  },
+  "files": {
+   "command": "node",
+   "args": [
+    "D:\\local-ai-tools\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js",
+    "C:\\AI\\shared"
+   ]
+  },
+  "fetch": {
+   "command": "C:\\Users\\<you>\\.local\\bin\\mcp-server-fetch.exe",
+   "args": []
+  },
+  "time": {
+   "command": "C:\\Users\\<you>\\.local\\bin\\mcp-server-time.exe",
+   "args": [
+    "--local-timezone=Australia/Sydney"
+   ]
+  },
+  "context7": {
+   "command": "node",
+   "args": [
+    "D:\\local-ai-tools\\launch.cjs",
+    "context7"
+   ]
+  },
+  "browser": {
+   "command": "node",
+   "args": [
+    "D:\\local-ai-tools\\node_modules\\@playwright\\mcp\\cli.js",
+    "--config",
+    "C:\\AI\\gateway\\playwright-headless.json"
+   ]
+  },
+  "chrome": {
+   "command": "node",
+   "args": [
+    "D:\\local-ai-tools\\node_modules\\@playwright\\mcp\\cli.js",
+    "--extension"
+   ],
+   "env": {
+    "PLAYWRIGHT_MCP_EXTENSION_TOKEN": "<set on your PC>"
+   },
+   "optional": true,
+   "probe_timeout_s": 10
+  },
+  "desktop": {
+   "command": "C:\\Users\\<you>\\.local\\bin\\windows-mcp.exe",
+   "args": [
+    "serve",
+    "--exclude-tools",
+    "PowerShell,Registry,Process,FileSystem"
+   ],
+   "env": {
+    "ANONYMIZED_TELEMETRY": "false"
+   }
+  },
+  "docs": {
+   "command": "C:\\Users\\<you>\\.local\\bin\\markitdown-mcp.exe",
+   "args": []
+  }
+ },
+ "pin": [
+  "pc_Read",
+  "pc_Grep",
+  "pc_Glob",
+  "fetch_fetch",
+  "time_get_current_time",
+  "skills",
+  "share_file"
+ ],
+ "hide": [
+  "pc_Agent",
+  "pc_Bash",
+  "pc_NotebookEdit",
+  "pc_ReportFindings",
+  "pc_WebSearch",
+  "pc_Task*",
+  "pc_DesignSync",
+  "pc_*Worktree",
+  "pc_SendMessage",
+  "pc_ListAgents",
+  "pc_Workflow",
+  "pc_Cron*",
+  "pc_ScheduleWakeup",
+  "pc_ToolSearch",
+  "pc_Monitor",
+  "pc_PushNotification",
+  "pc_AskUserQuestion",
+  "pc_*PlanMode",
+  "*run_code_unsafe*",
+  "*browser_evaluate*",
+  "*browser_install*",
+  "pc_Skill"
+ ],
+ "aliases": {
+  "pc_PowerShell": "run command shell terminal script execute install git npm python pip build test",
+  "pc_Edit": "modify change replace edit text in a file code fix bug",
+  "pc_Write": "create new file save write",
+  "pc_WebFetch": "web page url read article",
+  "desktop_*": "desktop windows pc screen app gui mouse keyboard computer",
+  "desktop_App": "open launch start application program switch window",
+  "desktop_Screenshot": "see screen look capture what is on my screen",
+  "desktop_Snapshot": "see screen ui elements controls what is on my screen",
+  "chrome_*": "my chrome browser logged in account website tab",
+  "browser_*": "headless web page browse research website internet",
+  "docs_*": "pdf word docx excel xlsx powerpoint pptx document convert read markdown",
+  "files_*": "shared folder file",
+  "context7_*": "library documentation api docs package framework",
+  "skills": "skill playbook procedure how to workflow guide checklist",
+  "share_file": "send give link download share file website zip deliver open on phone laptop"
+ },
+ "policy": {
+  "read": [
+   "pc_Read",
+   "pc_Grep",
+   "pc_Glob",
+   "pc_WebFetch",
+   "*_snapshot*",
+   "*_screenshot*",
+   "*_get_page_text",
+   "*_list*",
+   "*_search*",
+   "*_read*",
+   "*_get_*",
+   "time_*",
+   "context7_*",
+   "docs_*",
+   "fetch_fetch",
+   "skills",
+   "share_file"
+  ],
+  "write": [
+   "pc_PowerShell",
+   "pc_Edit",
+   "pc_Write",
+   "desktop_Type",
+   "desktop_Click",
+   "desktop_Shortcut"
+  ],
+  "destructive": [
+   "*delete*",
+   "*Delete*",
+   "*DELETE*",
+   "*remove*",
+   "*Remove*",
+   "*rmdir*",
+   "*Rmdir*",
+   "*trash*",
+   "*Trash*",
+   "*erase*",
+   "*Erase*",
+   "*wipe*",
+   "*Wipe*",
+   "*Format*"
+  ],
+  "default_intent": "write",
+  "allow_destructive": false,
+  "deny_tools": [
+   "*run_code_unsafe*",
+   "*browser_evaluate*",
+   "*javascript_tool*"
+  ],
+  "deny_args": [
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*(remove-item|ri|rm|del|erase|rd|rmdir|clear-recyclebin)\\b",
+    "why": "any delete verb as a command: recursive, forced or single-file deletes are all destructive",
+    "verdict": "approval"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "\\bcmd(\\.exe)?\\s+/[ck]\\b.*\\b(del|erase|rd|rmdir)\\b",
+    "why": "cmd /c delete (del /s /q, rd /s /q) bypasses the PowerShell delete verbs",
+    "verdict": "approval"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*(clear-content|clear-disk|format-volume|format-disk|diskpart)\\b|(?:^|[;|&(){}\"']|\\\\n)\\s*(format|cipher)(\\.exe|\\.com)?\\s+(/w\\b|[a-z]:)",
+    "why": "wipes or formats disks and volumes, and cipher /w free-space wipe"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*(vssadmin(\\.exe)?\\s+delete|bcdedit|reg(\\.exe)?\\s+(delete|add|import))\\b",
+    "why": "deletes shadow copies, edits boot config, or changes the registry"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*(stop-computer|restart-computer|shutdown|set-executionpolicy)\\b",
+    "why": "power off, reboot, or weaken the execution policy"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "\\s-(e|ec|enc|encodedcommand)(?=[\\s\"])",
+    "why": "base64 encoded command hides the real payload from review"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*(iex|invoke-expression)\\b",
+    "why": "executes an arbitrary string (covers iex with downloads such as iwr or DownloadString)"
+   },
+   {
+    "tools": [
+     "*PowerShell*",
+     "*powershell*",
+     "desktop_Type"
+    ],
+    "pattern": "(?:^|[;|&(){}\"']|\\\\n)\\s*((runas|takeown)\\b|icacls[^;|&]*\\s/(grant|reset|setowner|remove))|-verb\\s+\\W?runas",
+    "why": "privilege elevation, ownership takeover, or ACL rewrite"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "\\b(commbank|netbank|nab\\.com|anz\\.com|westpac|stgeorge|bankwest|bankofmelbourne|macquarie|suncorp|bendigo|hsbc|americanexpress|amex|ing\\.com|bank)\\b",
+    "why": "banking sites: no navigation by agent"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "\\b(paypal|stripe\\.com|squareup\\.com|zeller|afterpay|payid|tyro\\.com|sumup)\\b",
+    "why": "payment dashboards and payment pages"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "\\.gov\\b|servicesaustralia|\\bmygov\\b",
+    "why": "government portals (myGov, ATO, Services Australia, *.gov.au)"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "\\b(1password|lastpass|bitwarden|keepass|dashlane|keepersecurity)\\b|vault\\.",
+    "why": "password managers and vaults"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "\\/(log-?in|sign-?in|oauth2?|authorize)",
+    "why": "login and credential-entry pages: stop and let the user sign in"
+   },
+   {
+    "tools": [
+     "*navigate*",
+     "*tabs_create*"
+    ],
+    "pattern": "(\\?view=cm|[&#?]compose|\\/compose\\b|mailto:)",
+    "why": "email compose or mailto links: sending mail needs an explicit go-ahead"
+   },
+   {
+    "tools": [
+     "*type*",
+     "*Type*",
+     "*fill*",
+     "*form_input*"
+    ],
+    "pattern": "\"(element|name|label|field|description|placeholder)\"\\s*:\\s*\"[^\"]*(password|passwd|passcode|\\bpin\\b|\\botp\\b|one.?time|verification code|2fa|mfa)|\"type\"\\s*:\\s*\"password\"",
+    "why": "typing into password, PIN, OTP or MFA fields"
+   },
+   {
+    "tools": [
+     "*Shortcut*",
+     "*shortcut*"
+    ],
+    "pattern": "\\b(win|windows|meta|super)\\s*[+ ]\\s*r\\b|\\balt\\s*[+ ]\\s*f4\\b|\\bctrl\\s*[+ ]\\s*alt\\s*[+ ]\\s*del(ete)?\\b|\\bctrl\\s*[+ ]\\s*shift\\s*[+ ]\\s*esc\\b|\\b(win|windows)\\s*[+ ]\\s*x\\b|\"(win|windows|meta)\"\\s*,\\s*\"r\"|\"alt\"\\s*,\\s*\"f4\"",
+    "why": "Run dialog (win+r), close window (alt+f4), power-user menu, Task Manager and Secure Attention keys"
+   },
+   {
+    "tools": [
+     "*"
+    ],
+    "pattern": "approvals|:8093|approval-pin|C:[/\\\\\\\\]+AI[/\\\\\\\\]+gateway",
+    "why": "the approval page and the gateway's own files are off limits to the model"
+   }
+  ],
+  "max_identical_calls": 3,
+  "max_calls_per_window": 40,
+  "loop_window_s": 60,
+  "per_tool_limits": {
+   "desktop_*": 20,
+   "chrome_*": 30,
+   "pc_PowerShell": 30
+  },
+  "confirm_intents": [
+   "write",
+   "destructive"
+  ],
+  "max_result_chars": 12000
+ },
+ "descriptions": {
+  "search_tools": "Find a tool when none shown fits: shell, edit or write files, browser, desktop, docs, PDF. Query = a few nouns, e.g. 'run shell command'. Then call_tool with the exact name and arguments matching input_schema.",
+  "call_tool": "Run a tool found by search_tools. name = exact tool name; arguments = object matching its input_schema. One call per step. If it says NEEDS APPROVAL, tell the user, then repeat the same call once after they approve.",
+  "skills": "Your playbooks (ops, releases, debugging). action 'search' with a few words first, then action 'load' with the exact skill name (query) and follow it.",
+  "share_file": "Give the user a link to a file or folder you made (website, report, zip). path = full Windows path under C:\\AI\\shared. Always use this instead of telling them a server path.",
+  "pc_Read": "Read a file. Give file_path (absolute) and use offset/limit for big files; do not read whole large files.",
+  "pc_Grep": "Search file contents with a regex. Prefer this to reading many files. Give pattern and path; use glob to limit file types.",
+  "pc_Glob": "List files by pattern, e.g. **/*.py. Use it to locate a file before reading it.",
+  "fetch_fetch": "Fetch a web page as text. url required; use max_length and start_index to page through long pages.",
+  "time_get_current_time": "Get the current time. timezone defaults to Australia/Sydney."
+ },
+ "skills": {
+  "roots": [
+   "C:\\AI\\skills",
+   "C:\\Codex\\.codex\\skills",
+   "C:\\Users\\<you>\\.claude\\skills",
+   "D:\\shared\\skills"
+  ]
+ },
+ "outbox": {
+  "dir": "C:\\AI\\outbox",
+  "roots": [
+   "C:\\AI\\shared",
+   "C:\\AI\\workspace"
+  ],
+  "public_base": "https://<your-pc>.<tailnet>.ts.net:8445/tts/outbox",
+  "ttl_hours": 24,
+  "max_mb": 200
+ }
+}

@@ -28,6 +28,23 @@ jobs:
         working-directory: evalsuite
         run: python selftest.py --ci
 
+
+  gateway:
+    name: tool gateway tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install fastmcp==3.4.8
+      - name: Gateway (search, guard, approvals, skills, trimming)
+        working-directory: gateway
+        run: python tests/test_gateway.py
+      - name: share_file outbox and the voice server proxy
+        working-directory: gateway
+        run: python -m unittest tests/test_outbox.py -v
   repo:
     name: docs, data and scripts
     runs-on: ubuntu-latest

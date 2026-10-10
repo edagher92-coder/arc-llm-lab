@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gw": {
+      "command": "C:\\AI\\gateway\\.venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\AI\\gateway\\gateway.py"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}

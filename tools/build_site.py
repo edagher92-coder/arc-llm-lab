@@ -78,7 +78,7 @@ def json_ld():
 # ---- guides: docs/*.md -> docs/guides/<slug>.html -------------------------------------------------------------------
 # (markdown file, optional description; when None the first paragraph is used)
 GUIDES = [("SETUP", "Step-by-step setup of llama.cpp on Windows 11 with an Intel Arc Pro B60 24GB: engine, models, server key, verification, remote access, chat UI and nightly regression."),
-          ("INTEL-FA", None), ("TOKEN-EFFICIENCY", None), ("TOOL-CALLING", None), ("PLATFORM", None), ("RELIABILITY", None), ("PEERS", None),
+          ("INTEL-FA", None), ("TOKEN-EFFICIENCY", None), ("TOOL-CALLING", None), ("GATEWAY", None), ("HARNESS-PLAN", None), ("PLATFORM", None), ("RELIABILITY", None), ("PEERS", None),
           ("FAQ", None)]
 GUIDE_SLUGS = {n: n.lower() for n, _ in GUIDES}
 

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness plan (expert review, 2026-10-10) | arc-llm-lab</title>
+<meta name="description" content="This is the plan from the expert review that produced the phone tool gateway.">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html">
+<meta property="og:title" content="Harness plan (expert review, 2026-10-10)">
+<meta property="og:description" content="This is the plan from the expert review that produced the phone tool gateway.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Harness plan (expert review, 2026-10-10)">
+<meta name="twitter:description" content="This is the plan from the expert review that produced the phone tool gateway.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html#article",
+   "headline": "Harness plan (expert review, 2026-10-10)",
+   "description": "This is the plan from the expert review that produced the phone tool gateway.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Harness plan (expert review, 2026-10-10)",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/harness-plan.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Harness plan (expert review, 2026-10-10)</p>
+<main>
+<h1 id="harness-plan-expert-review-2026-10-10">Harness plan (expert review, 2026-10-10)</h1>
+<p>This is the plan from the expert review that produced the <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/gateway.html">phone tool gateway</a>. Most P0 items are deployed: the harness text, result trimming, <code>skills</code>, <code>share_file</code>, the startup changes and the policy fixes. The <code>:chat</code> preset was not deployed: its reasoning-effort parameter name is unconfirmed. P1 is still open. Lines marked [CONFIRM] were not verified when the plan was written.</p>
+<p>Verdict: the model is fine (same Qwen scores 97/100 under Claude Code). The phone path fails on harness discipline, all of it in code we own. Keep Open WebUI as the thin phone client; make the gateway the harness. Do not adopt OpenCode/Qwen Code for the phone path tonight (reasoning in section 5).</p>
+<p>Sandbox note (VERIFIED): <code>pip install fastmcp==3.4.8</code> works here and all of gateway.py's imports resolve. gateway.py's docstring says 4.1.0; live is 3.4.8. Pin 3.4.8 everywhere.</p>
+<h2 id="1-diagnosis-evidence-in-brackets">1. Diagnosis (evidence in brackets)</h2>
+<p class="q"><strong>Tool use inconsistent</strong></p>
+<ul><li>The model gets zero rules. FastMCP's defaults are the only guidance: <code>search_tools</code> = "Search for tools using natural language…", <code>call_tool</code> = "Call a tool by name… discovered via search_tools" [bm25.py:120, base.py:234]. <code>FastMCP(instructions=...)</code> is unused [gateway.py:186]. No preset system prompt tells Qwen to search before saying "I can't", to copy <code>input_schema</code> exactly, or how NEEDS APPROVAL works. Claude Code works because every tool carries usage rules and the system prompt defines the loop; we ship none of that.</li><li>Every "do" action costs two round trips (search, then call): nothing pinned acts [pin: Read/Grep/Glob/fetch/time]. At ~30 tok/s with thinking, that is minutes.</li><li>Thinking per step: with tools present the template injects "Reasoning effort is set to xhigh…" on every request [qwen38-template.jinja:66-67]; the default preset sends <code>thinking_budget_tokens: 2048</code> [config.yaml:29], a key I cannot confirm llama-server honours [CONFIRM]; if ignored, the server cap 4096 applies = up to ~2 min of thinking per tool step.</li><li>No result truncation in the gateway. pc_PowerShell/pc_Read output is capped only by Claude Code's 30,000-char default (claude-mcp.cmd sets no caps). One big result fills a 57K window and evicts the cached prefix.</li><li><code>pc_Skill</code> is classed <code>write</code> [policy.write]: loading a skill needs phone approval.</li><li>Duplicate tool servers: mcpo/config.json spawns time/files/context7/fetch/browser/pc AND /gw spawns the same set (two Claude Code instances, two Playwrights, an npx registry check each start).</li></ul>
+<p><strong>Skills feel absent</strong>: only reachable via <code>pc_Skill</code> (behind search, write-intent, Claude-skills-only). No catalogue, no progressive disclosure. Open WebUI 0.11's built-in <code>view_skill</code> needs built-in tools on (+5,350 prefix tokens, TOOL-CALLING.md) — reject.</p>
+<p><strong>Startup</strong>: (a) mcpo starts ~8 stdio servers sequentially, twice (above); (b) <code>npx -y</code> and <code>uvx</code> resolve at each start; (c) BALANCED unloads the 17 GB model after 30 idle min [profiles.json], so the first phone message after a break pays a model load plus a cold tool-bundle prefill (15.6 s measured). Nothing logs startup time.</p>
+<p><strong>Files</strong>: Qwen writes to C:\AI\shared; nothing serves it. <code>tailscale serve</code> changes need UAC, but /tts (8092) is on the tailnet and already proxies /approvals to 8093 — reuse it.</p>
+<h2 id="2-p0-tonight-gateway--bundle-all-testable-here">2. P0 tonight (gateway + bundle; all testable here)</h2>
+<h3 id="p0-1-harness-text-instructions--tool-descriptions-gatewaypy-new-promptsphone-systemmd">P0-1 Harness text: instructions + tool descriptions (gateway.py, new <code>prompts/phone-system.md</code>)</h3>
+<p>Spec:</p>
+<ul><li><code>FastMCP(name, instructions=PROMPT)</code>.</li><li>New <code>Describe(Transform)</code>: rewrites descriptions of <code>search_tools</code>, <code>call_tool</code> and pinned tools from <code>CFG["descriptions"]</code> (≤300 chars each, with usage rules, e.g. search_tools: "Find a tool when none shown fits: shell, edit/write files, browser, desktop, docs, skills. One short query of nouns. Then call_tool with the exact name and arguments matching input_schema."). Schemas unchanged.</li><li><code>prompts/phone-system.md</code> (~350 tokens, byte-stable): identity; "never say you lack a tool before search_tools"; one call per step unless independent; keep outputs small (Select-String/-Tail/line ranges); NEEDS APPROVAL flow (one line to user, repeat the same call after approval); deliverables → <code>share_file</code>; procedures → <code>skills</code>; end with VERIFIED/INFERRED. Install: paste into an Open WebUI model preset "Qwen (phone)" with built-in tools off, or inject from the <code>smart_tool_router</code> inlet when no system message is present.</li></ul>
+<p>Tests: list_tools shows rewritten descriptions; pinned count/order unchanged; tool-list hash identical across two calls. Effect: fewer "no tool" refusals and wrong-name calls; target ≥8/10 on a 10-prompt phone eval (<code>tests/eval_prompts.json</code>, run on PC). Risk: one cold prefill. Rollback: remove config key.</p>
+<h3 id="p0-2-result-truncation--loop-hygiene-gatewaypy-guard">P0-2 Result truncation + loop hygiene (gateway.py Guard)</h3>
+<ul><li>In <code>on_call_tool</code> after <code>call_next</code>: for each TextContent, if len &gt; <code>policy.max_result_chars</code> (default 12,000) keep head 9,000 + tail 2,500 + "[gateway: trimmed N chars; narrow with line ranges / Select-String / offset]". Log <code>ms</code>, <code>chars_in</code>, <code>chars_out</code> in audit.</li><li>Unknown tool name in <code>call_tool</code>: catch, run BM25 on the name, return "Unknown tool X. Closest: a, b, c" (ToolError text, not exception trace).</li><li>claude-mcp.cmd: <code>set BASH_MAX_OUTPUT_LENGTH=12000</code>, <code>set MAX_MCP_OUTPUT_TOKENS=6000</code>, <code>set CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH=512</code> [VERIFIED env names, research report §3].</li></ul>
+<p>Tests: 100 KB result trimmed to spec; small result untouched; non-text content passes; unknown name returns suggestions. Effect: no single call can wipe the window; the model self-corrects names. Risk: none material. Rollback: <code>max_result_chars: 0</code>.</p>
+<h3 id="p0-3-skills-tool-new-skillspy-mounted-as-local-fastmcp-tool-pinned">P0-3 <code>skills</code> tool (new <code>skills.py</code>, mounted as local FastMCP tool, pinned)</h3>
+<ul><li>Config <code>skills.roots</code>: <code>C:\AI\skills</code>, <code>%USERPROFILE%\.claude\skills</code>, <code>%USERPROFILE%\.codex\skills</code> (the roots listed in <code>C:\AI\local-brain\SKILLS-INDEX.md</code>). Index every <code>*/SKILL.md</code> at start, re-index when a root's mtime changes; parse frontmatter <code>name</code>/<code>description</code> (fallback: dir name, first paragraph).</li><li>One tool <code>skills(action: "search"|"load", query: str)</code>. search → top 6 <code>{name, description≤140, path}</code> via the BM25 index class. load → body without frontmatter, truncated per P0-2, plus "Reference files are under &lt;dir&gt;; pc_Read them when the skill says to." Intent <code>read</code>. Description ≤300 chars: "Your playbooks (ops, releases, debugging). search first, then load one and follow it."</li><li><code>pc_Skill</code> → <code>hide</code> (replaced).</li></ul>
+<p>Tests: fixture tree with 3 skills (one bad frontmatter); search ranks by description; load strips frontmatter; <code>../</code> rejected; missing root tolerated. Effect: skills usable from the phone for ~120 prefix tokens. Rollback: unpin.</p>
+<h3 id="p0-4-share_file-outbox-gateway-tool--approvalspy-route--tts_serverpy-proxy">P0-4 <code>share_file</code> outbox (gateway tool + approvals.py route + tts_server.py proxy)</h3>
+<ul><li>Config <code>outbox</code>: <code>public_base</code> ("https://&lt;pc&gt;.ts.net:8445/tts/outbox"), <code>dir</code> (C:\AI\outbox), <code>roots</code> ([C:\AI\shared, C:\AI\workspace]), <code>ttl_hours</code> 24, <code>max_mb</code> 200.</li><li>Tool <code>share_file(path, zip=false)</code> (intent read, audited): <code>realpath</code> must sit under a root (commonpath check; outbox dir and C:\AI\gateway never allowed); file → copy, dir or zip=true → zipfile; dest <code>dir/&lt;token&gt;/&lt;basename&gt;</code> with <code>secrets.token_urlsafe(16)</code>; write <code>dir/index.json</code> {token, name, expires}; purge expired on every call and at start; return <code>{url, bytes, expires}</code>.</li><li>approvals.py GET <code>/outbox/&lt;token&gt;/&lt;name&gt;</code>: token regex <code>^[A-Za-z0-9_-]{20,24}$</code>, name must equal stored basename, expired → 410. Headers: <code>X-Content-Type-Options: nosniff</code>, <code>Cache-Control: no-store</code>, and <strong><code>Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups</code></strong> on every response. Reason: the model authors the HTML; on the approvals page's origin it could POST an approval with the viewer's cookie. The sandbox gives it an opaque origin: no cookies, and the custom-header POST needs CORS the server never grants. <code>.html</code> inline (so the site opens); everything else <code>Content-Disposition: attachment</code>. Stream with <code>shutil.copyfileobj</code>.</li><li>tts_server.py: <code>/outbox*</code> GET passthrough to 8093 like <code>_approvals</code>, streaming, 60 s timeout.</li></ul>
+<p>Tests: traversal and symlink escape rejected; token/name mismatch 404; TTL purge; CSP header on .html; zip of a dir; size cap; URL from <code>public_base</code>; end-to-end curl against the approvals server on a free port. Effect: tap the link on the laptop, the site opens. Risk: anyone on the tailnet holding the 128-bit URL can fetch that file (TTL-bounded; acceptable). Rollback: remove tool from config.</p>
+<h3 id="p0-5-startup-and-duplication">P0-5 Startup and duplication</h3>
+<ul><li>mcpo/config.json → only <code>gw</code>; delete the six duplicates.</li><li>gateway.example.json files server: replace <code>cmd /c npx -y …</code> with the installed <code>node D:\local-ai-tools\node_modules\@modelcontextprotocol\server-filesystem\dist\index.js</code> [CONFIRM path; else keep npx].</li><li>gateway.py: audit <code>ready: N tools from M servers in X.X s</code> at first list.</li><li>profiles.json BALANCED <code>idle_unload_min</code> 30 → 120 (A/B; pressure rules still unload).</li></ul>
+<p>Tests: config JSON validity; gateway builds from the example config with a fake stdio server. Effect: one Claude Code process instead of two, ~20-40 s faster hub start [INFERRED], fewer cold model loads. Rollback: <code>backup/</code> in the bundle.</p>
+<h3 id="p0-6-policy-fixes">P0-6 Policy fixes</h3>
+<p><code>pc_Skill</code> → hide; <code>share_file</code>, <code>skills</code> → read; <code>max_identical_calls</code> stays 3. Per-preset: add <code>qwen3.8-27b:chat</code> in llama-swap config.yaml = thinking on, <code>chat_template_kwargs.reasoning_effort: medium</code> (drops the xhigh instruction), Qwen thinking sampling (temp 1.0/top_p 0.95/top_k 20), and confirm <code>thinking_budget_tokens</code> vs the real param name on the PC before relying on it [CONFIRM]. Phone preset uses <code>:chat</code>; multi-step jobs use <code>:code</code>.</p>
+<h2 id="3-p1-next">3. P1 next</h2>
+<h3 id="p1-1-server-side-agent-tool-the-real-harness">P1-1 Server-side <code>agent</code> tool (the real harness)</h3>
+<p><code>agent(task, preset=":code", max_steps=25)</code>: a loop inside the gateway against <code>http://127.0.0.1:8090/v1</code> with a compact Claude-Code-style system prompt (plan → act → verify, todo list, one tool per step, P0-2 truncation), full catalogue via BM25, same Guard. Transcript persisted to <code>state/agent-&lt;id&gt;.json</code>; on NEEDS APPROVAL returns <code>{status:"paused", approvals:[ids]}</code>, resumes with <code>agent(resume=id)</code>; returns a summary plus <code>share_file</code> links. Tests against a mock OpenAI server. Risks: single-slot contention (outer request waits; host-RAM cache restores its prefix, measured 1.5 s), Open WebUI tool timeout [CONFIRM]. This is what lets "build me a website" finish in one phone message.</p>
+<h3 id="p1-2-lazy-downstream-spawn">P1-2 Lazy downstream spawn</h3>
+<p>Cache the catalogue (<code>state/catalog.json</code>), serve list/search from it, connect a server on first <code>call_tool</code> for its namespace; parallel connect on cold start. Risk: stale schemas; refresh on each full start.</p>
+<h3 id="p1-3-measurement">P1-3 Measurement</h3>
+<p>Per-request <code>cache_n/prompt_n</code>, steps and wall time in the audit log; 10-prompt phone eval script; stats page shows "tool steps this reply".</p>
+<h2 id="4-harness-choice">4. Harness choice</h2>
+<p>Keep Open WebUI + gateway. The same model and tools score 97/100 under a disciplined harness; the phone path lacks the discipline, not the model or the plumbing. OpenCode/Qwen Code are desktop coding agents: large fixed prompts (Codex measured 15.8K vs 6.5K), no PIN-approval hook, a second chat history, another tailnet surface to secure. Try Qwen Code later as a desktop CLI beside claude-qwen, not as the phone harness. P1-1 gives us the agent loop where we control prompt, truncation, approvals and audit.</p>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/gateway.html">Gateway</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/HARNESS-PLAN.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/HARNESS-PLAN.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

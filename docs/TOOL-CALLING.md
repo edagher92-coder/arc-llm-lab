@@ -66,11 +66,15 @@ From the 100-task runs ([RELIABILITY.md](RELIABILITY.md)): 16 failure records ac
 
 None of these was a malformed tool call. Picking and formatting tools was not the weak point; finishing the job and not damaging files was.
 
-## Direction: a lazy tool gateway
+## Deployed: a lazy tool gateway
 
 The pattern that removes the trade-off is a gateway with a constant, tiny tool surface: a few pinned basics plus `search_tools(query)` and `call_tool(name, arguments)`. The prompt prefix never changes, unused tools cost nothing, and a search result lands at the end of the conversation, where it does not break the cache. It is the same idea as [Anthropic's tool search](https://www.anthropic.com/engineering/advanced-tool-use), and FastMCP ships it as `BM25SearchTransform`.
 
-A prototype exists (FastMCP proxy, BM25 ranking with aliases, a guard with deny rules, rate limits, a kill switch and a hash-chained audit log). It is not deployed or published yet: tools that act on the desktop, a logged-in browser or the shell, called automatically from a phone, need an owner decision on how much runs without confirmation.
+It is now deployed and published in [`gateway/`](../gateway/), with setup and design in [GATEWAY.md](GATEWAY.md). About 100 tools from nine servers sit behind seven pinned basics. Writes and deletes wait for the owner's approval on a PIN-protected page.
+
+On a 10-prompt phone eval it passed **10/10**, with a median of 10.3 s per task, and 90% of prompt tokens came from the cache. Pinned tools alone answered 8 of 10 cases. The other two found their tool through search on the first try. The model stopped at the approval for a delete and did not work around a policy block.
+
+The biggest gain did not come from the plumbing. It came from the harness text: a short system prompt and tool descriptions that tell the model to search before saying it can't, to use exact names, to keep output small and how approvals work. Before that change, the same model with the same tools refused tasks or made up tool names.
 
 ## How this was worked out
 

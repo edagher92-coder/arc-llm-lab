@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.2.0 - 2026-10-11
+**New: phone tool gateway** ([docs/GATEWAY.md](docs/GATEWAY.md), code in `gateway/`)
+- About 100 tools from nine MCP servers (Claude Code tools, files, fetch, time, library docs, headless browser, your own Chrome, Windows desktop, MarkItDown) sit behind 7 pinned tools plus `search_tools` / `call_tool`. The prompt prefix stays the same for the whole chat, so the prompt cache keeps working.
+- Phone eval (`gateway/tests/phone_eval.py`): **10/10**, median 10.3 s per task, 90% of prompt tokens from cache. The model stopped at the approval for a delete and refused to read the gateway's own config.
+- Harness text: a phone system prompt and rewritten tool descriptions (search before "I can't", exact names, small outputs, the approval flow, VERIFIED/INFERRED labels).
+- Guard: deny rules, intents, rate and loop limits, results trimmed to 12,000 characters, unknown-name suggestions, kill switch, and a hash-chained audit log.
+- Approvals: writes and deletes wait for the owner on a PIN-protected page (PBKDF2, HttpOnly cookie). The model never sees the PIN.
+- `skills` tool: search and load local `SKILL.md` playbooks for about 120 prefix tokens.
+- `share_file`: token links that expire after 24 h, so files and sites built on the PC open on a laptop or phone over Tailscale. Links are served behind a CSP sandbox.
+- Live stats in Open WebUI (filter plus `/stats` page) with PIN-gated MAX/BALANCED/LEAN switching.
+- Startup: one gateway behind mcpo instead of two copies of every server, with servers installed as executables. A hanging optional server (Chrome extension not connected) is probed with a timeout. Gateway ready in 18.6 s; the tool hub previously took about 100 s.
+- `docs/HARNESS-PLAN.md`: the expert review plan behind this release, with the open P1 items (a server-side agent loop, lazy server spawn, a `:chat` reasoning preset).
+
 ## 2.1.1 - 2026-10-10
 **Presentation and reach**
 - README first screen rebuilt: headline results, who it is for (measured vs estimate), one command to try, and how to submit your card's numbers.

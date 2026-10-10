@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File engine\build.ps1      # portable, no ad
 
 **If this is useful, give it a star** so other Arc owners can find it. **Got a different Arc card?** Run [the benchmark script](#build-the-engine-and-benchmark-your-card) and submit your numbers through the [benchmark form](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) (results are credited in [COMMUNITY-RESULTS.md](docs/COMMUNITY-RESULTS.md)). Questions, ideas or something wrong? [Open an issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new/choose).
 
-**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
+**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Phone tool gateway](docs/GATEWAY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
 
 ## Results on one Arc Pro B60 24GB
 
@@ -181,6 +181,7 @@ flowchart LR
 | Agents | Claude Code in "FAST mode" (a compact system prompt, about 6.6K tokens of fixed prefix in total against about 19K for the standard one; the figures were not logged) and Codex, with a live context window and early compaction | [agents/](agents/), [docs/AGENTS.md](docs/AGENTS.md) |
 | Token efficiency | The settings that keep the prompt prefix stable and small, what each saves, and how to measure it | [docs/TOKEN-EFFICIENCY.md](docs/TOKEN-EFFICIENCY.md) |
 | Tool calling | What tool schemas cost a local model, measured tool-bundle cache behaviour, and the loading rules that follow | [docs/TOOL-CALLING.md](docs/TOOL-CALLING.md) |
+| Phone tool gateway | About 100 PC, browser and desktop tools behind 7 pinned ones plus search, with phone approvals, file share links and live stats. Phone eval: 10/10, median 10.3 s | [docs/GATEWAY.md](docs/GATEWAY.md) |
 | Platform | Open WebUI chat UI, voice in and out, MCP tools and phone access over Tailscale, without disturbing the prompt cache | [docs/PLATFORM.md](docs/PLATFORM.md) |
 | Voice | Whisper speech-to-text and Kokoro neural voice, both on CPU, spoken sentence by sentence, with OpenAI-compatible routes | [voice/](voice/), [docs/VOICE.md](docs/VOICE.md) |
 | Benchmarks | A regression test (`qwen bench`, about 4 minutes, which includes the three-turn agent test), sweep scripts, the community benchmark script and the raw logs | [bench/](bench/), [data/](data/) |

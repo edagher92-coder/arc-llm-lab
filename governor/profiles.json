@@ -150,7 +150,7 @@
       "threads": 8,
       "cache_ram_mib": 4096,
       "priority": "BelowNormal",
-      "idle_unload_min": 30
+      "idle_unload_min": 120
     },
     "LEAN": {
       "free_margin_gib": 3.0,
