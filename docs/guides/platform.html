@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform layer: a private chat UI, voice and tools on the same GPU</title>
+<meta name="description" content="The agent stack in this repo already gives you an OpenAI-compatible and Anthropic-compatible server (llama-swap in front of llama-server).">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">
+<meta property="og:title" content="Platform layer: a private chat UI, voice and tools on the same GPU">
+<meta property="og:description" content="The agent stack in this repo already gives you an OpenAI-compatible and Anthropic-compatible server (llama-swap in front of llama-server).">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Platform layer: a private chat UI, voice and tools on the same GPU">
+<meta name="twitter:description" content="The agent stack in this repo already gives you an OpenAI-compatible and Anthropic-compatible server (llama-swap in front of llama-server).">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html#article",
+   "headline": "Platform layer: a private chat UI, voice and tools on the same GPU",
+   "description": "The agent stack in this repo already gives you an OpenAI-compatible and Anthropic-compatible server (llama-swap in front of llama-server).",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Platform layer: a private chat UI, voice and tools on the same GPU",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Platform layer: a private chat UI, voice and tools on the same GPU</p>
+<main>
+<h1 id="platform-layer-a-private-chat-ui-voice-and-tools-on-the-same-gpu">Platform layer: a private chat UI, voice and tools on the same GPU</h1>
+<p>The agent stack in this repo already gives you an OpenAI-compatible and Anthropic-compatible server (llama-swap in front of llama-server). This page adds a browser chat UI on top: <a href="https://docs.openwebui.com/">Open WebUI</a> with voice in and out, MCP tools, and remote access from a phone or another PC over Tailscale. Nothing leaves your network.</p>
+<p>Status: this is the setup deployed on the author's PC on 2026-10-10 (Open WebUI 0.11.4, Windows 11). Open WebUI settings and variable names below are from its documentation or were set on that machine. We have not benchmarked the UI; the point of the settings is to keep it from disturbing the model's prompt cache (<a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">TOKEN-EFFICIENCY.md</a>).</p>
+<h2 id="architecture">Architecture</h2>
+<pre><code class="language-mermaid">flowchart LR
+  subgraph Devices["Your devices (on the tailnet)"]
+    WIN["Windows PC&lt;br/&gt;browser or installed PWA"]
+    AND["Android phone&lt;br/&gt;Conduit app or PWA"]
+  end
+  WIN &amp; AND --&gt;|"HTTPS :8446&lt;br/&gt;tailnet only"| TS["tailscale serve"]
+  TS --&gt; OW["Open WebUI 0.11.4&lt;br/&gt;127.0.0.1:3000"]
+  OW --&gt;|"OpenAI API"| SW["llama-swap&lt;br/&gt;127.0.0.1:8090"]
+  OW --&gt;|"/v1/audio/speech&lt;br/&gt;/v1/audio/transcriptions"| VA["voice adapter&lt;br/&gt;127.0.0.1:8092"]
+  VA --&gt; KO["Kokoro TTS&lt;br/&gt;CPU"]
+  VA --&gt;|"/inference"| WH["whisper.cpp&lt;br/&gt;127.0.0.1:8091"]
+  OW --&gt;|"MCP Streamable HTTP"| MCP["MCP servers&lt;br/&gt;loopback"]
+  OW --&gt;|"OpenAPI"| MCPO["mcpo&lt;br/&gt;wraps stdio MCP servers"]
+  SW --&gt; LS["llama-server&lt;br/&gt;Vulkan + Intel FA&lt;br/&gt;Qwen3.8-27B + DFlash2"]
+  LS --&gt; GPU[("Arc Pro B60 24GB")]</code></pre>
+<div class="tw"><table><thead><tr><th>Component</th><th>Listens on</th><th>Reachable from</th></tr></thead><tbody><tr><td>llama-swap and the llama-server backends</td><td><code>127.0.0.1:8090</code>, <code>:10001</code> and up</td><td>this PC only</td></tr><tr><td>whisper.cpp</td><td><code>127.0.0.1:8091</code></td><td>this PC only</td></tr><tr><td>Voice adapter (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/voice/tts_server.py">voice/tts_server.py</a>)</td><td><code>127.0.0.1:8092</code></td><td>this PC only</td></tr><tr><td>Open WebUI</td><td><code>127.0.0.1:3000</code></td><td>this PC, and the tailnet through <code>tailscale serve</code> on <strong>8446</strong></td></tr></tbody></table></div>
+<p>Everything is on the loopback interface except the one UI port that Tailscale publishes to your own tailnet. If you also followed the optional API routes in <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">SETUP.md</a> (port 8445), that is a separate, optional exposure.</p>
+<h2 id="1-install-open-webui">1. Install Open WebUI</h2>
+<p>Open WebUI 0.11.4 requires Python older than 3.13, so run it with <code>uv</code> and a pinned Python 3.11. Set the variables first. Choose a data folder so your chats survive wherever you launch it from (<code>DATA_DIR</code> defaults to <code>./data</code>).</p>
+<pre><code class="language-powershell">$env:DATA_DIR = 'C:\AI\open-webui'
+$env:OPENAI_API_BASE_URL = 'http://127.0.0.1:8090/v1'
+$env:OPENAI_API_KEY = $env:LOCAL_QWEN_KEY          # the key llama-swap expects
+$env:ENABLE_OLLAMA_API = 'False'
+# Background tasks off: see the next section
+$env:ENABLE_TITLE_GENERATION = 'False'; $env:ENABLE_TAGS_GENERATION = 'False'; $env:ENABLE_FOLLOW_UP_GENERATION = 'False'
+$env:ENABLE_AUTOCOMPLETE_GENERATION = 'False'; $env:ENABLE_RETRIEVAL_QUERY_GENERATION = 'False'; $env:ENABLE_SEARCH_QUERY_GENERATION = 'False'
+$env:ENABLE_IMAGE_PROMPT_GENERATION = 'False'; $env:ENABLE_MEMORIES = 'False'; $env:ENABLE_MEMORY_SYSTEM_CONTEXT = 'False'
+
+uvx --python 3.11 open-webui@0.11.4 serve --host 127.0.0.1 --port 3000</code></pre>
+<p>Open <code>http://127.0.0.1:3000</code> and create your account. The first account becomes the administrator. Turn off new sign-ups afterwards (Admin Settings, General), because the UI will be reachable from your tailnet.</p>
+<p><strong>Settings are persistent.</strong> With the default <code>ENABLE_PERSISTENT_CONFIG=True</code>, Open WebUI stores most settings in its data folder on first launch and uses the stored values after that, so these environment variables only take effect the first time. Change them later in Admin Settings, or set <code>ENABLE_PERSISTENT_CONFIG=False</code> to make the environment win on every start (UI changes are then not saved). To run it at logon, register the <code>uvx</code> line as a task through <code>conhost.exe --headless</code>, the same way <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">SETUP.md</a> does for llama-swap.</p>
+<h2 id="2-keep-the-prompt-cache-safe">2. Keep the prompt cache safe</h2>
+<p>The model has one slot. Open WebUI normally sends extra background requests after you chat, and each one is a different prompt on that one slot. They queue against your real conversation and can disturb the cached prefix that makes long conversations fast.</p>
+<div class="tw"><table><thead><tr><th>Setting</th><th>Background request it stops</th></tr></thead><tbody><tr><td><code>ENABLE_TITLE_GENERATION=False</code></td><td>A request to name the chat after the first reply</td></tr><tr><td><code>ENABLE_TAGS_GENERATION=False</code></td><td>A request to tag the chat</td></tr><tr><td><code>ENABLE_FOLLOW_UP_GENERATION=False</code></td><td>Suggested follow-up questions</td></tr><tr><td><code>ENABLE_AUTOCOMPLETE_GENERATION=False</code></td><td>Autocomplete suggestions while you type</td></tr><tr><td><code>ENABLE_RETRIEVAL_QUERY_GENERATION=False</code></td><td>An extra request to rewrite the question before document retrieval</td></tr><tr><td><code>ENABLE_SEARCH_QUERY_GENERATION=False</code></td><td>An extra request to write web-search queries</td></tr><tr><td><code>ENABLE_IMAGE_PROMPT_GENERATION=False</code></td><td>An extra request to write an image prompt</td></tr><tr><td><code>ENABLE_MEMORIES=False</code>, <code>ENABLE_MEMORY_SYSTEM_CONTEXT=False</code></td><td>Memories injected into the system prompt, which changes the start of every request</td></tr><tr><td><code>ENABLE_OLLAMA_API=False</code></td><td>Probing for an Ollama server that isn't there</td></tr></tbody></table></div>
+<p>You lose automatic chat titles. Rename chats by hand; that is the price of a stable cache.</p>
+<p><strong>Measured: a phone chat does not cost the agent its cache.</strong> <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/bench/cache-switch-test.py">cache-switch-test.py</a> sends a 36K-token agent prompt, then a short unrelated chat (as from the phone), then the agent prompt again plus one new line (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/bench/results/cache-switch-result.json">result</a>, 2026-10-10):</p>
+<div class="tw"><table><thead><tr><th>Step</th><th>Prompt tokens processed</th><th>Restored from cache</th><th>Wall time</th></tr></thead><tbody><tr><td>Agent prompt, cold</td><td>36,431</td><td>0</td><td>87.6 s</td></tr><tr><td>Short chat in between</td><td>22</td><td>—</td><td>16.2 s</td></tr><tr><td>Agent prompt again</td><td>19</td><td>36,432</td><td><strong>6.5 s</strong> (13.6× faster)</td></tr></tbody></table></div>
+<p>The single slot does switch to the chat, but llama-server's host-RAM prompt cache (<code>--cache-ram</code>) keeps the agent's prefix and restores it on the next request. <code>--cache-reuse</code> plays no part on this model. The in-between chat took 16 s although it processed only 22 tokens, most likely because the server first saved the 36K agent state to RAM (inferred from the timings, not measured separately); the agent pays nothing for that on its return. One run; the save and restore cost grows with the size of the prefix.</p>
+<h2 id="3-connect-it-to-llama-swap">3. Connect it to llama-swap</h2>
+<p>If you set the two <code>OPENAI_</code> variables above, the connection exists already. Otherwise add it under Admin Settings, Connections: URL <code>http://127.0.0.1:8090/v1</code>, key your <code>LOCAL_QWEN_KEY</code>. The model is <code>qwen3.8-27b</code>; the presets in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/AGENTS.md">AGENTS.md</a> (<code>:code</code>, <code>:plan</code>, <code>:vision</code>) are model <em>names</em> sent in the request. If they don't appear in the model list, add them as custom models (Workspace, Models) with that name; the exact menu wording varies between Open WebUI versions.</p>
+<h2 id="4-voice">4. Voice</h2>
+<p><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/voice/tts_server.py">voice/tts_server.py</a> is a small adapter that speaks the OpenAI audio API and forwards to the two engines <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/VOICE.md">VOICE.md</a> already runs:</p>
+<div class="tw"><table><thead><tr><th>Route</th><th>Does</th></tr></thead><tbody><tr><td><code>POST /v1/audio/speech</code> (also <code>POST /tts</code>)</td><td>JSON <code>{"input" or "text", "voice", "speed"}</code> to a WAV from Kokoro</td></tr><tr><td><code>POST /v1/audio/transcriptions</code></td><td>Forwards the body and <code>Content-Type</code> to whisper.cpp <code>http://127.0.0.1:8091/inference</code> and returns its JSON</td></tr><tr><td><code>GET /voices</code></td><td>The six curated voices</td></tr></tbody></table></div>
+<p>OpenAI voice names map to the nearest curated voice (<code>alloy</code> to <code>heart</code>, <code>echo</code> to <code>michael</code>, <code>fable</code> to <code>george</code>, <code>onyx</code> to <code>lewis</code>, <code>nova</code> to <code>emma</code>, <code>shimmer</code> to <code>isabella</code>); unknown names fall back to <code>emma</code>. Start whisper.cpp and the adapter as described in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/VOICE.md">VOICE.md</a>, then in Open WebUI Admin Settings, Audio, choose the OpenAI engine for both speech-to-text and text-to-speech and set:</p>
+<div class="tw"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Base URL (both)</td><td><code>http://127.0.0.1:8092/v1</code></td></tr><tr><td>API key (both)</td><td>any non-empty string (the adapter is loopback-only and ignores it)</td></tr><tr><td>TTS voice</td><td><code>emma</code>, or any name above</td></tr><tr><td>TTS model</td><td>any value; it is ignored</td></tr></tbody></table></div>
+<p>The environment equivalents are <code>AUDIO_STT_ENGINE</code>, <code>AUDIO_STT_OPENAI_API_BASE_URL</code>, <code>AUDIO_STT_OPENAI_API_KEY</code>, <code>AUDIO_STT_MODEL</code> and the matching <code>AUDIO_TTS_*</code> names. We did not re-verify those against the 0.11.4 documentation, so treat the Admin Settings screen as the authority. The adapter's routes were exercised against a stub whisper server during development; Kokoro synthesis itself is the unchanged code from the earlier voice server.</p>
+<p>Browsers only allow microphone access on secure pages, and <code>tailscale serve</code> provides HTTPS, so voice input works from your phone over the tailnet.</p>
+<h2 id="5-tools-through-mcp">5. Tools through MCP</h2>
+<p>Two ways, depending on how the tool server runs:</p>
+<ul><li><strong>Native Streamable HTTP.</strong> Open WebUI can talk to an MCP server that speaks Streamable HTTP directly. Add it under Admin Settings, External Tools.</li><li><strong>mcpo for stdio servers.</strong> Most MCP servers use stdio. <a href="https://github.com/open-webui/mcpo">mcpo</a> wraps one as an OpenAPI server that Open WebUI also accepts under External Tools:</li></ul>
+<pre><code class="language-powershell">  uvx mcpo --host 127.0.0.1 --port 8100 -- npx -y @upstash/context7-mcp</code></pre>
+<p>Bind mcpo to loopback explicitly, as above (check its <code>--help</code> for the default in your version), and add <code>http://127.0.0.1:8100</code> as the tool server.</p>
+<p><strong>Keep the tool list short.</strong> Enabled tools are described to the model in every request. On a 32K to 57K window a large tool set costs real room and prompt-reading time (<a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">TOKEN-EFFICIENCY.md</a>).</p>
+<h2 id="6-remote-access-with-tailscale">6. Remote access with Tailscale</h2>
+<p>Publish only the UI, to your tailnet only:</p>
+<pre><code class="language-powershell">tailscale serve --bg --https=8446 http://127.0.0.1:3000</code></pre>
+<p>Then browse to <code>https://&lt;your-machine&gt;.&lt;your-tailnet&gt;.ts.net:8446</code> from a device signed in to the same tailnet. Do <strong>not</strong> use <code>tailscale funnel</code>; that publishes to the public internet. Check what is published at any time with <code>tailscale serve status</code>.</p>
+<div class="tw"><table><thead><tr><th>Device</th><th>How</th></tr></thead><tbody><tr><td>Windows</td><td>Open the address in Edge or Chrome and install it as an app (the PWA) from the browser menu</td></tr><tr><td>Android</td><td>Install the Conduit app (an Open WebUI client), or install the PWA from Chrome. The Tailscale app must be running</td></tr></tbody></table></div>
+<h2 id="security-summary">Security summary</h2>
+<ul><li>Every service binds to <code>127.0.0.1</code>. The only thing the tailnet can reach is Open WebUI on 8446, and it has its own login.</li><li>Sign-ups are off after you create your account, and there is no Funnel.</li><li>The voice adapter and whisper.cpp have no authentication because nothing outside the PC can reach them. Don't change their bind address.</li><li>The model API key (<code>LOCAL_QWEN_KEY</code>) is stored in Open WebUI's connection settings on the PC. Treat the Open WebUI data folder like any folder that holds a key.</li><li>Anyone who can log in to Open WebUI can use your GPU. Add other people only if you mean to.</li></ul>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/PLATFORM.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/PLATFORM.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

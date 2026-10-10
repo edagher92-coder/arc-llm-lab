@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.1 - 2026-10-10
+**Presentation and reach**
+- README first screen rebuilt: headline results, who it is for (measured vs estimate), one command to try, and how to submit your card's numbers.
+- Every guide is now its own page on the GitHub Pages site (`docs/guides/`), with descriptions, canonical URLs, breadcrumbs and FAQ structured data, all listed in the sitemap. The build stays deterministic.
+- Easier result submissions: the benchmark scripts print the raw output path and copy the result JSON to the clipboard, warn about a placeholder driver field and suggest smaller depths on 12GB cards. The form's duplicated fields are optional, and `-Mmvq` / `--mmvq` is documented as the setting the maintainer's results use.
+- New `SUPPORT.md`, a "Show and tell" discussion form and a Discussions link on the new-issue page.
+
 ## 2.1.0 - 2026-10-10
 **New**
 - `docs/TOOL-CALLING.md`: what tool schemas cost on a local model, a measured tool-bundle cache test (`bench/bundle-cache-test.py`: appending tools reuses the cached prefix, 7.6 s instead of a cold 15.6 s; returning to a known bundle takes 1.5 s), and loading rules for Open WebUI, Claude Code and Codex.

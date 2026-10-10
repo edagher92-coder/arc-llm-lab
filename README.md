@@ -1,16 +1,37 @@
-# arc-llm-lab: Qwen 27B on Intel Arc Pro B60 with llama.cpp Vulkan
+# arc-llm-lab: Qwen3.8-27B on Intel Arc Pro B60 with llama.cpp Vulkan (benchmarks and agent stack)
 
-**Intel Arc Pro B60 24GB · llama.cpp Vulkan · local LLM benchmarks & agent stack**
+**Run a 27B coding agent fully local on one Intel Arc GPU, with the raw logs, versions and caveats published.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel, speculative decoding, Claude Code and Codex CLI wrappers, and a 100-task reliability suite. Measured on an Arc Pro B60 24GB; the Vulkan settings and the benchmark script apply to any Intel Arc card (B580, B570, B70, A770, B50).
 
-Run a 27B coding agent fully local on one Intel Arc GPU: tuned llama.cpp (Vulkan), Intel's flash-attention prefill kernel, speculative decoding, Claude Code and Codex wrappers, and a 100-task reliability suite. Measured on an Arc Pro B60 24GB, with the raw logs, the versions and the caveats published.
-
-[![selftest](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml/badge.svg)](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml)
+[![Self-test CI status](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml/badge.svg)](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml)
 [![GPU](https://img.shields.io/badge/GPU-Intel%20Arc%20Pro%20B60%2024GB-0071C5)](#which-intel-card-and-which-model-fits)
 [![Backend](https://img.shields.io/badge/backend-llama.cpp%20Vulkan-E8661E)](engine/)
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#versions-used)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Quick start](#quick-start) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
+**Headline results** (Arc Pro B60 24GB, Qwen3.8-27B Q4_K_M, single runs, raw logs in [data/raw/](data/raw/README.md)):
+
+| | Stock llama.cpp Vulkan | This repo |
+|---|---|---|
+| Generation speed | 16 tok/s | **42.3 tok/s** (DFlash2 draft model) ‡ |
+| Reading new input at 32K context | 118 tok/s | **420 tok/s** |
+| 100-task hidden-checker agent eval | n/a | **97/100** Claude Code · **95/100** Codex CLI ([RELIABILITY.md](docs/RELIABILITY.md)) |
+
+‡ Wall-clock eval-suite throughput; the stock figure is a different measurement, so the two are not like-for-like ([how to read these numbers](#notes-on-the-numbers)).
+
+**Who it is for:** anyone running local LLMs on Intel Arc.
+- **Measured:** Arc Pro B60 24GB, everything above.
+- **ESTIMATE, not measured:** Arc Pro B70 32GB should fit this 27B with room to spare. Arc B580 (12GB), B570 (10GB), A770 (16GB) and B50 (16GB) do not fit it with a useful context ([card-by-card table](#which-intel-card-and-which-model-fits)). The Vulkan flags, the tuning and the benchmark script apply to any Intel Arc card.
+
+**Try it** (Windows 11; Linux notes [below](#build-the-engine-and-benchmark-your-card)):
+
+```powershell
+git clone https://github.com/edagher92-coder/arc-llm-lab; cd arc-llm-lab
+powershell -ExecutionPolicy Bypass -File engine\build.ps1      # portable, no admin: builds llama.cpp b11524 + the Intel FA patches
+```
+
+**If this is useful, give it a star** so other Arc owners can find it. **Got a different Arc card?** Run [the benchmark script](#build-the-engine-and-benchmark-your-card) and submit your numbers through the [benchmark form](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) (results are credited in [COMMUNITY-RESULTS.md](docs/COMMUNITY-RESULTS.md)). Questions, ideas or something wrong? [Open an issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new/choose).
+
+**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
 
 ## Results on one Arc Pro B60 24GB
 
@@ -20,32 +41,20 @@ Run a 27B coding agent fully local on one Intel Arc GPU: tuned llama.cpp (Vulkan
 | Reading new input at 32K context | 118 tok/s | **420 tok/s** | [compare-f16.txt](data/raw/compare-f16.txt) |
 | 3 agent turns at 30–37K context | 201 s † | **55–57 s** § | [server-test.txt](data/raw/server-test.txt), [bench-history.csv](data/raw/bench-history.csv) |
 | Context window | n/a | up to **64K** (57–61K typical while the PC is in use) ¶ | [vram-budget-64k.csv](data/vram-budget-64k.csv) |
-| 100-task hidden-checker agent eval, 32K window | n/a | **97/100** Claude Code (1.54 completed tasks/min) · **95/100** Codex · sustained 10-step sessions at 48K/64K: Codex **10/10** and **10/10**, Claude Code **10/10** and **9/10**; single runs, 95% CI 91.5–99% for 97/100 | [RELIABILITY.md](docs/RELIABILITY.md) |
+| 100-task hidden-checker agent eval, 32K window | n/a | **97/100** Claude Code (1.54 completed tasks/min) · **95/100** Codex ¶¶ | [RELIABILITY.md](docs/RELIABILITY.md) |
+
+¶¶ Sustained 10-step sessions at 48K/64K: Codex **10/10** and **10/10**, Claude Code **10/10** and **9/10**. Single runs; 95% CI 91.5–99% for 97/100. Detail in [Reliability](#reliability-not-just-speed).
+
+All speed figures are single runs (-r 1) unless noted.
+
+### Notes on the numbers
 
 ‡ 42.3 tok/s is eval-suite throughput (wall-clock, prompt processing included): generated tokens divided by total wall-clock across the 8 eval requests (7 coding tasks and 1 web page), in the `n7 ub256 dkv-q8` row of [tune.txt](data/raw/tune.txt). The per-request server decode speeds in that run were 47–58 tok/s, mean 53.3. We quote 42.3 as the conservative headline. 16 tok/s is `llama-bench` `tg32` on an empty context with no draft model (16.05 in [compare-f16.txt](data/raw/compare-f16.txt)), a different measurement, so the two are not like-for-like.<br>
 † Stock engine with the drafter, observed before logging was in place; the raw log was not retained. Re-run planned. Treat as an observation, not a reproducible measurement ([what we have no raw log for](data/raw/README.md#not-retained)).<br>
 § 54.9 s on the first Intel FA build; 56.7 s on the final tuned configuration at 57,344 context; an intermediate run at 61,440 context took 52.2 s. All three are in the logs ([agent-turns.csv](data/agent-turns.csv)).<br>
 ¶ 64K (65,536) is the configured maximum and the VRAM budget in the CSV. Context is sized from the VRAM free at each load; the logged runs loaded 61,440 and 57,344 tokens.
 
-All speed figures are single runs (-r 1) unless noted.
-
 Test PC: Ryzen 7 3700X, B550, 32 GB DDR4, Windows 11, Intel Arc Pro B60 24GB. B60 prices in Australia (a snapshot, not a recommendation): A$1,240 for an ASRock B60 Creator ([gpuprix](https://gpuprix.com/australia/gpus/arc-pro-b60), updated 2026-10-07) and A$999 including GST for an ASRock Arc Pro B60 Passive 24GB OEM card (PCCaseGear, 2026-10-10; a passive card has no fan of its own and needs strong airflow).
-
-### Quick start
-
-```powershell
-git clone https://github.com/edagher92-coder/arc-llm-lab; cd arc-llm-lab
-powershell -ExecutionPolicy Bypass -File engine\build.ps1      # portable, no admin: builds llama.cpp b11524 + the Intel FA patches
-```
-
-Then measure your own card with one more command (Windows or Linux, any Vulkan-capable Intel GPU, any GGUF):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File bench\arc-bench.ps1 -Model C:\path\model.gguf -VramGb 24 -Contributor "Your Name" -Mmvq
-# Linux: bench/arc-bench.sh -m /path/model.gguf --vram-gb 24 --contributor "Your Name" --mmvq
-```
-
-The full Windows walkthrough (models, server, agents) is [below](#quick-start-windows-11-in-full) and in [docs/SETUP.md](docs/SETUP.md). On Linux, [engine/build-linux.sh](engine/build-linux.sh) builds the same engine (patch application is verified; the script has not been run end to end on an Arc GPU, so tell us how it goes).
 
 **[Interactive benchmarks →](https://edagher92-coder.github.io/arc-llm-lab/)** hover any data point, replay the speed race, compare GPUs.
 
@@ -58,6 +67,17 @@ The full Windows walkthrough (models, server, agents) is [below](#quick-start-wi
   <source media="(prefers-color-scheme: dark)" srcset="assets/anim-agent-race-dark.svg">
   <img alt="Animated time-lapse: three agentic coding turns at 30K+ context take 201 seconds (observed, raw log not retained) before and 56.7 seconds with arc-llm-lab" src="assets/anim-agent-race-light.svg">
 </picture>
+
+### Build the engine and benchmark your card
+
+Build with the two commands at the top of this page. Then measure your own card with one more command (Windows or Linux, any Vulkan-capable Intel GPU, any GGUF):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File bench\arc-bench.ps1 -Model C:\path\model.gguf -VramGb 24 -Contributor "Your Name" -Mmvq
+# Linux: bench/arc-bench.sh -m /path/model.gguf --vram-gb 24 --contributor "Your Name" --mmvq
+```
+
+The full Windows walkthrough (models, server, agents) is [below](#quick-start-windows-11-in-full) and in [docs/SETUP.md](docs/SETUP.md). On Linux, [engine/build-linux.sh](engine/build-linux.sh) builds the same engine (patch application is verified; the script has not been run end to end on an Arc GPU, so tell us how it goes).
 
 ## Which Intel card, and which model fits?
 
@@ -111,7 +131,7 @@ Other people publish Qwen3.8-27B numbers for the same card, so we put them side 
 - **Prompt reading:** we are **not** the fastest. Other runs read 589 to 638 tok/s at about 29K with a different llama.cpp engine, and 657 tok/s at 32.8K on OpenVINO, against our 420 tok/s at 32K.
 - Methods differ (backend, KV type, drafter, depth, tool), so treat gaps under about 10% as noise.
 
-## Five things every Arc owner should know
+## llama.cpp Vulkan on Arc B580/B60/B70: five things every Arc owner should know
 
 1. **Intel's flash-attention prefill kernel makes long-context agents usable, but only with an f16 KV cache.** It reads prompts 3.6× faster at 32K depth (118 to 420 tok/s) and gains nothing with a q4 KV cache (101 versus 101). The kernel comes from llama.cpp [PR #29357](https://github.com/ggml-org/llama.cpp/pull/29357), which its author **closed without merging** on 2026-09-25 and whose branch was later force-pushed. This repo therefore vendors the two commits in [engine/patches/](engine/patches/) with checksums and attribution, and the build applies them to b11524. → [docs/INTEL-FA.md](docs/INTEL-FA.md)
 2. **Speculative decoding is the biggest single win for generation.** A small DFlash2 draft model takes a 27B dense model from 16 to 42 tok/s with identical output quality on our seven coding tasks. → [docs/TUNING-LOG.md](docs/TUNING-LOG.md)
@@ -193,7 +213,7 @@ Fast tokens don't matter if the agent fails the task. [evalsuite/](evalsuite/) h
 - 10 business maths (GST invoices, payroll overtime, bank reconciliation, aged receivables)
 - 10 error recovery
 
-Each task is scored by a hidden checker that the agent never sees. `selftest.py` proves every checker fails an untouched workspace and passes a reference solution. The headline metric is **completed tasks per minute**, not tokens per second. The 97/100 (Claude Code @32K, single run, 95% CI 91.5–99%) and 1.54 tasks/min in the table above are one run at a 32K window, with 0 failures caused by timeouts (one passing task hit the 420 s soft timeout); results, the per-category autonomous / supervised / escalate tiers and the sustained-session tests are in [docs/RELIABILITY.md](docs/RELIABILITY.md).
+Each task is scored by a hidden checker that the agent never sees. `selftest.py` proves every checker fails an untouched workspace and passes a reference solution. The headline metric is **completed tasks per minute**, not tokens per second. The 97/100 (Claude Code @32K, single run, 95% CI 91.5–99%) and 1.54 tasks/min in the table above are one run at a 32K window, with 0 failures caused by timeouts (one passing task hit the 420 s soft timeout); results, the per-category autonomous / supervised / escalate tiers and the sustained-session tests are in [docs/RELIABILITY.md](docs/RELIABILITY.md). Sustained 10-step sessions at 48K and 64K scored Codex 10/10 and 10/10 and Claude Code 10/10 and 9/10 (single runs).
 
 ### Agent safety
 
@@ -229,6 +249,9 @@ Everything in the results above was produced with these exact versions, on 2026-
 Server flags and the reasons for each are in [docs/TUNING-LOG.md](docs/TUNING-LOG.md#settings-that-matter-final). Raw logs, an index of what each one shows, and a list of the few figures that have no log are in [data/raw/](data/raw/README.md). The speed table above rests on those logs, with the exceptions marked † and ‡.
 
 ## Add your card
+
+Submit an Intel Arc LLM benchmark for your card, and star the repo if the numbers help you.
+
 
 Got an A770, B580, B570, B50, B70, B60 or another Intel GPU? Run [bench/arc-bench.ps1](bench/arc-bench.ps1) (Windows) or [bench/arc-bench.sh](bench/arc-bench.sh) (Linux) and [open a benchmark result issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml). Results go into [docs/COMMUNITY-RESULTS.md](docs/COMMUNITY-RESULTS.md) with credit. Not sure where to start? [Test on my card](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=test-my-card.yml), or the five [good first issues](docs/GOOD-FIRST-ISSUES.md). Something wrong in this repo? [Report a bug](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=bug.yml).
 

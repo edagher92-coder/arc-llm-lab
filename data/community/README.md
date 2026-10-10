@@ -8,11 +8,13 @@ One JSON file per run, written by [bench/arc-bench.ps1](../../bench/arc-bench.ps
 2. Open a [benchmark result issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) and paste the JSON, or add the file to this folder in a pull request.
 3. Attach the raw `llama-bench` output (the script keeps it next to the JSON as `llama-bench-<stamp>.json`). A number without a log can't be checked, so it is not added to the table.
 
-Check a file before you send it (needs `pip install jsonschema`):
+Check your file against the schema before you send it (needs `pip install check-jsonschema`, run from your copy of this repository):
 
 ```
-python tools/validate_repo.py
+check-jsonschema --schemafile data/community/schema.json your-result.json
 ```
+
+`python tools/validate_repo.py` checks the whole repository (the same checks CI runs). It does not check a single result file.
 
 ## What the fields mean
 

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intel&#x27;s flash-attention prefill kernel on Arc (llama.cpp PR #29357)</title>
+<meta name="description" content="On Intel Arc, stock llama.cpp Vulkan reads prompts quickly when the conversation is short, then slows sharply as context grows.">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">
+<meta property="og:title" content="Intel&#x27;s flash-attention prefill kernel on Arc (llama.cpp PR #29357)">
+<meta property="og:description" content="On Intel Arc, stock llama.cpp Vulkan reads prompts quickly when the conversation is short, then slows sharply as context grows.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Intel&#x27;s flash-attention prefill kernel on Arc (llama.cpp PR #29357)">
+<meta name="twitter:description" content="On Intel Arc, stock llama.cpp Vulkan reads prompts quickly when the conversation is short, then slows sharply as context grows.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html#article",
+   "headline": "Intel's flash-attention prefill kernel on Arc (llama.cpp PR #29357)",
+   "description": "On Intel Arc, stock llama.cpp Vulkan reads prompts quickly when the conversation is short, then slows sharply as context grows.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Intel's flash-attention prefill kernel on Arc (llama.cpp PR #29357)",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Intel&#x27;s flash-attention prefill kernel on Arc (llama.cpp PR #29357)</p>
+<main>
+<h1 id="intels-flash-attention-prefill-kernel-on-arc-llamacpp-pr-29357">Intel's flash-attention prefill kernel on Arc (llama.cpp PR #29357)</h1>
+<h2 id="summary">Summary</h2>
+<p>On Intel Arc, stock llama.cpp Vulkan reads prompts quickly when the conversation is short, then slows sharply as context grows. Prompt reading drops from 589 tok/s on an empty context to 118 tok/s at 32K tokens. That is exactly what hurts coding agents, which re-send a 20–40K token conversation on every turn.</p>
+<p>Intel's FA prefill kernel (<a href="https://github.com/ggml-org/llama.cpp/pull/29357">PR #29357</a>, commits <code>61cc4c2</code> and <code>1a5137a</code> from <code>sliu39/llama.cpp</code>, branch <code>intel/fa-prefill</code>) fixes this, but <strong>only when the KV cache is f16</strong>. The PR was closed unmerged upstream, so this repo ships the two commits itself: see <a href="#upstream-status-and-the-vendored-patches">Upstream status</a>.</p>
+<div class="tw"><table><thead><tr><th>Prompt processing, pp2048 (tok/s)</th><th>empty</th><th>16K deep</th><th>32K deep</th></tr></thead><tbody><tr><td>Stock b11524, f16 KV</td><td>589</td><td>198</td><td>118</td></tr><tr><td><strong>Intel FA, f16 KV</strong></td><td><strong>653</strong></td><td><strong>513</strong></td><td><strong>420</strong></td></tr><tr><td>Stock b11524, q4_0 KV</td><td>584</td><td>182</td><td>101</td></tr><tr><td>Intel FA, q4_0 KV</td><td>584</td><td>182</td><td>101</td></tr></tbody></table></div>
+<p>Generation speed (tg32, no drafter, <code>llama-bench</code>) is the same on both engines: 16.0 tok/s on an empty context, falling to 14.5 tok/s at 32K. That is the figure to quote for "stock" decode speed: it is not the 42.3 tok/s eval-suite throughput (wall-clock, prompt processing included), which also uses the DFlash2 drafter. Raw data: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-q4.txt">compare-q4.txt</a>.</p>
+<p>In a real agent loop (three turns, each adding about 3K tokens to a 30–37K conversation and writing 400 tokens), total wall time fell from <strong>201 s† to 55–57 s</strong>.</p>
+<ul><li><strong>55–57 s:</strong> 54.9 s was the first Intel FA build (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-test.txt">server-test.txt</a>); 56.7 s is the final tuned configuration at 57,344 context (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/bench-history.csv">bench-history.csv</a>). A live run at 61K context measured 52.2 s (same file). All are in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/agent-turns.csv">agent-turns.csv</a>.</li><li><strong>† 201 s:</strong> observed with the stock engine and the drafter before logging was in place; the raw log was not retained, and a re-run is planned. Treat it as an observation, not a reproducible measurement. The measured before-and-after at the engine level is the benchmark table above (prompt speed at 32K: 118 versus 420 tok/s).</li></ul>
+<h2 id="the-trade-off-f16-kv-costs-memory">The trade-off: f16 KV costs memory</h2>
+<ul><li><strong>f16 KV for Qwen3.8-27B:</strong> 64.5 KiB per token, so 64K tokens is about 4.0 GiB.</li><li><strong>q4_0 KV:</strong> about 18.6 KiB per token.</li></ul>
+<p>The profiles therefore have two variants:</p>
+<div class="tw"><table><thead><tr><th>Variant</th><th>KV cache</th><th>Context on 24GB</th><th>Best for</th></tr></thead><tbody><tr><td><code>qwen3.8-27b</code> (default)</td><td>f16</td><td>~57–64K</td><td>Coding agents, anything that re-reads long context</td></tr><tr><td><code>qwen3.8-27b-big</code></td><td>q4_0</td><td>~150–200K</td><td>Huge documents read once</td></tr><tr><td><code>qwen3.8-27b-long</code></td><td>q4_0, no drafter</td><td>262K</td><td>Whole-codebase questions, about 15 tok/s</td></tr></tbody></table></div>
+<h2 id="upstream-status-and-the-vendored-patches">Upstream status and the vendored patches</h2>
+<div class="tw"><table><thead><tr><th>Item</th><th>Status</th></tr></thead><tbody><tr><td>Intel Xe flash-attention decode kernels, <a href="https://github.com/ggml-org/llama.cpp/pull/24406">PR #24406</a></td><td>Merged 2026-09-22. Already in stock b11524.</td></tr><tr><td>Intel GDN tuning, <a href="https://github.com/ggml-org/llama.cpp/pull/29476">PR #29476</a></td><td>Merged 2026-09-29.</td></tr><tr><td><strong>FA prefill shader, <a href="https://github.com/ggml-org/llama.cpp/pull/29357">PR #29357</a></strong></td><td><strong>Closed unmerged by its author on 2026-09-25.</strong> The branch was force-pushed afterwards. This is the 118 to 420 tok/s change.</td></tr><tr><td>SYCL backend work, <a href="https://github.com/ggml-org/llama.cpp/pull/25025">PR #25025</a></td><td>Merged 2026-07-31 (a different backend; the prefill shader is Vulkan-only).</td></tr></tbody></table></div>
+<p>Because the prefill shader never reached mainline and its branch can change, the two commits are <strong>vendored</strong> in <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/engine/patches">engine/patches/</a> with SHA256 checksums, the original author lines and a README on provenance and licence. The build applies them to llama.cpp b11524. The previous method (fetch the branch and cherry-pick) is kept as a fallback only.</p>
+<p>The engine we ran is llama.cpp build 11526 (commit <code>c85e6c598</code>), which is upstream b11524 (<code>86a283532</code>, tag dated 2026-10-09) plus those two commits. The stock engine we compare against is plain b11524. Versions of everything else are in the <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/README.md#versions-used">README</a>.</p>
+<h2 id="build-it-portable-no-admin">Build it (portable, no admin)</h2>
+<p><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/engine/build.ps1">engine/build.ps1</a> downloads a portable GCC toolchain (w64devkit), CMake and Ninja. It then builds <code>glslc</code> from shaderc, which needs cooperative-matrix and integer-dot support, and builds llama.cpp b11524 with the two vendored patches applied (it checks their checksums first). It installs to <code>C:\AI\llama.cpp\vulkan-intelfa</code> and never touches your existing build. On Linux, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/engine/build-linux.sh">engine/build-linux.sh</a> does the equivalent; patch application is verified, but the script has not been run end to end on a Linux machine with an Arc GPU.</p>
+<p>Check the configure log for:</p>
+<pre><code>GL_KHR_cooperative_matrix supported by glslc
+GL_EXT_integer_dot_product supported by glslc</code></pre>
+<p>Building with Visual Studio Build Tools also works. See <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/engine/BUILD-INTEL-FA.md">engine/BUILD-INTEL-FA.md</a>.</p>
+<h2 id="verify-on-your-card">Verify on your card</h2>
+<pre><code class="language-powershell">powershell -ExecutionPolicy Bypass -File bench\compare-f16.ps1   # stock vs Intel FA, f16 KV, 0/16K/32K depth
+powershell -ExecutionPolicy Bypass -File bench\server-test.ps1   # agent-style 3-turn test + coding/tool checks</code></pre>
+<p>Then switch with <code>qwen engine intelfa</code> (and back with <code>qwen engine stock</code>).</p>
+<h2 id="gotchas">Gotchas</h2>
+<ul><li><strong>The draft model's KV can stay quantised</strong> (<code>-ctkd q8_0 -ctvd q8_0</code>). That saves VRAM without losing the main-model speed-up.</li><li><strong><code>-ub 256</code> instead of 512</strong> freed about 0.55 GiB with no measurable speed loss (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>).</li><li><strong>Watch for an upstream equivalent.</strong> PR #29357 is closed, but if the same optimisation, or something faster, is merged into mainline llama.cpp, use an official release and drop the custom build. Run the comparison script above on the new release to check, and <a href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">tell us</a>.</li><li><strong>Other Intel GPUs.</strong> The shader is an Intel-specific path, and we measured it only on an Arc Pro B60. Results on a B580, B570, B50 or A770 are welcome (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/GOOD-FIRST-ISSUES.md">GOOD-FIRST-ISSUES.md</a>).</li><li><strong>Context shift is off.</strong> The server runs with <code>--no-context-shift</code> (also the default in b11524), so a conversation that outgrows the window gets an explicit error instead of silently dropping its oldest tokens.</li></ul>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/INTEL-FA.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/INTEL-FA.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

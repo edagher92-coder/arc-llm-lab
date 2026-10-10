@@ -50,7 +50,7 @@ else {
   # (llama-bench logs to it) becomes a terminating NativeCommandError.
   $benchArgs = @('-m', "`"$Model`"", '-ngl', '99', '-fa', '1', '-ctk', 'f16', '-ctv', 'f16', '-p', '2048', '-n', '32', '-d', "`"$Depths`"", '-r', '1', '-o', 'json')
   $proc = Start-Process -FilePath $Bench -ArgumentList $benchArgs -NoNewWindow -Wait -PassThru -RedirectStandardOutput $raw -RedirectStandardError $err
-  if ($proc.ExitCode -ne 0) { Fail "llama-bench failed (exit code $($proc.ExitCode)); see $err" 1 }
+  if ($proc.ExitCode -ne 0) { Write-Host 'If the log shows an out-of-memory error, retry with a shorter depth list, for example -Depths 0,4096 (deeper context needs more VRAM).' -ForegroundColor Yellow; Fail "llama-bench failed (exit code $($proc.ExitCode)); see $err" 1 }
 }
 
 # Windows PowerShell 5.1 emits a JSON array as ONE pipeline object; unroll it so each row is a result.
@@ -104,6 +104,9 @@ $slug = { param($s) (($s.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')); }
 $trim = { param($s) $t = & $slug $s; if ($t.Length -gt 48) { $t.Substring(0, 48) } else { $t } }
 $path = Join-Path $OutDir ("{0}-{1}-{2}-{3}.json" -f $res.date, (& $trim $Gpu), (& $trim $backend), (& $trim $build))
 [IO.File]::WriteAllText($path, (($res | ConvertTo-Json -Depth 8) + "`n"), $utf8)
+if ($Driver -like 'unknown*') { Write-Host "WARNING: the driver was not detected. Edit the ""driver"" field in $path before you submit." -ForegroundColor Yellow }
+try { Set-Clipboard -Value ([IO.File]::ReadAllText($path)); Write-Host 'Copied the result JSON to the clipboard.' } catch { }
+if (-not $FromJson) { Write-Host "Raw llama-bench output to attach: $raw" }
 
 Write-Host ''; Write-Host "Wrote $path"; Write-Host ''
 $f = { param($k) ($ds | ForEach-Object { '{0:N1}' -f $depth[$_][$k] }) -join ' / ' }
@@ -113,5 +116,5 @@ Write-Host '|---|---|---|---|---|---|---|'
 $pp = ''; if ($res.patches.Count -gt 0) { $pp = " + $($res.patches.Count) patch(es)" }
 Write-Host ("| {0} | {1} GB | {2} {3}{4} | {5} {6} | {7} | {8} | {9} |" -f $Gpu, $VramGb, $backend, $build, $pp, $fname, $quant, (& $f 'pp_tok_s'), (& $f 'tg_tok_s'), $Contributor)
 Write-Host ''
-Write-Host 'Share it: open https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml and paste the JSON file,'
-Write-Host 'or add it to data\community\ in a pull request. Please also attach the raw llama-bench output.'
+Write-Host 'Share it: open https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml, paste the result JSON,'
+Write-Host 'and drag in the raw llama-bench file. Or add the JSON to data\community\ in a pull request.'

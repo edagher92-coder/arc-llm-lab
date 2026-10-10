@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a local 27B on one Arc B60 be a dependable daily agent? | arc-llm-lab</title>
+<meta name="description" content="Tokens per second are easy to measure and easy to over-value. The question that matters is how many real tasks the agent completes correctly per minute, without a human stepping in, and which kinds…">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">
+<meta property="og:title" content="Can a local 27B on one Arc B60 be a dependable daily agent?">
+<meta property="og:description" content="Tokens per second are easy to measure and easy to over-value. The question that matters is how many real tasks the agent completes correctly per minute, without a human stepping in, and which kinds…">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can a local 27B on one Arc B60 be a dependable daily agent?">
+<meta name="twitter:description" content="Tokens per second are easy to measure and easy to over-value. The question that matters is how many real tasks the agent completes correctly per minute, without a human stepping in, and which kinds…">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html#article",
+   "headline": "Can a local 27B on one Arc B60 be a dependable daily agent?",
+   "description": "Tokens per second are easy to measure and easy to over-value. The question that matters is how many real tasks the agent completes correctly per minute, without a human stepping in, and which kinds…",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Can a local 27B on one Arc B60 be a dependable daily agent?",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Can a local 27B on one Arc B60 be a dependable daily agent?</p>
+<main>
+<h1 id="can-a-local-27b-on-one-arc-b60-be-a-dependable-daily-agent">Can a local 27B on one Arc B60 be a dependable daily agent?</h1>
+<p>Tokens per second are easy to measure and easy to over-value. The question that matters is how many real tasks the agent completes correctly per minute, without a human stepping in, and which kinds of task are safe to leave unattended.</p>
+<h2 id="method">Method</h2>
+<p><strong>Suite:</strong> <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/tasks.py">evalsuite/tasks.py</a>, 100 tasks generated deterministically from fixed seeds.</p>
+<div class="tw"><table><thead><tr><th>Category</th><th>Tasks</th><th>Examples</th></tr></thead><tbody><tr><td>Coding</td><td>20</td><td>merge intervals, LRU cache, ABN checksum, GST breakdown, business days, RFC-4180 CSV parser, token bucket</td></tr><tr><td>Debugging</td><td>20</td><td>off-by-one pagination, mutable default argument, dd/mm vs mm/dd, late-binding closures, CSV newlines on Windows, <code>is</code> vs <code>==</code></td></tr><tr><td>Tool use</td><td>15</td><td>count log levels, SHA-256, pytest failure count, git history question, create a branch and commit, zip archive</td></tr><tr><td>File operations</td><td>15</td><td>rename/organise, version bump (not the dependency pins), CSV↔JSON, deep-merge config, project-wide rename, CRLF→LF</td></tr><tr><td>Long-context</td><td>10</td><td>needle in a 20,000-line log with decoys, aggregates over 10,000 CSV rows, nested config path, which module really calls X</td></tr><tr><td>Business maths</td><td>10</td><td>per-line GST rounding, booking conflicts, reorder quantities, tiered discounts, bank reconciliation, payroll overtime, aged receivables</td></tr><tr><td>Error recovery</td><td>10</td><td>missing internal package (stdlib only), wrong path, typo'd command, malformed JSON, two stacked bugs, env var, Windows encoding, infinite loop, circular import</td></tr></tbody></table></div>
+<p><strong>Hidden checkers.</strong> Each task's checker runs after the agent exits and is never visible to it. Tests are written fresh, scripts are re-run from a clean state, and outputs are compared byte for byte or numerically. <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/selftest.py">selftest.py</a> proves every checker <strong>fails an untouched workspace</strong> and <strong>passes an independent reference solution</strong>. Current status: 100/100 references pass; 98/100 untouched workspaces fail. The 2 that pass untouched on Linux test Windows-only bugs, and they fail as expected on Windows.</p>
+<p><strong>Runner.</strong> <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/runner.py">runner.py</a> gives each task a fresh workspace and a hard timeout, and records:</p>
+<ul><li>pass/fail and the failure reason (<code>timeout</code>, <code>context_overflow</code>, <code>max_turns</code>, <code>api_error</code>, <code>agent_error</code>, <code>asked_user</code>, <code>answer_not_saved</code>, <code>wrong_result</code>);</li><li>wall time and turns;</li><li>client and server token counts;</li><li>the minimum free VRAM seen;</li><li>the loaded context size;</li><li>whether the model reloaded mid-task.</li></ul>
+<p><strong>Agents:</strong> Claude Code (<code>claude-qwen</code>, FAST mode) and Codex (<code>codex-qwen</code>), each at a 32K client window, run one after the other on the same server.</p>
+<p><strong>Sustained sessions:</strong> <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/sustained.py">sustained.py</a> runs one continuous conversation of 10 dependent steps, building a small package against a 14K-token requirements document. At step 9 the pricing rules change. At step 10 the agent must recall a code it was given only in conversation at step 1, which detects silent context loss after compaction. It runs at 48K and 64K windows and records peak live prompt size (from llama-server <code>/slots</code>), compactions, overflow errors and reloads.</p>
+<p>The hidden tests are cumulative: each step's check runs every earlier test as well, so one early slip fails every later step. To keep that from hiding later work, each step is also scored on <strong>its own test only</strong> (<code>new_test_passed</code> in the record; the report's "This step's own test" column). The cumulative <code>passed</code> result stays as the regression check. For steps 1 to 8, when the cumulative check fails, the harness re-runs it with the earlier tests switched off to get the own-step result (own-step results are independent of the earlier steps' tests, provided earlier modules import), and the step 5 prompt states the loader return types explicitly (<code>load_machines(path) -&gt; list[Machine]</code>, <code>load_bookings(path) -&gt; list[Booking]</code>, plain lists in file order), because an earlier version left them ambiguous and a correct-looking answer could fail the hidden test. Results from runs made before this change have no own-step column.</p>
+<p class="q"><strong>Tiers:</strong></p>
+<ul><li><strong>Autonomous:</strong> at least 90% pass.</li><li><strong>Supervised:</strong> 60–89%.</li><li><strong>Escalate to a stronger model:</strong> under 60%.</li></ul>
+<p>These apply per category, and per task across runs.</p>
+<h2 id="results-2026-10-10-raw-records-in-evalsuiteresults">Results (2026-10-10, raw records in <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/evalsuite/results">evalsuite/results/</a>)</h2>
+<h3 id="100-task-suite-at-a-32k-client-window">100-task suite at a 32K client window</h3>
+<div class="tw"><table><thead><tr><th>Run</th><th>Passed</th><th>95% CI (Wilson)</th><th>Completed tasks/min</th><th>Median time per passing task</th><th>Prompt-cache hit</th><th>Prompt tokens per pass</th></tr></thead><tbody><tr><td><strong>Claude Code 2.1.295</strong> (production config)</td><td><strong>97/100</strong></td><td>91.5–99.0%</td><td><strong>1.54</strong></td><td>24 s</td><td>92.2%</td><td>3.4K</td></tr><tr><td><strong>Codex CLI 0.153.4</strong></td><td><strong>95/100</strong>¹</td><td>88.8–97.8%</td><td>0.62</td><td>70 s</td><td>83.7%</td><td>18.2K</td></tr><tr><td>Claude Code, "v2" config (rejected)</td><td>93/100²</td><td>86.3–96.6%</td><td>1.13</td><td>23 s</td><td>91.4%</td><td>4.0K</td></tr></tbody></table></div>
+<p>Both are single runs on the same machine: 0 context overflows, 0 failures caused by timeouts or reloads in the production runs, minimum free VRAM 1.19 GiB. ¹ 94 recorded; <code>files-extract-emails</code> was correct but the file began with a UTF-8 byte-order mark written by PowerShell. The checker now accepts a BOM (<code>tasks.rd</code> reads <code>utf-8-sig</code>) and the verdict was re-checked on the kept workspace (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/results/rescore-bom.json">rescore-bom.json</a>). ² The v2 config added a "definition of done" system-prompt rule and extra Claude Code environment settings. 3 tasks were disturbed by an accidental model swap during the run (91/97 on the clean tasks), and one new failure mode appeared: Claude Code's auto-compaction returned an empty summary (<code>long-contract-clause</code>). Lower pass rate and fewer tasks/min, so <strong>v2 was not adopted</strong>; the production config is unchanged. Prompt-only rules did not fix the "answer not saved" failures.</p>
+<p>Codex completes about 2.5× fewer tasks per minute here (0.62 vs 1.54; median time per passing task 70 s vs 24 s) mainly because each Codex request carries a much larger prompt (18K vs 3.4K prompt tokens per passing task), which a local GPU feels directly.</p>
+<h3 id="failures-by-kind">Failures, by kind</h3>
+<p>Classified by reading each checker reason and the agent's final message, not from the <code>failure</code> field: the 2.0.0 harness labelled some clean-exit wrong answers as <code>api_error</code> (fixed in 2.0.1). The destructive case is inferred from the record: the checker found <code>app/util.py</code> changed, and the agent's own report describes <code>util.v()</code>, which is the vendored library's function.</p>
+<div class="tw"><table><thead><tr><th>Kind</th><th>Claude Code (production)</th><th>Codex</th></tr></thead><tbody><tr><td>Found the answer, did not write the required file</td><td>2 (<code>long-needle-log</code>, <code>long-contract-clause</code>)</td><td>1 (<code>recover-circular-import</code>)</td></tr><tr><td>Wrong result</td><td>0</td><td>2 (<code>biz-price-update</code>, <code>tool-unique-suburbs</code>)</td></tr><tr><td>Timed out</td><td>0</td><td>2 (<code>tool-git-branch</code>, <code>debug-bsearch</code>)</td></tr><tr><td><strong>Destructive</strong> (overwrote a file with another file's content, reported success)</td><td><strong>1</strong> (<code>files-tabs-to-spaces</code>)</td><td>0</td></tr></tbody></table></div>
+<h3 id="tiers-pooled-over-both-agents-single-runs-so-provisional">Tiers (pooled over both agents; single runs, so provisional)</h3>
+<div class="tw"><table><thead><tr><th>Category</th><th>Pass rate</th><th>Attempts</th><th>Tier</th></tr></thead><tbody><tr><td>Coding</td><td>100%</td><td>40</td><td>Autonomous (provisional)</td></tr><tr><td>Debugging</td><td>97.5%</td><td>40</td><td>Autonomous (provisional)</td></tr><tr><td>Business tasks</td><td>95%</td><td>20</td><td>Autonomous (provisional)</td></tr><tr><td>Error recovery</td><td>95%</td><td>20</td><td>Autonomous (provisional)</td></tr><tr><td>File operations</td><td>96.7%</td><td>30</td><td><strong>Supervised</strong> (one destructive failure caps it)</td></tr><tr><td>Tool calling</td><td>93.3%</td><td>30</td><td>Supervised</td></tr><tr><td>Long-context retrieval</td><td>90%</td><td>20</td><td>Supervised</td></tr></tbody></table></div>
+<p>"Autonomous" here means: run unattended <strong>inside a checkpointed workspace</strong> (commit or snapshot first). With 20–40 attempts per category the lower confidence bound is still under 90%, so treat these as working tiers, not guarantees. Nothing scored low enough to need escalation to a stronger model; escalate anyway for multi-repo refactors, anything irreversible, and anything touching money or production.</p>
+<h3 id="sustained-sessions-10-dependent-steps-14k-token-spec-rules-change-at-step-9-memory-probe-at-step-10">Sustained sessions (10 dependent steps, 14K-token spec, rules change at step 9, memory probe at step 10)</h3>
+<div class="tw"><table><thead><tr><th>Run</th><th>Result</th></tr></thead><tbody><tr><td><strong>Codex, 48K window</strong></td><td><strong>10/10</strong>: every step's own test passed, the v2 rules change was applied everywhere, and the step-10 memory probe was correct³</td></tr><tr><td><strong>Codex, 64K window</strong></td><td><strong>10/10</strong> (same)</td></tr><tr><td><strong>Claude Code, 48K window</strong></td><td><strong>10/10</strong>: every step passed both its own test and the cumulative regression check, and the step-10 memory probe was correct after 5 compactions</td></tr><tr><td><strong>Claude Code, 64K window</strong></td><td><strong>9/10</strong>: steps 1–9 passed (own and cumulative tests, including the rules change). At step 10 the agent wrote <code>UNKNOWN</code>: the code from step 1 was lost in one of its 2 compaction summaries. The server never overflowed or reloaded (peak live prompt 44.4K of 64K, 0 overflow errors), so this is the agent's summary dropping a detail, not truncation. The agent said it did not know instead of inventing a code.</td></tr><tr><td>Claude Code, 48K and 64K (first run, superseded)</td><td>Steps 1–4 passed; steps 5–10 invalid because the step-5 prompt never said "return a list". Kept as <code>*-v1spec.jsonl</code> for the record.</td></tr></tbody></table></div>
+<p>³ The probe answer was written with a BOM and re-scored after the checker fix, like the 32K task above.</p>
+<p>Peak live prompt, wall time and VRAM for the fixed-spec Claude Code runs: 36.6K tokens, 33 min, 1.75 GiB minimum free (48K); 44.4K tokens, 22 min, 1.75 GiB (64K). Raw records: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/results/sustained-claude-48k-fixed.jsonl">sustained-claude-48k-fixed.jsonl</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/results/sustained-claude-64k-fixed.jsonl">sustained-claude-64k-fixed.jsonl</a>.</p>
+<p><strong>Compaction counts.</strong> Claude Code writes two records per compaction, and the first version of <code>sustained.py</code> counted both, so the <code>compactions_total</code> field in the shipped Claude files is double the true number (48K: 10 → 5; 64K: 4 → 2; first runs: up to 12 → 6). The harness now counts one per compaction. The Codex count is a word match on its log and only a rough guide.</p>
+<p><strong>What this shows:</strong> a single Arc Pro B60 running Qwen3.8-27B carried 4 of 4 fixed-spec 10-step sessions through every coding step at 48–64K, including a mid-session rules change, with no context overflow and no silent truncation by the server. One run had a model reload: Codex at 48K, during step 10; the server came back at the same 64K context and the step passed (the cause was not logged; the governor did not request it). Recall of a fact given only in conversation survived in 3 of 4 fixed-spec sessions. Claude Code lost it at 64K in both of its runs (first and fixed) and kept it at 48K in both; in each case the loss happened inside the agent's own compaction summary. These are single runs, so read this as a pattern to watch, not a rate.</p>
+<p><strong>Practical rule for long sessions:</strong> anything the agent must still know after compaction (a client code, a decision, an exact figure) belongs in a file in the workspace, such as <code>CLAUDE.md</code>, <code>AGENTS.md</code> or a <code>NOTES.md</code>, not only in the conversation. Long sessions are therefore <strong>Supervised</strong> for facts held only in conversation, and fine to run unattended when the must-keep facts are written down.</p>
+<h2 id="context-safety-how-silent-truncation-is-prevented">Context safety: how silent truncation is prevented</h2>
+<ol><li><strong><code>--no-context-shift</code> on the server.</strong> The flag is passed explicitly, and in llama.cpp b11524 context shift is also disabled by default (per its server README). Overflow returns HTTP 400 <code>exceed_context_size_error</code> instead of quietly dropping the oldest tokens (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/overflow_test.py">overflow_test.py</a>).</li><li><strong>Client window = server context − 8K.</strong> The agents auto-compact before the server could overflow (<code>qwen window</code>).</li><li><strong>Session protection in the governor.</strong> It records the largest live prompt in the last 60 minutes. If VRAM pressure forces a reload, <code>launch.ps1</code> raises the new context to at least that size + 8K, down to an emergency floor of 1.15 GiB free. If even that can't fit, the client gets an explicit error, never a silently shorter context.</li><li><strong>Memory probe.</strong> The sustained-session test checks that compaction kept what mattered. Compaction itself is done by the agent (Claude Code or Codex summarising the conversation), not by the server, so a summary can legitimately lose detail; that is what the probe measures.</li></ol>
+<h2 id="reproduce">Reproduce</h2>
+<pre><code class="language-powershell">cd evalsuite
+python selftest.py                                   # validate checkers first
+powershell -File ..\evalsuite\run.ps1 -Agent claude -Cap 32768
+python sustained.py --agent claude --cap 65536
+python report.py                                     # results\report.md + summary.json</code></pre>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/RELIABILITY.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

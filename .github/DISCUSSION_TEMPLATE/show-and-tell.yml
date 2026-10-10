@@ -1,0 +1,47 @@
+# Discussion category form for the "Show and tell" category (file name = category slug).
+# Numbers belong in the benchmark result form, so they can be checked against a log.
+title: "[Arc setup] <GPU>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show us your Intel Arc setup: the card, the driver, the llama.cpp build and the model you run. For numbers, use the [benchmark result form](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) so they can be checked.
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      placeholder: "Arc B580 12GB / Arc A770 16GB / Arc Pro B60 24GB"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: OS and driver
+      placeholder: "Windows 11 + driver 32.0.101.xxxx / Ubuntu + Mesa x.y"
+  - type: input
+    id: stack
+    attributes:
+      label: Backend and build
+      placeholder: "Vulkan, llama.cpp b11524 / SYCL / Ollama or LM Studio"
+  - type: input
+    id: model
+    attributes:
+      label: Model and quant
+      placeholder: "Qwen3.8-27B UD-Q4_K_M"
+  - type: textarea
+    id: use
+    attributes:
+      label: What you run it for, and what works
+      description: "Chat, a coding agent, voice, an API for another app, and anything that did not work."
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or links (optional)
+      description: "Drag images in, or link to a benchmark result issue."
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before posting
+      options:
+        - label: I have removed API keys, tailnet names and other private details.
+          required: true

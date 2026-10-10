@@ -3,3 +3,6 @@ contact_links:
   - name: FAQ and setup docs
     url: https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/FAQ.md
     about: Vulkan or SYCL, Ollama and LM Studio, IPEX-LLM, context limits, agent safety
+  - name: Questions and set-up help
+    url: https://github.com/edagher92-coder/arc-llm-lab/discussions
+    about: Ask here before opening an issue. "Is this normal?" and set-up questions belong in Discussions.

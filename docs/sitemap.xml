@@ -2,6 +2,47 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://edagher92-coder.github.io/arc-llm-lab/</loc>
+    <lastmod>2026-10-10</lastmod>
     <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
   </url>
 </urlset>

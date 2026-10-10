@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup (Windows 11, Intel Arc Pro B60 24GB) | arc-llm-lab</title>
+<meta name="description" content="Step-by-step setup of llama.cpp on Windows 11 with an Intel Arc Pro B60 24GB: engine, models, server key, verification, remote access, chat UI and nightly regression.">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">
+<meta property="og:title" content="Setup (Windows 11, Intel Arc Pro B60 24GB)">
+<meta property="og:description" content="Step-by-step setup of llama.cpp on Windows 11 with an Intel Arc Pro B60 24GB: engine, models, server key, verification, remote access, chat UI and nightly regression.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Setup (Windows 11, Intel Arc Pro B60 24GB)">
+<meta name="twitter:description" content="Step-by-step setup of llama.cpp on Windows 11 with an Intel Arc Pro B60 24GB: engine, models, server key, verification, remote access, chat UI and nightly regression.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html#article",
+   "headline": "Setup (Windows 11, Intel Arc Pro B60 24GB)",
+   "description": "Step-by-step setup of llama.cpp on Windows 11 with an Intel Arc Pro B60 24GB: engine, models, server key, verification, remote access, chat UI and nightly regression.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Setup (Windows 11, Intel Arc Pro B60 24GB)",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Setup (Windows 11, Intel Arc Pro B60 24GB)</p>
+<main>
+<h1 id="setup-windows-11-intel-arc-pro-b60-24gb">Setup (Windows 11, Intel Arc Pro B60 24GB)</h1>
+<p>The scripts assume this layout, so keep the paths or update them in <code>governor/profiles.json</code>, <code>llama-swap/config.yaml</code> and the wrappers:</p>
+<pre><code>C:\AI\llama.cpp\vulkan-intelfa\   engine build (engine\build.ps1)
+C:\AI\llama.cpp\vulkan\           optional: official llama.cpp Vulkan release (qwen engine stock)
+C:\AI\models\qwen3.8-27b\         Qwen3.8-27B-UD-Q4_K_M.gguf, mmproj-F16.gguf, Qwen3.8-27B-DFlash2-Q4_K_M.gguf
+C:\AI\llama-swap\                 llama-swap.exe, config.yaml, api-key.txt
+C:\AI\governor\                   everything from governor\ (+ voice\voice.html in governor\public\)
+C:\AI\bench\                      everything from bench\ (benchmarks write their logs here)
+C:\AI\evalsuite\                  everything from evalsuite\
+C:\AI\tts\  C:\AI\whisper\         created by voice\setup-*.ps1
+C:\AI\claude-local\               agents\claude-local\ (LOCAL-SYSTEM.md, mcp.json)
+%USERPROFILE%\bin\                agents\claude-qwen.cmd, agents\codex-qwen.cmd</code></pre>
+<h2 id="1-engine">1. Engine</h2>
+<pre><code class="language-powershell">powershell -ExecutionPolicy Bypass -File engine\build.ps1</code></pre>
+<p>This needs git and Python on PATH. It downloads a portable toolchain, checks and applies the two vendored Intel FA patches (<a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/engine/patches">engine/patches/</a>) to llama.cpp b11524, and writes <code>C:\AI\llama.cpp\vulkan-intelfa\llama-server.exe</code>. Our own build log shows 3 min 21 s from start to <code>BUILD OK</code> on a run where the toolchain was already in place (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/build.log">build.log</a>); a first run also downloads the toolchain. On Linux use <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/engine/build-linux.sh">engine/build-linux.sh</a> (patch application verified; not run on Linux with an Arc GPU by the author). Background: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL-FA.md</a>.</p>
+<h2 id="2-models">2. Models</h2>
+<p>Download <code>Qwen3.8-27B-UD-Q4_K_M.gguf</code> and <code>mmproj-F16.gguf</code> (vision) from <a href="https://huggingface.co/unsloth/Qwen3.8-27B-GGUF">unsloth/Qwen3.8-27B-GGUF</a> on Hugging Face, plus the DFlash2 draft GGUF (<code>Qwen3.8-27B-DFlash2-Q4_K_M.gguf</code>), into <code>C:\AI\models\qwen3.8-27b\</code>. We did not record where we downloaded the drafter from, so look for a Qwen3.8-27B DFlash2 draft on Hugging Face and check its licence; if you know the right source, please <a href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=bug.yml">tell us</a>. Optional extras: <code>Qwen3.8-27B-Q4_0.gguf</code> for the turbo variant, and an MTP draft for the 262K variant.</p>
+<h2 id="3-key-and-server">3. Key and server</h2>
+<pre><code class="language-powershell">$b = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); $k = ([BitConverter]::ToString($b) -replace '-').ToLower()
+setx LOCAL_QWEN_KEY $k; $k | Set-Content C:\AI\llama-swap\api-key.txt</code></pre>
+<p>Put <code>llama-swap.exe</code> and <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/llama-swap/config.yaml">llama-swap/config.yaml</a> in <code>C:\AI\llama-swap\</code>. Then register two logon tasks, both started through <code>conhost.exe --headless</code> so no console windows pop up:</p>
+<pre><code>conhost.exe --headless "C:\AI\llama-swap\llama-swap.exe" --config "C:\AI\llama-swap\config.yaml" --listen 127.0.0.1:8090
+conhost.exe --headless powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:\AI\governor\governor.ps1"</code></pre>
+<h2 id="4-verify">4. Verify</h2>
+<pre><code class="language-powershell">qwen doctor      # 26 checks: server, governor, VRAM headroom, no-context-shift, voice, Tailscale routes, tasks, agents, power, disks, last benchmark
+qwen bench       # 3-turn agent test at 30-37K context. We measured 55-57 s, coding 7/7, tools 3/3 (details: INTEL-FA.md)
+qwen snapshot "first working config"</code></pre>
+<p><code>qwen</code> is <code>governor\qwen.ps1</code>. Add a <code>qwen.cmd</code> shim on PATH that calls it.</p>
+<h2 id="5-remote-optional-tailscale">5. Remote (optional): Tailscale</h2>
+<pre><code class="language-powershell">tailscale serve --bg --https=8445 http://127.0.0.1:8090                       # API for other PCs, tailnet only
+tailscale serve --bg --https=8445 --set-path=/governor/ C:\AI\governor\public  # status page + voice page</code></pre>
+<p>Keep everything <strong>tailnet-only</strong>. Don't use <code>tailscale funnel</code> for the model API.</p>
+<h2 id="5b-a-chat-ui-voice-and-tools-optional">5b. A chat UI, voice and tools (optional)</h2>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">PLATFORM.md</a> adds Open WebUI on top of this setup, with voice in and out (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/VOICE.md">VOICE.md</a>), MCP tools and phone access over Tailscale, and the settings that keep it from disturbing the prompt cache.</p>
+<h2 id="6-nightly-regression-optional">6. Nightly regression (optional)</h2>
+<p>Schedule <code>governor\nightly.ps1</code> daily at 3 am. It runs the doctor, the benchmark and a 14-task agent sample, and writes <code>governor\public\nightly.json</code>. It skips itself while an evaluation is running or the model is busy.</p>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/SETUP.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/SETUP.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

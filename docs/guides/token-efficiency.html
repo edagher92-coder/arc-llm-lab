@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token efficiency: keeping a local agent fast and inside its window</title>
+<meta name="description" content="A local model on one GPU has one slot (-np 1) and a small context window. Every token an agent wastes is time you wait, and every token of overhead is room the task can&#x27;t use.">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">
+<meta property="og:title" content="Token efficiency: keeping a local agent fast and inside its window">
+<meta property="og:description" content="A local model on one GPU has one slot (-np 1) and a small context window. Every token an agent wastes is time you wait, and every token of overhead is room the task can&#x27;t use.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Token efficiency: keeping a local agent fast and inside its window">
+<meta name="twitter:description" content="A local model on one GPU has one slot (-np 1) and a small context window. Every token an agent wastes is time you wait, and every token of overhead is room the task can&#x27;t use.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html#article",
+   "headline": "Token efficiency: keeping a local agent fast and inside its window",
+   "description": "A local model on one GPU has one slot (-np 1) and a small context window. Every token an agent wastes is time you wait, and every token of overhead is room the task can't use.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Token efficiency: keeping a local agent fast and inside its window",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html"
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / Token efficiency: keeping a local agent fast and inside its window</p>
+<main>
+<h1 id="token-efficiency-keeping-a-local-agent-fast-and-inside-its-window">Token efficiency: keeping a local agent fast and inside its window</h1>
+<p>A local model on one GPU has one slot (<code>-np 1</code>) and a small context window. Every token an agent wastes is time you wait, and every token of overhead is room the task can't use. This page lists the settings the <code>claude-qwen</code> wrapper applies, what each one saves, how to measure it, and what we tried and rejected.</p>
+<h2 id="why-it-matters-with-numbers-from-this-repo">Why it matters, with numbers from this repo</h2>
+<p>In <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-test.txt">server-test.txt</a> the first request on a 29,679-token conversation took <strong>61.0 s</strong> to read (489.9 tok/s). The three agent turns that followed each re-used the cached 29,680 to 36,633 tokens, read only about 3K new ones, wrote 400 tokens and took <strong>17.5 to 19.0 s</strong> each. Without prefix reuse every turn would cost about a minute. That is the whole game: keep the prompt prefix stable so the server can reuse it, and keep what you send small.</p>
+<h2 id="what-the-claude-code-wrapper-sets">What the Claude Code wrapper sets</h2>
+<p><code>agents/claude-qwen.cmd</code> points Claude Code at the local server (<code>ANTHROPIC_BASE_URL</code>). The environment variables below are documented at <a href="https://code.claude.com/docs/en/env-vars">code.claude.com/docs/en/env-vars</a>; the defaults quoted are the ones that matter for a local model.</p>
+<div class="tw"><table><thead><tr><th>Setting</th><th>Value here</th><th>What it saves or protects</th></tr></thead><tbody><tr><td><code>CLAUDE_CODE_MAX_CONTEXT_TOKENS</code></td><td>live window: server context minus 8K, capped at <code>QWEN_CLIENT_CAP</code> (default 32768)</td><td>Claude Code compacts <strong>before</strong> the server could overflow. This is the one control that decides when compaction happens.</td></tr><tr><td><code>CLAUDE_CODE_MAX_OUTPUT_TOKENS</code></td><td><code>8000</code></td><td>For a model Claude Code doesn't know, the default is 32000, which on a 32K to 57K window reserves most of the window for output you will never use.</td></tr><tr><td><code>BASH_MAX_OUTPUT_LENGTH</code></td><td><code>15000</code></td><td>Default is 30000. A noisy command can no longer dump half the window into the conversation.</td></tr><tr><td><code>MAX_MCP_OUTPUT_TOKENS</code></td><td><code>8000</code></td><td>Default is 25000. Same reason, for MCP tool results.</td></tr><tr><td><code>CLAUDE_CODE_ATTRIBUTION_HEADER</code></td><td><code>0</code></td><td>Keeps the start of the prompt identical between requests so the server's prompt cache hits.</td></tr><tr><td><code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC</code></td><td><code>1</code></td><td>No background calls to a server that can only do one thing at a time.</td></tr><tr><td><code>ANTHROPIC_DEFAULT_HAIKU_MODEL</code></td><td>the same local model</td><td>Claude Code uses its small model for background work. Pointing it at the loaded model avoids a second model being requested and swapped in.</td></tr><tr><td><code>--system-prompt-file</code></td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/agents/claude-local/LOCAL-SYSTEM.md">agents/claude-local/LOCAL-SYSTEM.md</a></td><td>A compact local system prompt instead of the standard one. See the note in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/AGENTS.md#claude-code-claude-qwen">AGENTS.md</a> about what the "6.6K versus 19K" figures mean.</td></tr><tr><td><code>--strict-mcp-config</code> with one MCP server</td><td><code>agents/claude-local/mcp.json</code></td><td>Only the servers you list load. See the note on MCP below.</td></tr></tbody></table></div>
+<p><strong>Not set: <code>CLAUDE_CODE_AUTO_COMPACT_WINDOW</code>.</strong> Its documented valid range is 100000 to 1000000, so the 32K to 57K windows used here are out of range; compaction is governed by <code>CLAUDE_CODE_MAX_CONTEXT_TOKENS</code>.</p>
+<p><strong>Tested and not adopted ("v2", 2026-10-10):</strong> <code>CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1</code>, <code>CLAUDE_CODE_DISABLE_AUTO_MEMORY=1</code>, <code>CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1</code> and <code>CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH=512</code>, together with a "definition of done" prompt rule. That run scored 93/100 at 1.13 tasks/min against 97/100 at 1.54 for the production wrapper, so the wrapper does not set them (<a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">RELIABILITY.md</a>). Three of its tasks were disturbed by an accidental model swap, so this is not proof that each setting hurts on its own.</p>
+<p><strong>MCP schemas load up front.</strong> With a non-Anthropic base URL, Claude Code's MCP tool search is off, so every tool schema of every configured server is sent on every request. Keep the set small: this repo ships one server (context7) and makes browser tools opt-in. On a 32K window a large MCP server can cost more than the code you are editing.</p>
+<h2 id="how-prefix-reuse-works-on-this-model">How prefix reuse works on this model</h2>
+<p>Qwen3.8-27B is a hybrid model: 16 blocks of three Gated DeltaNet layers and one Gated Attention layer. It also loads a vision projector. That has two consequences for caching:</p>
+<ul><li><strong><code>--cache-reuse</code> does nothing here.</strong> The server says so at start-up: <code>cache_reuse is not supported by multimodal, it will be disabled</code> (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-57344.log">server-57344.log</a>, line 27). The governor still passes <code>--cache-reuse 256</code>; it is inert, and it is harmless.</li><li><strong>Reuse comes from two other mechanisms</strong>, both on by default: a host-RAM prompt cache (<code>--cache-ram</code>, default 8192 MiB; the governor passes <code>-cram</code> 8192 / 4096 / 1024 for the MAX / BALANCED / LEAN profiles) and context checkpoints (<code>--ctx-checkpoints</code>, default 32, spaced at least <code>--checkpoint-min-step</code> 8192 tokens apart). These are documented in llama-server's README for b11524.</li></ul>
+<p>So the rule for any client is: <strong>append, don't rewrite.</strong> Anything that changes the early part of the prompt (a timestamp, a re-ordered tool list, a rewritten memory block) makes the server re-read from that point. That is why the attribution header is switched off. For tool-heavy clients the same rule decides how tools should be loaded: see <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">TOOL-CALLING.md</a>.</p>
+<p><strong>Open WebUI</strong> has the same trap: its background features (titles, tags, follow-up suggestions, autocomplete, query generation, memories) send extra requests to the one slot and disturb its cache. <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">PLATFORM.md</a> lists the settings that turn them off.</p>
+<h2 id="sampling">Sampling</h2>
+<p>The Qwen3.8 model card recommends these settings. The presets in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/llama-swap/config.yaml">llama-swap/config.yaml</a> are close to the card but not identical, as noted below.</p>
+<div class="tw"><table><thead><tr><th>Mode</th><th>temperature</th><th>top_p</th><th>top_k</th><th>min_p</th><th>presence_penalty</th></tr></thead><tbody><tr><td>Thinking</td><td>1.0</td><td>0.95</td><td>20</td><td>0</td><td>0</td></tr><tr><td>Non-thinking</td><td>0.7</td><td>0.8</td><td>20</td><td>not set</td><td>1.5</td></tr></tbody></table></div>
+<p>Our <code>:code</code> preset (thinking off) uses temperature 0.7, top_p 0.8, top_k 20 and a presence penalty of <strong>0.5</strong> rather than the card's 1.5. The default and <code>:plan</code> presets (thinking on) use temperature 0.6, top_p 0.95, top_k 20 and no presence penalty, so their temperature is below the card's 1.0. We did not benchmark these differences, so treat them as tunables.</p>
+<p>The card also describes a reasoning effort of <code>xhigh</code> (the default), <code>medium</code> or <code>low</code>, with a warning that lower effort can increase retries. For an agent a retry costs more than the thinking it saved.</p>
+<h2 id="how-to-measure">How to measure</h2>
+<p>llama-server exposes Prometheus counters at <code>/metrics</code> when started with <code>--metrics</code> (the governor does this). Three matter:</p>
+<div class="tw"><table><thead><tr><th>Counter</th><th>Meaning (from the server source)</th></tr></thead><tbody><tr><td><code>llamacpp:prompt_tokens_total</code></td><td>Prompt tokens <strong>processed</strong>, excluding cached tokens</td></tr><tr><td><code>llamacpp:prompt_tokens_cached_total</code></td><td>Prompt tokens <strong>reused from the cache</strong></td></tr><tr><td><code>llamacpp:tokens_predicted_total</code></td><td>Tokens generated</td></tr></tbody></table></div>
+<p>Take a reading before and after a task and subtract. The share of the prompt served from cache is <code>cached / (processed + cached)</code>.</p>
+<pre><code class="language-powershell">function M($n) { ((Invoke-RestMethod http://127.0.0.1:10001/metrics) -split "`n" | Where-Object { $_ -like "llamacpp:$n *" }) -replace '.* ', '' }
+$a = [double](M 'prompt_tokens_total'), [double](M 'prompt_tokens_cached_total'), [double](M 'tokens_predicted_total')
+# ... run your agent task ...
+$b = [double](M 'prompt_tokens_total'), [double](M 'prompt_tokens_cached_total'), [double](M 'tokens_predicted_total')
+"processed {0}, reused {1}, generated {2}" -f ($b[0]-$a[0]), ($b[1]-$a[1]), ($b[2]-$a[2])</code></pre>
+<p>Port 10001 is the default variant's backend in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/llama-swap/config.yaml">llama-swap/config.yaml</a>; the governor's <code>running.json</code> names the live port. The evaluation harness already does this for every task and stores <code>srv_prompt_tok</code>, <code>srv_cached_tok</code> and <code>srv_gen_tok</code> (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/evalsuite/runner.py">evalsuite/runner.py</a>), so the numbers are in the results files.</p>
+<p>The honest caveat: we have not published a before/after comparison for each individual setting above. The 61 s versus 18 s figure is the measured effect of prefix reuse; the per-setting savings are mechanisms, not measurements. If you measure one, <a href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">share it</a>.</p>
+<h2 id="what-we-rejected-and-why">What we rejected, and why</h2>
+<ul><li><strong>A quantised main KV cache (q4_0 or q8_0).</strong> It saves VRAM, but Intel's FA prefill kernel only sped up the f16 cache in our tests: with q4_0 the prompt speed at 32K was identical to stock (101 versus 101 tok/s, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-q4.txt">compare-q4.txt</a>). We measured q4_0; we did not benchmark q8_0 for the main model. The <em>drafter's</em> KV can stay q8_0 (<code>-ctkd q8_0 -ctvd q8_0</code>). Together with <code>-ub 256</code> it freed about 0.55 GiB at no speed cost (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>), which is the difference between 57K and 64K of context.</li><li><strong>Stacking an n-gram speculative method next to DFlash2.</strong> Upstream's <a href="https://github.com/ggml-org/llama.cpp/blob/master/docs/speculative.md">speculative decoding docs</a> say: "If a draft model is combined with a draftless decoding the draftless decoding has higher precedence." So adding an n-gram type would replace the drafter rather than add to it. We did not benchmark it.</li><li><strong>Turning thinking off, or the reasoning effort down, for all agent work.</strong> The model card warns that lower effort can increase retries, and for an agent a retry costs more than the thinking it saved. We use thinking-off in one place only: the <code>:code</code> preset, for routine tool loops with a short, checkable outcome. <code>:plan</code> asks for a 16K thinking budget for architecture and migrations, but the server starts with <code>--reasoning-budget 4096</code>; whether the preset's larger request overrides that cap has not been verified. There is no thinking-on versus thinking-off comparison on the same tasks in this repo, so treat this as a judgement, not a measurement.</li><li><strong>A repetition penalty.</strong> The model card recommends a presence penalty, not a repetition penalty, and a repetition penalty can punish code for legitimately repeating identifiers. We did not benchmark it.</li><li><strong>More draft tokens (<code>--spec-draft-n-max 15</code>).</strong> The upstream DFlash example uses 15; on a 24GB card with a 27B model it left 0.96 GiB of VRAM free and generation fell to 27 tok/s (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>); draft length and free VRAM changed together, so we can't say which caused it. n=7 is the setting we use.</li></ul>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/TOKEN-EFFICIENCY.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/TOKEN-EFFICIENCY.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

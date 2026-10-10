@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ: running LLMs on Intel Arc with llama.cpp | arc-llm-lab</title>
+<meta name="description" content="FAQ: running LLMs on Intel Arc with llama.cpp. Covers hardware and price, software choices, settings, agents and safety, platform.">
+<meta name="author" content="Elie Dagher">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="arc-llm-lab">
+<meta property="og:url" content="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">
+<meta property="og:title" content="FAQ: running LLMs on Intel Arc with llama.cpp">
+<meta property="og:description" content="FAQ: running LLMs on Intel Arc with llama.cpp. Covers hardware and price, software choices, settings, agents and safety, platform.">
+<meta property="og:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FAQ: running LLMs on Intel Arc with llama.cpp">
+<meta name="twitter:description" content="FAQ: running LLMs on Intel Arc with llama.cpp. Covers hardware and price, software choices, settings, agents and safety, platform.">
+<meta name="twitter:image" content="https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230071C5'/%3E%3Cpath d='M8 22l5-12h2l5 12h-2.4l-1.1-3h-5.2l-1.1 3zm4.2-5h3.6L14 12z' fill='%23fff'/%3E%3C/svg%3E">
+<script type="application/ld+json">{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "TechArticle",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html#article",
+   "headline": "FAQ: running LLMs on Intel Arc with llama.cpp",
+   "description": "FAQ: running LLMs on Intel Arc with llama.cpp. Covers hardware and price, software choices, settings, agents and safety, platform.",
+   "url": "https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "name": "Elie Dagher"
+   },
+   "isPartOf": {
+    "@id": "https://edagher92-coder.github.io/arc-llm-lab/#code"
+   },
+   "mainEntityOfPage": "https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html",
+   "image": "https://edagher92-coder.github.io/arc-llm-lab/assets/social-preview.png",
+   "license": "https://opensource.org/licenses/MIT"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "arc-llm-lab",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "FAQ: running LLMs on Intel Arc with llama.cpp",
+     "item": "https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Is a 24GB Intel Arc card good for local LLMs?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "For one person running a 27-32B dense model at 4-bit, yes. Qwen3.8-27B fits on an Arc Pro B60 24GB with a 57-64K context and a speculative draft model, and generates 42.3 tok/s eval-suite throughput (wall-clock, prompt processing included; per-request decode 47-58 tok/s, mean 53.3). The limit is memory bandwidth (456 GB/s on the B60), so more tuning will not double that. Faster cards cost several times more (README)."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What does a B60 cost in Australia?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The cheapest sourced listing we recorded for a 24GB Arc Pro B60 was A$1,240 (gpuprix.com, ASRock B60 Creator, updated 2026-10-07). On 2026-10-10 PCCaseGear listed an ASRock Arc Pro B60 Passive 24GB (OEM) at A$999 including GST. A passive card has no fan of its own and needs strong case or server airflow, so check your case before buying one. Prices move; treat both as a snapshot."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will a B580 12GB, B570 10GB, B50 16GB or A770 16GB run this?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not this 27B model with a useful context: the Q4_K_M weights alone are about 15.3 GiB. They run smaller models well, and the same tools and benchmark scripts apply. See the model-fit table in the README and send us numbers: GOOD-FIRST-ISSUES.md."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Vulkan or SYCL on Arc?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "For this model on our B60, Vulkan (with GGML_VK_FORCE_MMVQ=1) was faster in our testing. We did not keep the SYCL raw log, so that is an observation you can't check. Other people publish SYCL numbers on the same card (PEERS.md), and upstream SYCL work continues (for example llama.cpp PR #25025, merged 2026-07-31). The Intel FA prefill patch used here is Vulkan-only. A like-for-like SYCL run with bench/arc-bench.sh or .ps1 is one of the most useful things you can send (GOOD-FIRST-ISSUES.md)."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Ollama, LM Studio, or this?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Ollama and LM Studio are the easiest way to start. Ollama enables its Vulkan backend by default when you install it (docs.ollama.com/gpu), and both bundle their own copy of llama.cpp. That is also the limit: they ship their own engine, so they don't include the Intel FA prefill patch or the DFlash2 draft-model path, and this exact setup can't be reproduced inside them. They are good for smaller models and quick trials. If you want this server's speed from the apps you already use, run llama-server (or llama-swap) from this repo and point those apps at it: anything that accepts an OpenAI-compatible base URL (/v1/chat/completions, /v1/responses) or an Anthropic-compatible one (/v1/messages) works. Ollama's native API is not emulated."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What about IPEX-LLM?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The intel/ipex-llm repository was archived on 2026-01-28 and is read-only. Don't start a new setup on it. llama.cpp's Vulkan and SYCL backends are the maintained llama.cpp routes for Intel GPUs."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What about Intel's llm-scaler (vLLM in Docker)?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "intel/llm-scaler is Intel's vLLM-based Docker route for Arc Pro B60 and B70 cards. Its vLLM images have added speculative methods such as DFlash (for Qwen3.6-27B in vllm-0.21.0-b3, 2026-08-10) and MTP. It is a different stack, aimed at batching and multi-GPU serving, and we have not benchmarked it. If you run Linux and want vLLM semantics, it is the route to try; this repo is about llama.cpp."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Where does the Intel FA kernel stand upstream?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Two separate pieces of Intel work matter. The decode-focused Xe flash-attention kernels (llama.cpp PR #24406) were merged on 2026-09-22 and the Intel GDN tuning (PR #29476) on 2026-09-29, so stock b11524 already includes both, and our stock numbers (16 tok/s generation, 118 tok/s prompt at 32K) were measured with them. The prefill shader (PR #29357) is the one that takes prompt reading at 32K from 118 to 420 tok/s. Its author closed that PR without merging on 2026-09-25 and later force-pushed the branch, so this repo vendors the two commits in engine/patches/ with checksums and attribution, and the build applies them on top of b11524. Details: INTEL-FA.md."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why an f16 KV cache when q4 saves memory?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Because the Intel FA prefill kernel only sped up the f16 cache in our tests: 420 versus 118 tok/s at 32K, while with q4_0 it was identical to stock (101 versus 101). Use the q4 big and long variants only for very long one-off documents. For Qwen3.8-27B the f16 KV costs 64.5 KiB per token."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "My generation speed suddenly halved.",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Check free VRAM (qwen doctor). In our draft-length sweep the one run that fell short of VRAM (n=15, 0.96 GiB free) dropped from 42 to 27 tok/s (tune.txt). Runs at 1.04 and 0.71 GiB free did not slow down, so the exact threshold is not established, and draft length changed in that run too. As a precaution the governor keeps 1.35 to 3 GiB free, depending on its profile. Close GPU-heavy apps or let it drop to the BALANCED or LEAN profile."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is --cache-reuse doing anything?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No, not on this model. The server prints cache_reuse is not supported by multimodal, it will be disabled at start-up (server-57344.log). Prefix reuse comes from the host-RAM prompt cache and context checkpoints. See TOKEN-EFFICIENCY.md."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why is prompt reading slower than some other published B60 numbers?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Other people report 589 to 638 tok/s at about 29K on a llama.cpp engine, and 657 tok/s at 32.8K on OpenVINO, against our 420 tok/s at 32K. The measurements aren't identical (different KV types and tools), but the gap is real. PEERS.md lays the rows side by side. Generation speed is where this repo leads."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will the agent lose context?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not silently. Context shift is off (--no-context-shift; in current llama.cpp it is also the default), so a conversation that outgrows the server context gets an explicit HTTP 400 instead of quietly losing its oldest tokens. The agent windows are sized below the server context (server context minus 8K), and the governor never reloads a smaller context than a live session needs. Claude Code's own compaction is different, and by design: when the window fills, Claude Code summarises the conversation, and a summary can drop detail. That is not the server truncating anything, but it can still make an agent forget a specific instruction. The sustained-session test (RELIABILITY.md) checks whether a code given at step 1 is still recalled after compaction."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does the model work past 130K tokens?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Qwen3.8-27B supports a long native context, but an upstream issue reports it ending instantly beyond about 130K tokens (llama.cpp #27756). This repo's f16 setups stop at 64K, and the q4 big and long variants (150K to 262K) are for one-off documents. Test before relying on them."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which tasks can the local model do unattended?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "See RELIABILITY.md for per-category tiers (autonomous, supervised, escalate) measured over 100 tasks. Rule of thumb from that run: commit or checkpoint before any unattended run, and supervise multi-file refactors (README)."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I get a ChatGPT-style web UI, voice and tools?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes: PLATFORM.md covers Open WebUI on top of llama-swap, a Kokoro and whisper.cpp voice adapter, MCP tools, and Tailscale access from your phone."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Linux?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The engine flags and findings carry over. engine/build-linux.sh builds llama.cpp with the vendored patches (patch application is verified; the script has not been run on Linux with an Arc GPU by the author), and bench/arc-bench.sh measures your card. The governor and agent wrappers are PowerShell and Windows first; ports are welcome."
+     }
+    }
+   ]
+  }
+ ]
+}</script>
+<style>:root{--bg:#FFFFFF;--panel:#F6F8FA;--ink:#1F2328;--ink2:#59636E;--line:#D0D7DE;--link:#B8470F}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1117;--panel:#161B22;--ink:#E6EDF3;--ink2:#9DA7B3;--line:#30363D;--link:#E8661E}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--link)}.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+nav.top{padding:18px 0;border-bottom:1px solid var(--line);font-size:15px}nav.top a{margin-right:16px;font-weight:600}
+.crumbs{color:var(--ink2);font-size:14px;margin:20px 0 0}h1{font-size:clamp(28px,4.5vw,40px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 18px}
+h2{font-size:24px;margin:2em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:19px;margin:1.6em 0 .3em}
+p.q{margin:1.4em 0 .2em}p.q+p{margin-top:0}code{font:13.5px/1.4 ui-monospace,"JetBrains Mono",Consolas,monospace;background:var(--panel);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:1em 0}table{border-collapse:collapse;font-size:14.5px}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+footer{margin:48px 0 40px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:14px}footer a{margin-right:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="https://edagher92-coder.github.io/arc-llm-lab/">arc-llm-lab benchmarks</a><a href="https://github.com/edagher92-coder/arc-llm-lab">GitHub</a></nav>
+<p class="crumbs"><a href="https://edagher92-coder.github.io/arc-llm-lab/">Home</a> / FAQ: running LLMs on Intel Arc with llama.cpp</p>
+<main>
+<h1 id="faq-running-llms-on-intel-arc-with-llamacpp">FAQ: running LLMs on Intel Arc with llama.cpp</h1>
+<h2 id="hardware-and-price">Hardware and price</h2>
+<p class="q"><strong>Is a 24GB Intel Arc card good for local LLMs?</strong></p><p>For one person running a 27-32B dense model at 4-bit, yes. Qwen3.8-27B fits on an Arc Pro B60 24GB with a 57-64K context and a speculative draft model, and generates 42.3 tok/s eval-suite throughput (wall-clock, prompt processing included; per-request decode 47-58 tok/s, mean 53.3). The limit is memory bandwidth (456 GB/s on the B60), so more tuning will not double that. Faster cards cost several times more (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/README.md#which-intel-card-and-which-model-fits">README</a>).</p>
+<p class="q"><strong>What does a B60 cost in Australia?</strong></p><p>The cheapest sourced listing we recorded for a 24GB Arc Pro B60 was A$1,240 (<a href="https://gpuprix.com/australia/gpus/arc-pro-b60">gpuprix.com</a>, ASRock B60 Creator, updated 2026-10-07). On 2026-10-10 PCCaseGear listed an ASRock Arc Pro B60 Passive 24GB (OEM) at A$999 including GST. A passive card has no fan of its own and needs strong case or server airflow, so check your case before buying one. Prices move; treat both as a snapshot.</p>
+<p class="q"><strong>Will a B580 12GB, B570 10GB, B50 16GB or A770 16GB run this?</strong></p><p>Not this 27B model with a useful context: the Q4_K_M weights alone are about 15.3 GiB. They run smaller models well, and the same tools and benchmark scripts apply. See the model-fit table in the <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/README.md#which-intel-card-and-which-model-fits">README</a> and send us numbers: <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/GOOD-FIRST-ISSUES.md">GOOD-FIRST-ISSUES.md</a>.</p>
+<h2 id="software-choices">Software choices</h2>
+<p class="q"><strong>Vulkan or SYCL on Arc?</strong></p><p>For this model on our B60, Vulkan (with <code>GGML_VK_FORCE_MMVQ=1</code>) was faster in our testing. We did not keep the SYCL raw log, so that is an observation you can't check. Other people publish SYCL numbers on the same card (<a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">PEERS.md</a>), and upstream SYCL work continues (for example llama.cpp PR #25025, merged 2026-07-31). The Intel FA prefill patch used here is Vulkan-only. A like-for-like SYCL run with <code>bench/arc-bench.sh</code> or <code>.ps1</code> is one of the most useful things you can send (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/GOOD-FIRST-ISSUES.md">GOOD-FIRST-ISSUES.md</a>).</p>
+<p class="q"><strong>Ollama, LM Studio, or this?</strong></p><p>Ollama and LM Studio are the easiest way to start. Ollama enables its Vulkan backend by default when you install it (<a href="https://docs.ollama.com/gpu">docs.ollama.com/gpu</a>), and both bundle their own copy of llama.cpp. That is also the limit: they ship their own engine, so they don't include the Intel FA prefill patch or the DFlash2 draft-model path, and this exact setup can't be reproduced inside them. They are good for smaller models and quick trials. If you want this server's speed from the apps you already use, run llama-server (or llama-swap) from this repo and point those apps at it: anything that accepts an OpenAI-compatible base URL (<code>/v1/chat/completions</code>, <code>/v1/responses</code>) or an Anthropic-compatible one (<code>/v1/messages</code>) works. Ollama's native API is not emulated.</p>
+<p class="q"><strong>What about IPEX-LLM?</strong></p><p>The <code>intel/ipex-llm</code> repository was archived on 2026-01-28 and is read-only. Don't start a new setup on it. llama.cpp's Vulkan and SYCL backends are the maintained llama.cpp routes for Intel GPUs.</p>
+<p class="q"><strong>What about Intel's llm-scaler (vLLM in Docker)?</strong></p><p><a href="https://github.com/intel/llm-scaler">intel/llm-scaler</a> is Intel's vLLM-based Docker route for Arc Pro B60 and B70 cards. Its vLLM images have added speculative methods such as DFlash (for Qwen3.6-27B in <code>vllm-0.21.0-b3</code>, 2026-08-10) and MTP. It is a different stack, aimed at batching and multi-GPU serving, and we have not benchmarked it. If you run Linux and want vLLM semantics, it is the route to try; this repo is about llama.cpp.</p>
+<p class="q"><strong>Where does the Intel FA kernel stand upstream?</strong></p><p>Two separate pieces of Intel work matter. The decode-focused Xe flash-attention kernels (llama.cpp PR #24406) were merged on 2026-09-22 and the Intel GDN tuning (PR #29476) on 2026-09-29, so stock b11524 already includes both, and our stock numbers (16 tok/s generation, 118 tok/s prompt at 32K) were measured with them. The prefill shader (PR #29357) is the one that takes prompt reading at 32K from 118 to 420 tok/s. Its author closed that PR without merging on 2026-09-25 and later force-pushed the branch, so this repo <strong>vendors the two commits</strong> in <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/engine/patches">engine/patches/</a> with checksums and attribution, and the build applies them on top of b11524. Details: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL-FA.md</a>.</p>
+<h2 id="settings">Settings</h2>
+<p class="q"><strong>Why an f16 KV cache when q4 saves memory?</strong></p><p>Because the Intel FA prefill kernel only sped up the f16 cache in our tests: 420 versus 118 tok/s at 32K, while with q4_0 it was identical to stock (101 versus 101). Use the q4 <code>big</code> and <code>long</code> variants only for very long one-off documents. For Qwen3.8-27B the f16 KV costs 64.5 KiB per token.</p>
+<p class="q"><strong>My generation speed suddenly halved.</strong></p><p>Check free VRAM (<code>qwen doctor</code>). In our draft-length sweep the one run that fell short of VRAM (n=15, 0.96 GiB free) dropped from 42 to 27 tok/s (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>). Runs at 1.04 and 0.71 GiB free did not slow down, so the exact threshold is not established, and draft length changed in that run too. As a precaution the governor keeps 1.35 to 3 GiB free, depending on its profile. Close GPU-heavy apps or let it drop to the BALANCED or LEAN profile.</p>
+<p class="q"><strong>Is <code>--cache-reuse</code> doing anything?</strong></p><p>No, not on this model. The server prints <code>cache_reuse is not supported by multimodal, it will be disabled</code> at start-up (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-57344.log">server-57344.log</a>). Prefix reuse comes from the host-RAM prompt cache and context checkpoints. See <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">TOKEN-EFFICIENCY.md</a>.</p>
+<p class="q"><strong>Why is prompt reading slower than some other published B60 numbers?</strong></p><p>Other people report 589 to 638 tok/s at about 29K on a llama.cpp engine, and 657 tok/s at 32.8K on OpenVINO, against our 420 tok/s at 32K. The measurements aren't identical (different KV types and tools), but the gap is real. <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">PEERS.md</a> lays the rows side by side. Generation speed is where this repo leads.</p>
+<h2 id="agents-and-safety">Agents and safety</h2>
+<p class="q"><strong>Will the agent lose context?</strong></p><p>Not silently. Context shift is off (<code>--no-context-shift</code>; in current llama.cpp it is also the default), so a conversation that outgrows the server context gets an explicit HTTP 400 instead of quietly losing its oldest tokens. The agent windows are sized below the server context (server context minus 8K), and the governor never reloads a smaller context than a live session needs. <strong>Claude Code's own compaction is different, and by design:</strong> when the window fills, Claude Code summarises the conversation, and a summary can drop detail. That is not the server truncating anything, but it can still make an agent forget a specific instruction. The sustained-session test (<a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">RELIABILITY.md</a>) checks whether a code given at step 1 is still recalled after compaction.</p>
+<p class="q"><strong>Does the model work past 130K tokens?</strong></p><p>Qwen3.8-27B supports a long native context, but an upstream issue reports it ending instantly beyond about 130K tokens (<a href="https://github.com/ggml-org/llama.cpp/issues/27756">llama.cpp #27756</a>). This repo's f16 setups stop at 64K, and the q4 <code>big</code> and <code>long</code> variants (150K to 262K) are for one-off documents. Test before relying on them.</p>
+<p class="q"><strong>Which tasks can the local model do unattended?</strong></p><p>See <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">RELIABILITY.md</a> for per-category tiers (autonomous, supervised, escalate) measured over 100 tasks. Rule of thumb from that run: commit or checkpoint before any unattended run, and supervise multi-file refactors (<a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/README.md#agent-safety">README</a>).</p>
+<h2 id="platform">Platform</h2>
+<p class="q"><strong>Can I get a ChatGPT-style web UI, voice and tools?</strong></p><p>Yes: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">PLATFORM.md</a> covers Open WebUI on top of llama-swap, a Kokoro and whisper.cpp voice adapter, MCP tools, and Tailscale access from your phone.</p>
+<p class="q"><strong>Linux?</strong></p><p>The engine flags and findings carry over. <code>engine/build-linux.sh</code> builds llama.cpp with the vendored patches (patch application is verified; the script has not been run on Linux with an Arc GPU by the author), and <code>bench/arc-bench.sh</code> measures your card. The governor and agent wrappers are PowerShell and Windows first; ports are welcome.</p>
+</main>
+<footer>
+<p>More guides: <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">INTEL FA</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token Efficiency</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/tool-calling.html">Tool Calling</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Platform</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a> <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Peers</a></p>
+<p><a href="https://edagher92-coder.github.io/arc-llm-lab/">Back to the benchmark site</a><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/FAQ.md">View or edit this page on GitHub</a></p>
+<p>Written and measured by Elie Dagher. MIT licensed. Rendered from docs/FAQ.md by tools/build_site.py.</p>
+</footer>
+</div>
+</body>
+</html>

@@ -208,7 +208,7 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
   <div class="links">
     <a class="btn primary" href="https://github.com/edagher92-coder/arc-llm-lab">View on GitHub</a>
     <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">Raw data</a>
-    <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/PEERS.md">Compare with other B60 results</a>
+    <a class="btn" href="https://edagher92-coder.github.io/arc-llm-lab/guides/peers.html">Compare with other B60 results</a>
     <a class="btn" href="https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml">Add your card</a>
   </div>
   <div class="kpis">
@@ -229,7 +229,7 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
       <tr><td>Generation speed</td><td>16.0 tok/s &Dagger; (no draft model, llama-bench tg32)</td><td><b>42.3 tok/s</b> (DFlash2 draft model, n=7; eval-suite throughput, wall-clock, prompt processing included; per-request decode 47&ndash;58, mean 53.3) &Dagger;</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/tune.txt">tune.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a></td></tr>
       <tr><td>Prompt reading at 32K context</td><td>118 tok/s</td><td><b>420 tok/s</b> (f16 KV cache only)</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/compare-f16.txt">compare-f16.txt</a></td></tr>
       <tr><td>3 agent turns at 30&ndash;37K</td><td>201 s&dagger;</td><td><b>55&ndash;57 s</b></td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/server-test.txt">server-test.txt</a>, <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/raw/bench-history.csv">bench-history.csv</a></td></tr>
-      <tr id="glance-rel"><td>100-task hidden-checker agent eval, 32K window</td><td>n/a</td><td id="glance-rel-val"><b>97/100</b> (Claude Code @32K, single run, 95% CI 91.5&ndash;99%), 1.54 completed tasks/min</td><td><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">RELIABILITY.md</a></td></tr>
+      <tr id="glance-rel"><td>100-task hidden-checker agent eval, 32K window</td><td>n/a</td><td id="glance-rel-val"><b>97/100</b> (Claude Code @32K, single run, 95% CI 91.5&ndash;99%), 1.54 completed tasks/min</td><td><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">RELIABILITY.md</a></td></tr>
     </tbody>
   </table></div>
 </section>
@@ -298,13 +298,13 @@ footer { padding:40px 0 60px; color:var(--ink2); font-size:14px; border-top:1px 
 <footer>
   <ul class="navlinks">
     <li><a href="https://github.com/edagher92-coder/arc-llm-lab">Repository</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/SETUP.md">Setup</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/INTEL-FA.md">Intel FA kernel</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/setup.html">Setup</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/intel-fa.html">Intel FA kernel</a></li>
     <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/TUNING-LOG.md">Tuning log</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/TOKEN-EFFICIENCY.md">Token efficiency</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/PLATFORM.md">Chat UI, voice and tools</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">Reliability</a></li>
-    <li><a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/FAQ.md">FAQ</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/token-efficiency.html">Token efficiency</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html">Chat UI, voice and tools</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">Reliability</a></li>
+    <li><a href="https://edagher92-coder.github.io/arc-llm-lab/guides/faq.html">FAQ</a></li>
   </ul>
   <p>Built and measured by Elie Dagher on an Arc Pro B60 24GB, Ryzen 7 3700X, Windows 11. Charts and tables are generated from <a href="https://github.com/edagher92-coder/arc-llm-lab/tree/main/data">data/</a> by <code>tools/build_site.py</code>. MIT licensed. Cite via <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/CITATION.cff">CITATION.cff</a>.</p>
 </footer>
@@ -435,7 +435,7 @@ function vram() {
 /* ---- reliability ---- */
 function reliability() {
   const R = D.reliability, box = document.getElementById('rel'), svg = document.getElementById('c-rel');
-  if (!R) { box.innerHTML = '<p class="sub">The headline figures are in the table at the top. Per-category results and the sustained-session tests are published here once the final run summary is added to the repository; the full write-up is in <a href="https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/RELIABILITY.md">RELIABILITY.md</a>.</p>'; svg.style.display = 'none'; return; }
+  if (!R) { box.innerHTML = '<p class="sub">The headline figures are in the table at the top. Per-category results and the sustained-session tests are published here once the final run summary is added to the repository; the full write-up is in <a href="https://edagher92-coder.github.io/arc-llm-lab/guides/reliability.html">RELIABILITY.md</a>.</p>'; svg.style.display = 'none'; return; }
   const first = Object.values(R.runs).find(r => r.agent === 'claude');
   if (first) { const n = +first.tasks, p = first.passed / n, z = 1.96, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; document.getElementById('glance-rel-val').innerHTML = `<b>${first.passed}/${first.tasks}</b> (Claude Code @32K, single run, 95% CI ${((c - h) * 100).toFixed(1)}&ndash;${Math.round((c + h) * 100)}%), ${(+first.completed_per_min).toFixed(2)} completed tasks/min`; }
   box.innerHTML = '<div class="kpis">' + Object.entries(R.runs).map(([k, r]) => `<div class="kpi ${r.agent === 'claude' ? 'hot' : ''}"><b>${r.passed}/${r.tasks}</b><span>${k}: ${(r.completed_per_min).toFixed(2)} completed tasks/min, median ${r.median_pass_s}s</span></div>`).join('') + '</div>';

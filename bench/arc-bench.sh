@@ -68,7 +68,7 @@ else
   if [ "$MMVQ" = 1 ]; then export GGML_VK_FORCE_MMVQ=1; FLAGS="GGML_VK_FORCE_MMVQ=1 $FLAGS"; fi
   echo "Running: $FLAGS   (about 5-15 minutes for a 27B model)" >&2
   "$BENCH" -m "$MODEL" -ngl 99 -fa 1 -ctk f16 -ctv f16 -p 2048 -n 32 -d "$DEPTHS" -r 1 -o json >"$RAW" 2>"$RAW.stderr" \
-    || { echo "llama-bench failed; see $RAW.stderr" >&2; exit 1; }
+    || { echo "llama-bench failed; see $RAW.stderr" >&2; echo "If that log shows an out-of-memory error, retry with a shorter depth list, for example: --depths 0,4096 (deeper context needs more VRAM)." >&2; exit 1; }
 fi
 
 if [ -z "$OSNAME" ]; then
@@ -124,6 +124,17 @@ if E["ARC_NOTES"]: res["notes"] = E["ARC_NOTES"]
 slug = lambda s: re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:48]
 path = os.path.join(E["ARC_OUT_DIR"], "%s-%s-%s-%s-%s.json" % (E["ARC_DATE"], slug(gpu), slug(backend), slug(build), slug(res["quant"])))
 json.dump(res, open(path, "w", encoding="utf-8"), indent=2); open(path, "a").write("\n")
+if res["driver"].startswith("unknown"):
+    print("WARNING: the driver was not detected. Edit the \"driver\" field in %s before you submit (Linux: vulkaninfo --summary | grep driverInfo)." % path, file=sys.stderr)
+import shutil, subprocess
+for tool in (["wl-copy"], ["xclip", "-selection", "clipboard"], ["xsel", "--clipboard", "--input"]):
+    if shutil.which(tool[0]):
+        try:
+            subprocess.run(tool, input=open(path, encoding="utf-8").read(), text=True, check=True)
+            print("Copied the result JSON to the clipboard.", file=sys.stderr)
+        except (OSError, subprocess.CalledProcessError):
+            pass
+        break
 try:
     import jsonschema
     schema = json.load(open(os.path.join(E["ARC_SCRIPT_DIR"], "..", "data", "community", "schema.json"), encoding="utf-8"))
@@ -136,6 +147,7 @@ fmt = lambda k: " / ".join("%.1f" % depth[d][k] for d in ds)
 print("| GPU | VRAM | Backend / build | Model | pp%d at depth %s (tok/s) | tg%d at depth %s (tok/s) | By |" % (depth[ds[0]].get("pp_tokens", 2048), "/".join(ds), depth[ds[0]].get("tg_tokens", 32), "/".join(ds)))
 print("|---|---|---|---|---|---|---|")
 print("| %s | %s GB | %s %s%s | %s %s | %s | %s | %s |" % (gpu, E["ARC_VRAM"], backend, build, " + %d patch(es)" % len(res["patches"]) if res["patches"] else "", fname, res["quant"], fmt("pp_tok_s"), fmt("tg_tok_s"), E["ARC_CONTRIB"]))
-print("\nShare it: open https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml and paste the JSON file,")
-print("or add it to data/community/ in a pull request. Please also attach the raw llama-bench output.")
+print("\nShare it: open https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml, paste the result JSON,")
+print("and drag in the raw llama-bench file. Or add the JSON to data/community/ in a pull request.")
 PY
+if [ -z "$FROM_JSON" ]; then echo "Raw llama-bench output to attach: $RAW"; fi

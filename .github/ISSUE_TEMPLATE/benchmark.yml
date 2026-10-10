@@ -6,12 +6,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks! The easiest way is one command, which writes a JSON file for you:
+        Thanks! The easiest way is one command. It writes a result JSON, prints the raw file to attach, and copies the JSON to your clipboard when it can:
 
-        - Windows: `powershell -ExecutionPolicy Bypass -File bench\arc-bench.ps1 -Model <model.gguf> -VramGb <N> -Contributor "<your name>"`
-        - Linux: `bench/arc-bench.sh -m <model.gguf> --vram-gb <N> --contributor "<your name>"`
+        - Windows: `powershell -ExecutionPolicy Bypass -File bench\arc-bench.ps1 -Model <model.gguf> -VramGb <N> -Contributor "<your name>" -Mmvq`
+        - Linux: `bench/arc-bench.sh -m <model.gguf> --vram-gb <N> --contributor "<your name>" --mmvq`
 
-        Paste the JSON below, and the raw output if you can. Accepted results are added to [COMMUNITY-RESULTS.md](https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/COMMUNITY-RESULTS.md) with credit. Format: [schema.json](https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/community/schema.json).
+        Paste the JSON below and drag in the raw llama-bench file. Accepted results are added to [COMMUNITY-RESULTS.md](https://github.com/edagher92-coder/arc-llm-lab/blob/main/docs/COMMUNITY-RESULTS.md) with credit. Format: [schema.json](https://github.com/edagher92-coder/arc-llm-lab/blob/main/data/community/schema.json).
   - type: textarea
     id: result_json
     attributes:
@@ -24,21 +24,18 @@ body:
     validations: { required: true }
   - type: input
     id: system
-    attributes: { label: "CPU, RAM, OS, driver version", placeholder: "Ryzen 7 3700X, 32GB DDR4, Windows 11, driver 32.0.101.xxxx" }
-    validations: { required: true }
+    attributes: { label: "CPU, RAM, OS, driver version (optional if the JSON above has them)", placeholder: "Ryzen 7 3700X, 32GB DDR4, Windows 11, driver 32.0.101.xxxx" }
   - type: input
     id: build
-    attributes: { label: "llama.cpp build and backend", placeholder: "b11524 Vulkan + Intel FA patches / SYCL / official release" }
-    validations: { required: true }
+    attributes: { label: "llama.cpp build and backend (optional if the JSON above has it)", placeholder: "b11524 Vulkan + Intel FA patches / SYCL / official release" }
   - type: input
     id: model
-    attributes: { label: "Model and quant", placeholder: "Qwen3.8-27B UD-Q4_K_M, KV f16" }
-    validations: { required: true }
+    attributes: { label: "Model and quant (optional if the JSON above has it)", placeholder: "Qwen3.8-27B UD-Q4_K_M, KV f16" }
   - type: textarea
     id: bench
     attributes:
       label: "Raw llama-bench output"
-      description: "pp2048 and tg32 at depth 0, 16384 and 32768 if possible. Required if you did not use the script. A number without a log can't be checked."
+      description: "Drag in the llama-bench-*.json file the script printed. If you ran llama-bench by hand, paste its output (pp2048 and tg32 at depth 0, 16384 and 32768 if possible). A number without a log can't be checked."
       render: text
   - type: textarea
     id: agent

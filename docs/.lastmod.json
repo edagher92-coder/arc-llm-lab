@@ -1,0 +1,38 @@
+{
+ "faq": {
+  "date": "2026-10-10",
+  "sha256": "3405a21d10770a79fc8d1d678cbbcf018db0b928bbaf258eeec42b1f05685825"
+ },
+ "index": {
+  "date": "2026-10-10",
+  "sha256": "24152f6aa6e66a6d405964517831e1697a8f44b0a3b9cc84c62502ed58637829"
+ },
+ "intel-fa": {
+  "date": "2026-10-10",
+  "sha256": "0cfb4d4c32b76bf25fda8abf7e44f98709f0e9e94e52c8e0a490c0865503ef00"
+ },
+ "peers": {
+  "date": "2026-10-10",
+  "sha256": "1c643c34f57a586012a142aa6a96096b7c7b1026b0aed40265ef05101b487ebd"
+ },
+ "platform": {
+  "date": "2026-10-10",
+  "sha256": "2663555d7a8ca1e195717a78976ec7f5868ebb1c843916c4ba02b4d890e132e2"
+ },
+ "reliability": {
+  "date": "2026-10-10",
+  "sha256": "02888b48291f98a5d2937f33a53026c0656b7d4e5f6c7139eca9cda121f32146"
+ },
+ "setup": {
+  "date": "2026-10-10",
+  "sha256": "01759dd0b6a219543157c814ca7a1e35833711eb13bae145d6cef7d52908ae79"
+ },
+ "token-efficiency": {
+  "date": "2026-10-10",
+  "sha256": "6eb1d43d291024bb6dfce2b47dfb14c022caebb261ec86b5f7495029d3743c45"
+ },
+ "tool-calling": {
+  "date": "2026-10-10",
+  "sha256": "69632151616fbfde8396236dff21335e5a3ad2b05c50253c9d55313557d8974c"
+ }
+}
