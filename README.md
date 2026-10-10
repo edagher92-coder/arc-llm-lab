@@ -1,4 +1,4 @@
-# arc-llm-lab: local LLMs on Intel Arc (B60 · B580 · A770) with llama.cpp Vulkan
+# arc-llm-lab: Qwen 27B on Intel Arc Pro B60 with llama.cpp Vulkan
 
 **Intel Arc Pro B60 24GB · llama.cpp Vulkan · local LLM benchmarks & agent stack**
 
@@ -10,7 +10,7 @@ Run a 27B coding agent fully local on one Intel Arc GPU: tuned llama.cpp (Vulkan
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#versions-used)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Quick start](#quick-start) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
+**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Quick start](#quick-start) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
 
 ## Results on one Arc Pro B60 24GB
 
@@ -67,7 +67,7 @@ The model used here, Qwen3.8-27B `UD-Q4_K_M`, has a 16.46 GB weights file (about
 
 | Card | VRAM | Bandwidth | Qwen3.8-27B Q4_K_M (this repo's model) | Largest GGUF file, rule of thumb (ESTIMATE) |
 |---|---|---|---|---|
-| Arc Pro B70 | 32 GB | 608 GB/s | **Fits with room to spare** (ESTIMATE). After 17.15 GiB for the model, drafter and buffers and about 1.1 GiB of headroom, roughly 13 GiB is left for KV, about 200K tokens of f16 (ESTIMATE). An upstream issue reports instant end-of-sequence beyond about 130K tokens ([llama.cpp #27756](https://github.com/ggml-org/llama.cpp/issues/27756)), so test before relying on it. No-drafter decode ceiling about 36.9 tok/s (ESTIMATE). Not measured here. | about 29 GiB |
+| Arc Pro B70 | 32 GB | 608 GB/s | **Fits with room to spare** (ESTIMATE). After 17.15 GiB for the model, drafter and buffers and about 1.1 GiB of headroom, roughly 11.5 GiB is left for KV, about 180K tokens of f16 (ESTIMATE; 32 GB = 29.8 GiB). An upstream issue reports instant end-of-sequence beyond about 130K tokens ([llama.cpp #27756](https://github.com/ggml-org/llama.cpp/issues/27756)), so test before relying on it. No-drafter decode ceiling about 36.9 tok/s (ESTIMATE). Not measured here. | about 29 GiB |
 | **Arc Pro B60** | **24 GB** | 456 GB/s | **Fits, measured.** 57–64K context, 42.3 tok/s with the drafter, about 16 without. | about 21 GiB |
 | Arc A770 16GB | 16 GB | 560 GB/s | No. The weights alone are about 15.3 GiB, which leaves no room for a useful context (ESTIMATE). | about 13 GiB |
 | Arc Pro B50 | 16 GB | 224 GB/s | No, for the same reason. It has the lowest bandwidth in this table, so expect the slowest decode per GB of model. | about 13 GiB |
@@ -160,6 +160,7 @@ flowchart LR
 | Presets | One loaded model, four behaviours chosen by model name: `:code` (no thinking, fast agent turns), `:plan` (16K thinking), `:vision`, default | [llama-swap/](llama-swap/) |
 | Agents | Claude Code in "FAST mode" (a compact system prompt, about 6.6K tokens of fixed prefix in total against about 19K for the standard one; the figures were not logged) and Codex, with a live context window and early compaction | [agents/](agents/), [docs/AGENTS.md](docs/AGENTS.md) |
 | Token efficiency | The settings that keep the prompt prefix stable and small, what each saves, and how to measure it | [docs/TOKEN-EFFICIENCY.md](docs/TOKEN-EFFICIENCY.md) |
+| Tool calling | What tool schemas cost a local model, measured tool-bundle cache behaviour, and the loading rules that follow | [docs/TOOL-CALLING.md](docs/TOOL-CALLING.md) |
 | Platform | Open WebUI chat UI, voice in and out, MCP tools and phone access over Tailscale, without disturbing the prompt cache | [docs/PLATFORM.md](docs/PLATFORM.md) |
 | Voice | Whisper speech-to-text and Kokoro neural voice, both on CPU, spoken sentence by sentence, with OpenAI-compatible routes | [voice/](voice/), [docs/VOICE.md](docs/VOICE.md) |
 | Benchmarks | A regression test (`qwen bench`, about 4 minutes, which includes the three-turn agent test), sweep scripts, the community benchmark script and the raw logs | [bench/](bench/), [data/](data/) |

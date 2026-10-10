@@ -23,6 +23,8 @@ $ev = (& python "$dir\eval.py" $Port $Label 2>&1 | Select -Last 1) | ConvertFrom
 $row = [ordered]@{ time = (Get-Date -f s); label = $Label; ctx = $ctx; engine = (Split-Path (Split-Path $eng) -Leaf)
   three_turn_s = $three; deep_tg = [math]::Round(($turns.tg_tps | measure -Average).Average, 1); deep_pp = [math]::Round(($turns.pp_tps | measure -Average).Average, 0)
   shallow_tg = $sh.tg_tps; eval_tps = $ev.avg_gen_tps_wall; coding = "$($ev.coding_pass)/$($ev.coding_total)"; tools = "$($ev.tools_pass)/$($ev.tools_total)" }
+# per-turn detail (new prompt tokens vs restored from cache) so cache misses are visible, in a separate file to keep history.csv stable
+$turns | Select-Object @{n='time';e={$row.time}}, @{n='label';e={$Label}}, run, new_prompt, cache_n, pp_tps, gen_n, tg_tps | Export-Csv "$dir\turns.csv" -Append -NoTypeInformation
 if (-not (Test-Path $hist)) { ($row.Keys -join ',') | Set-Content $hist }
 ($row.Values -join ',') | Add-Content $hist
 $ok = ($null -ne $three) -and ($null -ne $ev) -and ($ev.coding_total -gt 0) -and ($three -le $BASE_3TURN * 1.10) -and ($ev.coding_pass -eq $ev.coding_total) -and ($ev.tools_pass -eq $ev.tools_total)  # a crashed test must never read as PASS

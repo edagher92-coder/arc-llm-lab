@@ -20,6 +20,12 @@ def refine(r):
         r["failure"] = "answer_not_saved"
     return r
 
+def rescored():
+    """Verdicts re-checked after the BOM-tolerant reader fix (results/rescore-bom.json): {run: set(task ids or 'step10-probe')}."""
+    try: j = json.load(open(os.path.join(HERE, "results", "rescore-bom.json"), encoding="utf-8"))
+    except Exception: return {}
+    return {k: set(v) for k, v in j.items() if isinstance(v, list)}
+
 def load(runs=None):
     recs = []
     for p in sorted(glob.glob(os.path.join(HERE, "results", "*.jsonl"))):
@@ -31,6 +37,8 @@ def load(runs=None):
             try: r = json.loads(l)
             except Exception: continue
             if "step" in r: continue  # sustained-session records are reported separately
+            if r["id"] in rescored().get(run, ()) and not r["passed"]:
+                r = dict(r, passed=True, failure=None, rescored=True)
             last[r["id"]] = refine(r)  # latest attempt per task wins
         recs += list(last.values())
     return recs
@@ -108,13 +116,18 @@ def sustained_md():
         if not rs: continue
         for r in rs:  # Claude records written before 2.0.1 counted each compaction twice (compact_boundary + isCompactSummary)
             if r.get("agent") == "claude" and not r.get("compactions_counted_once"): r["compactions_total"] = (r.get("compactions_total") or 0) // 2
-        run = os.path.basename(p)[:-6]; ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs)
+        run = os.path.basename(p)[:-6]
+        rs_key = run.replace("-v1spec", "")
+        for r in rs:
+            if r["step"] == 10 and not r["passed"] and "step10-probe" in rescored().get(rs_key, ()):
+                r.update(passed=True, new_test_passed=True, failure=None, rescored=True)
+        ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs)
         probe = [r for r in rs if r["step"] == 10]
         # new_test_passed = only this step's own hidden test (older result files do not have it, so it is optional).
         has_new = any("new_test_passed" in r for r in rs); new_ok = sum(bool(r.get("new_test_passed")) for r in rs)
         L += ["", "### %s — %d/%d steps passed (cumulative tests)%s, %.1f min, peak prompt %d tokens, compactions %d, overflow errors %d, reloads %d, memory probe %s" % (
             run, ok, len(rs), (", %d/%d own-step tests passed" % (new_ok, len(rs))) if has_new else "", wall / 60, max(r["peak_prompt_tok"] for r in rs), max(r["compactions_total"] for r in rs),
-            sum(r["overflow_error"] for r in rs), sum(r["model_reloaded"] for r in rs), ("PASS" if probe and probe[0]["passed"] else "FAIL" if probe else "n/a")), "",
+            sum(r["overflow_error"] for r in rs), sum(r["model_reloaded"] for r in rs), (("PASS" if probe[0]["passed"] else "FAIL") + ("" if max(r["compactions_total"] or 0 for r in rs) else " (NOT EXERCISED: no compaction happened)") if probe else "n/a")), "",
             "| Step | Rules | Pass (cumulative) | This step's own test | Time | Peak prompt | Server ctx | Compactions | Failure |", "|---|---|---|---|---|---|---|---|---|"]
         for r in rs:
             nt = "-" if "new_test_passed" not in r else ("PASS" if r["new_test_passed"] else "FAIL")

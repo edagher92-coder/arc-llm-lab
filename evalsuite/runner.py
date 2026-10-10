@@ -90,7 +90,7 @@ def parse_codex(out, last):
         if t == "item.completed" and (e.get("item") or {}).get("type") in ("command_execution", "file_change", "mcp_tool_call"): turns += 1
         if t == "turn.completed":
             u = e.get("usage") or {}; it += u.get("input_tokens", 0) or 0; ct += u.get("cached_input_tokens", 0) or 0; ot += u.get("output_tokens", 0) or 0
-        if t in ("error", "turn.failed"): err = json.dumps(e)[:300]
+        if t == "turn.failed": err = json.dumps(e)[:300]  # a plain "error" event can be a recovered retry; only a failed turn fails the run
     return dict(final=final, turns=turns, subtype="error" if err else "ok", is_error=bool(err), error=err, in_tok=it, cached_tok=ct, out_tok=ot)
 
 def classify(passed, timed_out, info, out, rc):
@@ -100,8 +100,8 @@ def classify(passed, timed_out, info, out, rc):
     failed_run = bool(info.get("is_error")) or rc not in (0, None)
     blob = (info.get("final") or "") + " " + (info.get("error") or "") + ((" " + (out or "")[-20000:]) if failed_run else "")
     if timed_out: return "timeout"
+    if info.get("subtype") == "error_max_turns": return "max_turns"  # before the log scan, which can mention context limits
     if re.search(r"exceed_context_size|exceeds the available context|context length exceeded|prompt is too long", blob, re.I): return "context_overflow"
-    if info.get("subtype") == "error_max_turns": return "max_turns"
     if failed_run and re.search(r"ECONNREFUSED|connection refused|\b50[0-4] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)|stream disconnected|API Error: *(?:[45]\d\d|Connection error)", blob): return "api_error"
     if failed_run: return "agent_error"
     if (info.get("final") or "").strip().endswith("?"): return "asked_user"
@@ -130,17 +130,21 @@ def run_task(t, agent, run, cap, resdir):
     info = parse_claude(out) if agent == "claude" else parse_codex(out, last)
     r1 = running(); m1 = metrics(r1.get("port", port))
     reloaded = len(smp.starts | {r0.get("started"), r1.get("started")} - {None}) > 1
-    d = lambda k: (m1.get(k, 0) - m0.get(k, 0)) if m1.get(k, 0) >= m0.get(k, 0) else m1.get(k, 0)
+    def d(k):  # counter delta; None (not the server's lifetime total) when either scrape failed or the server restarted
+        return (m1[k] - m0[k]) if (k in m0 and k in m1 and m1[k] >= m0[k]) else None
+    rnd = lambda v: round(v, 1) if v is not None else None
     c0 = time.time()
     try:
         passed, why = t["check"](work)
     except Exception as e:
-        passed, why = False, "checker exception: %r" % e
+        passed, why, checker_error = False, "checker exception: %r" % e, True
+    else:
+        checker_error = False
     rec = dict(run=run, agent=agent, cap=cap, suite=SUITE.SUITE_VERSION, id=t["id"], cat=t["cat"], passed=bool(passed), reason=(why or "")[:600],
-               failure=classify(passed, timed_out, info, out, rc), pass_after_timeout=bool(passed and timed_out), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
+               failure="checker_error" if checker_error else classify(passed, timed_out, info, out, rc), pass_after_timeout=bool(passed and timed_out), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
                turns=info.get("turns"), subtype=info.get("subtype"), client_in_tok=info.get("in_tok"), client_cached_tok=info.get("cached_tok"), client_out_tok=info.get("out_tok"),
                srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
-               srv_prompt_s=round(d("prompt_seconds_total"), 1), srv_gen_s=round(d("tokens_predicted_seconds_total"), 1),
+               srv_prompt_s=rnd(d("prompt_seconds_total")), srv_gen_s=rnd(d("tokens_predicted_seconds_total")),
                vram_min_free_gib=smp.min_free, vram_max_used_gib=smp.max_used, n_ctx=sorted(smp.ctx), model_reloaded=reloaded,
                final=(info.get("final") or "")[-400:], ended=datetime.now().isoformat(timespec="seconds"))
     with open(os.path.join(resdir, run + ".jsonl"), "a", encoding="utf-8") as f:

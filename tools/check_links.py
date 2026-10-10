@@ -12,7 +12,7 @@ SITE = "https://edagher92-coder.github.io/arc-llm-lab/"
 
 def md_files():
     out = set(glob.glob(os.path.join(ROOT, "*.md")))
-    for pat in ("docs/*.md", "engine/**/*.md", "data/**/*.md", "bench/**/*.md", "evalsuite/**/*.md", "voice/**/*.md", "agents/**/*.md", "governor/**/*.md", "tools/**/*.md", "llama-swap/**/*.md"):
+    for pat in ("docs/*.md", "engine/**/*.md", "data/**/*.md", "bench/**/*.md", "evalsuite/**/*.md", "voice/**/*.md", "agents/**/*.md", "governor/**/*.md", "tools/**/*.md", "llama-swap/**/*.md", ".github/**/*.yml"):
         out |= set(glob.glob(os.path.join(ROOT, pat), recursive=True))
     return sorted(out)
 

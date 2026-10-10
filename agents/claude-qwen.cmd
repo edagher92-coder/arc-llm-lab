@@ -35,11 +35,7 @@ set "MAX_MCP_OUTPUT_TOKENS=8000"
 set "CLAUDE_CODE_ATTRIBUTION_HEADER=0"
 set "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1"
 set "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1"
-rem v2 token savers: no git status/instructions block, no auto-memory, no terminal-title requests, shorter MCP tool descriptions
-set "CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1"
-set "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
-set "CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1"
-set "CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH=512"
+rem (The "v2" extra settings tested on 2026-10-10 scored lower - 93/100 vs 97/100 - and are not used. See docs/RELIABILITY.md.)
 set "API_TIMEOUT_MS=900000"
 rem Compaction is governed by CLAUDE_CODE_MAX_CONTEXT_TOKENS above. CLAUDE_CODE_AUTO_COMPACT_WINDOW is deliberately NOT set:
 rem its documented valid range is 100000-1000000, so the 32K-57K windows used here are out of range.

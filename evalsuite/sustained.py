@@ -223,12 +223,12 @@ def main():
             if leaked: ok = new_ok = False; why += " PROBE WRITTEN TO FILES (retention not provable): %s" % [os.path.relpath(x, ws) for x in leaked][:3]
         cpt = compactions(a.agent, ws, log)
         if a.agent == "codex": codex_comp += cpt; cpt = codex_comp  # codex counts per step; make it cumulative like claude
-        d = lambda key: (m1.get(key, 0) - m0.get(key, 0)) if m1.get(key, 0) >= m0.get(key, 0) else m1.get(key, 0)
-        rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok), new_test_passed=bool(new_ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
+        d = lambda key: (m1[key] - m0[key]) if (key in m0 and key in m1 and m1[key] >= m0[key]) else None  # None, never a lifetime total
+        rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok) and not timed_out, new_test_passed=bool(new_ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
                    failure=RN.classify(ok, timed_out, info, log, rc), turns=info.get("turns"), peak_prompt_tok=poll.peak, srv_n_ctx=sorted(x for x in poll.nctx if x),
                    compactions_total=cpt, compactions_counted_once=True, overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
                    srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
-                   srv_gen_s=round(d("tokens_predicted_seconds_total"), 1), srv_prompt_s=round(d("prompt_seconds_total"), 1),
+                   srv_gen_s=(round(d("tokens_predicted_seconds_total"), 1) if d("tokens_predicted_seconds_total") is not None else None), srv_prompt_s=(round(d("prompt_seconds_total"), 1) if d("prompt_seconds_total") is not None else None),
                    vram_min_free_gib=smp.min_free, model_reloaded=len(smp.starts | {r0.get("started"), r1.get("started")} - {None}) > 1,
                    final=(info.get("final") or "")[-300:], ended=datetime.now().isoformat(timespec="seconds"))
         open(out, "a", encoding="utf-8").write(json.dumps(rec) + "\n")

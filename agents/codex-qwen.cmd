@@ -15,6 +15,8 @@ set /a QWEN_CAP=QWEN_WIN*85/100
 if %QWEN_COMPACT% GTR %QWEN_CAP% set "QWEN_COMPACT=%QWEN_CAP%"
 rem Lean MCP set for the local model: disable any heavy/cloud MCP servers from your main Codex config here, e.g.
 rem   -c mcp_servers.<name>.enabled=false
-set "MCPOFF="
+rem Each MCP server configured in your ~/.codex/config.toml adds its tool schemas to EVERY request. Switch off the ones a local
+rem model does not need, by name, e.g.:  set "MCPOFF=-c mcp_servers.playwright.enabled=false -c mcp_servers.render.enabled=false"
+if not defined MCPOFF set "MCPOFF="
 codex --profile qwen -c model_context_window=%QWEN_WIN% -c model_auto_compact_token_limit=%QWEN_COMPACT% %MCPOFF% %*
 endlocal

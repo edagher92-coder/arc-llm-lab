@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 
 PY = sys.executable
 TASKS = []
-SUITE_VERSION = "1.1"  # bump whenever a checker, prompt or generator changes; results/*.jsonl carry it
+SUITE_VERSION = "1.2"  # bump whenever a checker, prompt or generator changes; results/*.jsonl carry it
 
 def T(id, cat, prompt, files, check, timeout=420):
     TASKS.append(dict(id=id, cat=cat, prompt=prompt, files=files, check=check, timeout=timeout))
@@ -173,7 +173,7 @@ CODING = [
  ("tokenbucket", "class TokenBucket(capacity, refill_per_sec, clock=time.monotonic) with allow(cost=1) -> bool; starts full; refills continuously up to capacity based on clock(); the clock argument must be used so tests can inject a fake clock.",
   "from solution import TokenBucket\ndef test_tb():\n  t=[0.0]; b=TokenBucket(2,1.0,clock=lambda:t[0])\n  assert b.allow() and b.allow() and not b.allow()\n  t[0]=1.0; assert b.allow() and not b.allow()\n  t[0]=10; assert b.allow(2) and not b.allow()\n"),
  ("postcode", "nsw_region(postcode) returning 'Sydney Metro' for NSW postcodes 2000-2234, 'Regional NSW' for 2235-2999 (and 2620-2899 excluding ACT range 2600-2618), 'ACT' for 2600-2618 and 2900-2920, else 'Other'. Accept int or str with whitespace; invalid -> 'Other'. ACT ranges take priority.",
-  "from solution import nsw_region as r\ndef test_p():\n  assert r(2212)=='Sydney Metro' and r(' 2000 ')=='Sydney Metro' and r(2600)=='ACT' and r(2905)=='ACT' and r(2650)=='Regional NSW' and r(3000)=='Other' and r('abc')=='Other'\n"),
+  "from solution import nsw_region as r\ndef test_p():\n  assert r(2212)=='Sydney Metro' and r(' 2000 ')=='Sydney Metro' and r(2600)=='ACT' and r(2905)=='ACT' and r(2650)=='Regional NSW' and r(3000)=='Other' and r('abc')=='Other'\n  assert r(2234)=='Sydney Metro' and r(2235)=='Regional NSW' and r(2300)=='Regional NSW' and r(2599)=='Regional NSW' and r(2618)=='ACT' and r(2900)=='ACT'\n"),
 ]
 for name, spec, test in CODING:
     T("code-" + name, "coding", "Create solution.py implementing: " + spec + SUFFIX, {}, hidden(test))
@@ -468,7 +468,7 @@ def _chk_bump(ws):
             "app/__init__.py": _init.replace("1.4.2", "1.5.0"), "CHANGELOG.md": _chlog}
     for k, v in want.items():
         got = (rd(ws, k) or "").replace("\r\n", "\n")
-        if got != v: return False, "%s not as expected" % k
+        if got.rstrip("\n") != v.rstrip("\n"): return False, "%s not as expected" % k  # a missing final newline is not a wrong bump
     return True, ""
 T("files-version-bump", "fileops", "Bump this project's own version from 1.4.2 to 1.5.0 everywhere it is declared (pyproject.toml, package.json, app/__init__.py). Do not change dependency versions or CHANGELOG.md." + SUFFIX,
   {"pyproject.toml": _pyproj, "package.json": _pkgjson, "app/__init__.py": _init, "CHANGELOG.md": _chlog}, _chk_bump)
@@ -1010,7 +1010,7 @@ def _chk_report(ws):
     if p.returncode != 0 or not out: return False, "report.py failed on re-run: " + p.stderr[-200:]
     for k, v in _regions.items():
         t = "%.2f" % sum(Decimal(x) for x in v)
-        if k not in out or t not in out.replace(",", ""): return False, "report.txt missing %s %s" % (k, t)
+        if not re.search(re.escape(k) + r"\D*?(?<![\d.])" + re.escape(t) + r"(?![\d])", out.replace(",", "")): return False, "report.txt missing %s %s" % (k, t)
     return True, ""
 T("recover-missing-module", "recovery", "Run report.py to produce report.txt. The internal snowutils package is NOT available on this machine and must not be installed; make report.py work using only the Python standard library. "
   "report.txt should list each region with its total formatted with 2 decimals." + SUFFIX, {"report.py": _report_py, "sales.csv": _salesdata}, _chk_report)
@@ -1043,7 +1043,12 @@ _app_py = ("import os, sys\nmode = os.environ.get('APP_MODE')\nif mode not in ('
            "items = 42 if mode == 'offline' else 0\nopen('out.txt', 'w', encoding='utf-8').write('mode=%s items=%d\\n' % (mode, items))\nprint('wrote out.txt')\n")
 def _chk_env(ws):
     o = (rd(ws, "out.txt") or "").strip()
-    return o == "mode=offline items=42", "" if o == "mode=offline items=42" else "out.txt=%r" % o
+    if o != "mode=offline items=42": return False, "out.txt=%r" % o
+    try: os.remove(os.path.join(ws, "out.txt"))  # prove app.py itself produces it (a hand-written out.txt must not pass)
+    except Exception: pass
+    p = run_py(ws, ["app.py"], env={"APP_MODE": "offline"})
+    o2 = (rd(ws, "out.txt") or "").strip()
+    return o2 == "mode=offline items=42", "" if o2 == "mode=offline items=42" else "app.py re-run gave out.txt=%r rc=%s" % (o2, p.returncode)
 T("recover-env-var", "recovery", "Run app.py to generate out.txt for offline use. Do not modify app.py." + SUFFIX, {"app.py": _app_py}, all_of(unchanged("app.py", _app_py), _chk_env))
 
 _menu = "Crème brûlée sundae;12.50\nMango ☀ splash;9.00\nCafé frappé;10.50\nKids cola;4.00\nPiña colada (NA);11.00\n"

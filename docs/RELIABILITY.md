@@ -49,15 +49,17 @@ These apply per category, and per task across runs.
 |---|---|---|---|---|---|---|
 | **Claude Code 2.1.295** (production config) | **97/100** | 91.5–99.0% | **1.54** | 24 s | 92.2% | 3.4K |
 | **Codex CLI 0.153.4** | **95/100**¹ | 88.8–97.8% | 0.62 | 70 s | 83.7% | 18.2K |
-| Claude Code, "v2" config (rejected) | 93/100² | 86.3–96.6% | 1.13 | 24 s | 91.4% | 4.0K |
+| Claude Code, "v2" config (rejected) | 93/100² | 86.3–96.6% | 1.13 | 23 s | 91.4% | 4.0K |
 
 Both are single runs on the same machine: 0 context overflows, 0 failures caused by timeouts or reloads in the production runs, minimum free VRAM 1.19 GiB.
 ¹ 94 recorded; `files-extract-emails` was correct but the file began with a UTF-8 byte-order mark written by PowerShell. The checker now accepts a BOM (`tasks.rd` reads `utf-8-sig`) and the verdict was re-checked on the kept workspace ([rescore-bom.json](../evalsuite/results/rescore-bom.json)).
 ² The v2 config added a "definition of done" system-prompt rule and extra Claude Code environment settings. 3 tasks were disturbed by an accidental model swap during the run (91/97 on the clean tasks), and one new failure mode appeared: Claude Code's auto-compaction returned an empty summary (`long-contract-clause`). Lower pass rate and fewer tasks/min, so **v2 was not adopted**; the production config is unchanged. Prompt-only rules did not fix the "answer not saved" failures.
 
-Codex is about 2.5× slower per task here mainly because each Codex request carries a much larger prompt (18K vs 3.4K prompt tokens per passing task), which a local GPU feels directly.
+Codex completes about 2.5× fewer tasks per minute here (0.62 vs 1.54; median time per passing task 70 s vs 24 s) mainly because each Codex request carries a much larger prompt (18K vs 3.4K prompt tokens per passing task), which a local GPU feels directly.
 
 ### Failures, by kind
+
+Classified by reading each checker reason and the agent's final message, not from the `failure` field: the 2.0.0 harness labelled some clean-exit wrong answers as `api_error` (fixed in 2.0.1). The destructive case is inferred from the record: the checker found `app/util.py` changed, and the agent's own report describes `util.v()`, which is the vendored library's function.
 
 | Kind | Claude Code (production) | Codex |
 |---|---|---|

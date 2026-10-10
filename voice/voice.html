@@ -139,7 +139,7 @@ const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem('qv.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('qv.' + k, JSON.stringify(v)); } catch (e) {} } };
 let key = ''; try { key = localStorage.getItem('qwenKey') || ''; } catch (e) {}
 const cfg = { voice: store.get('voice', 'emma'), speed: store.get('speed', 1.05), speak: store.get('speak', true), handsfree: store.get('handsfree', false), mode: store.get('mode', 'qwen3.8-27b:code') };
-let history = [], busy = false, ttsOK = true, muted = false, ttsFails = 0;
+let history = [], busy = false, ttsOK = true, muted = false, ttsFails = 0, turnGen = 0, meterOn = false;
 
 /* ---------- ui helpers ---------- */
 const orb = $('orb');
@@ -176,7 +176,7 @@ async function pumpTTS() {
 async function synth(job) {
   if (!ttsOK) { job.fallback = true; return; }
   try {
-    const r = await fetch('/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: job.text, voice: cfg.voice, speed: cfg.speed }) });
+    const r = await fetch('/tts', { method: 'POST', signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: job.text, voice: cfg.voice, speed: cfg.speed }) });
     if (!r.ok) throw new Error('tts ' + r.status);
     job.buf = await audio().decodeAudioData(await r.arrayBuffer()); ttsFails = 0;
   } catch (e) { if (++ttsFails >= 3) ttsOK = false; job.fallback = true; }   // one blip falls back for that sentence only; 3 in a row switch to the phone voice
@@ -201,7 +201,7 @@ function browserSpeak(t) {
   try {
     const u = new SpeechSynthesisUtterance(t); u.lang = 'en-AU'; u.rate = cfg.speed;
     const v = speechSynthesis.getVoices().find(v => v.lang === 'en-AU') || speechSynthesis.getVoices().find(v => v.lang.startsWith('en')); if (v) u.voice = v;
-    const g = speechGen; playing++; setState('speaking', 'Answering'); u.onend = () => { if (g !== speechGen) return; playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); }; speechSynthesis.speak(u);
+    const g = speechGen; playing++; setState('speaking', 'Answering'); u.onend = u.onerror = () => { if (g !== speechGen) return; playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); }; speechSynthesis.speak(u);
     if (!firstVoiceAt) firstVoiceAt = performance.now();
   } catch (e) {}
 }
@@ -210,20 +210,25 @@ function stopSpeaking() {
   (window.__srcs || []).forEach(s => { try { s.stop(); } catch (e) {} }); window.__srcs = [];
   try { speechSynthesis.cancel(); } catch (e) {}
 }
-function meterOut() {
-  if (orb.dataset.state !== 'speaking' || !outAn) return;
+function meterOut(loop) {
+  if (!loop) { if (meterOn) return; meterOn = true; }   // one animation loop, not one per sentence
+  if (orb.dataset.state !== 'speaking' || !outAn) { meterOn = false; return; }
   const d = new Uint8Array(outAn.fftSize); outAn.getByteTimeDomainData(d);
   let s = 0; for (const v of d) s += ((v - 128) / 128) ** 2; level(Math.sqrt(s / d.length) * 5);
-  requestAnimationFrame(meterOut);
+  requestAnimationFrame(() => meterOut(true));
 }
-function speechFinished() {
+function speechFinished(autoListen = true) {
   setState('idle', ttsOK ? 'Tap to talk' : 'Neural voice unavailable, used the phone voice');
-  if (cfg.handsfree) setTimeout(() => { if (orb.dataset.state === 'idle' && !busy) listen(); }, 350);
+  if (autoListen && cfg.handsfree) setTimeout(() => { if (orb.dataset.state === 'idle' && !busy) listen(); }, 350);
 }
 
 /* ---------- audio input: record, voice-activity stop, Whisper on the PC ---------- */
 let micStream = null, rec = null, chunks = [], vadTimer = null;
 async function listen() {
+  if (listen.pending) return; listen.pending = true;   // a double tap before the mic opens must not start two recorders
+  try { await openMic(); } finally { listen.pending = false; }
+}
+async function openMic() {
   stopSpeaking(); audio();
   if (!micStream || micStream.getTracks().some(t => t.readyState === 'ended'))
     micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
@@ -238,14 +243,15 @@ function vad() {
   const d = new Float32Array(an.fftSize); const t0 = performance.now(); let floor = 0.01, heard = false, lastVoice = t0;
   const tick = () => {
     if (!rec || rec.state !== 'recording') { src.disconnect(); return; }
+    const stop = discard => { src.disconnect(); stopListening(discard); };
     an.getFloatTimeDomainData(d); let s = 0; for (const v of d) s += v * v; const rms = Math.sqrt(s / d.length);
     const now = performance.now();
     if (now - t0 < 400) floor = Math.max(floor, rms * 1.6);
     level((rms - floor) * 12);
     if (rms > Math.max(0.02, floor * 2.2)) { heard = true; lastVoice = now; }
-    if (cfg.handsfree && heard && now - lastVoice > 1100) return stopListening();
-    if (cfg.handsfree && !heard && now - t0 > 8000) { stopListening(true); return; }
-    if (now - t0 > 60000) return stopListening();
+    if (cfg.handsfree && heard && now - lastVoice > 1100) return stop();
+    if (cfg.handsfree && !heard && now - t0 > 8000) return stop(true);
+    if (now - t0 > 60000) return stop();
     requestAnimationFrame(tick);
   };
   tick();
@@ -267,12 +273,13 @@ async function toWav(blob) {
   return new Blob([out], { type: 'audio/wav' });
 }
 async function transcribe(blob) {
-  setState('thinking', 'Transcribing on your PC'); const t0 = performance.now();
+  setState('thinking', 'Transcribing on your PC'); const t0 = performance.now(); const myTurn = turnGen;
   try {
     const fd = new FormData(); fd.append('file', await toWav(blob), 'speech.wav'); fd.append('response_format', 'json'); fd.append('temperature', '0');
     fd.append('prompt', STT_VOCAB);
     const r = await fetch('/stt/inference', { method: 'POST', body: fd }); const j = await r.json();
     const text = (j.text || '').replace(/\[[^\]]*\]|\([^)]*\)/g, '').trim();
+    if (myTurn !== turnGen) return;   // cancelled (orb tap or New) while transcribing
     if (!text) { setState('idle', "Didn't catch that, tap to try again"); return; }
     await ask(text, (performance.now() - t0) / 1000);
   } catch (e) { setState('idle', 'Speech-to-text failed: ' + e.message); }
@@ -317,7 +324,7 @@ async function ask(text, heardSecs) {
     else { el.textContent = 'Could not reach Qwen: ' + e.message + '. Check Tailscale is connected and the PC is on.'; el.classList.add('err'); }
   }
   busy = false; abortCtl = null;
-  if (!playing && !ttsQueue.length) speechFinished();
+  if (!playing && !ttsQueue.length) speechFinished(!muted);   // no auto-listen after a cancel
 }
 
 /* ---------- controls ---------- */
@@ -326,11 +333,11 @@ orb.onclick = () => {
   const s = orb.dataset.state;
   if (s === 'idle') listen().catch(e => setState('idle', 'Microphone blocked: ' + e.message));
   else if (s === 'listening') stopListening();
-  else if (s === 'thinking') { muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Cancelled'); }
+  else if (s === 'thinking') { turnGen++; muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Cancelled'); }
   else if (s === 'speaking') { muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Stopped, tap to talk'); }
 };
 $('typeform').onsubmit = e => { e.preventDefault(); audio(); const t = $('text').value.trim(); if (t) { $('text').value = ''; ask(t); } };
-$('new').onclick = () => { stopSpeaking(); if (abortCtl) abortCtl.abort(); history = []; $('log').innerHTML = ''; setState('idle', 'New conversation'); };
+$('new').onclick = () => { turnGen++; stopSpeaking(); if (abortCtl) abortCtl.abort(); history = []; $('log').innerHTML = ''; setState('idle', 'New conversation'); };
 
 const sheet = $('sheet');
 function renderVoices() {
@@ -342,7 +349,7 @@ function renderVoices() {
     $('voices').appendChild(b);
   }
 }
-function preview() { audio(); stopSpeaking(); muted = false; ttsOK = true; ttsFails = 0; enqueueSpeech("Hi, this is how I'll sound."); }
+function preview() { if (orb.dataset.state === 'listening') return; audio(); stopSpeaking(); muted = false; ttsOK = true; ttsFails = 0; enqueueSpeech("Hi, this is how I'll sound."); }
 $('gear').onclick = () => { renderVoices(); $('speed').value = cfg.speed; $('speedOut').textContent = cfg.speed.toFixed(2) + '×'; $('speak').checked = cfg.speak; $('handsfree').checked = cfg.handsfree; sheet.showModal(); };
 $('done').onclick = () => sheet.close();
 sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });

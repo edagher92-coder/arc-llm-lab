@@ -16,9 +16,9 @@ REPO_URL = "https://github.com/edagher92-coder/arc-llm-lab"
 RAW_URL = "https://raw.githubusercontent.com/edagher92-coder/arc-llm-lab/main"
 OG_IMAGE = SITE_URL + "assets/social-preview.png"
 AUTHOR = "Elie Dagher"
-DESCRIPTION = "Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: 42.3 tok/s Qwen3.8-27B generation, 420 tok/s prompt reading at 32K, agent reliability, community results."
-KEYWORDS = ["Intel Arc", "Arc Pro B60", "B580", "B570", "Arc B50", "Arc B70", "A770", "Battlemage", "Xe2", "Vulkan", "llama.cpp", "Ollama",
-            "LM Studio", "local LLM", "24GB VRAM", "Qwen 27B", "speculative decoding", "flash attention", "benchmarks", "Claude Code", "Codex"]
+DESCRIPTION = "Intel Arc Pro B60 24GB benchmarks for llama.cpp on Vulkan: Qwen3.8-27B at 42.3 tok/s eval-suite throughput (per-request decode 47-58), 420 tok/s prompt reading at 32K, agent reliability, community results."
+KEYWORDS = ["Intel Arc", "Arc Pro B60", "B580", "B570", "Arc B50", "Arc B70", "A770", "Battlemage", "Xe2", "Vulkan", "llama.cpp",
+            "local LLM", "24GB VRAM", "Qwen 27B", "speculative decoding", "flash attention", "benchmarks", "Claude Code", "Codex"]
 
 def rows(n): return list(csv.DictReader(open(os.path.join(ROOT, "data", n), encoding="utf-8")))
 esc = html.escape
@@ -67,7 +67,7 @@ def json_ld():
         {"@type": "SoftwareSourceCode", "@id": SITE_URL + "#code",
          "name": "arc-llm-lab", "description": DESCRIPTION, "url": SITE_URL, "codeRepository": REPO_URL, "creator": creator,
          "license": "https://opensource.org/licenses/MIT", "keywords": KEYWORDS, "programmingLanguage": ["PowerShell", "Python"],
-         "runtimePlatform": "Windows 11, Linux"},
+         "runtimePlatform": "Windows 11"},
     ]
     return json.dumps({"@context": "https://schema.org", "@graph": graph}, indent=1, ensure_ascii=False).replace("</", "<\\/")
 

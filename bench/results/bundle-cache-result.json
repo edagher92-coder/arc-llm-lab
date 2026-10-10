@@ -1,0 +1,26 @@
+{
+ "1_bundle_A_cold": {
+  "wall_s": 15.55,
+  "prompt_tokens": 6777,
+  "processed": 6777,
+  "from_cache": 0
+ },
+ "2_bundle_B_switch": {
+  "wall_s": 7.6,
+  "prompt_tokens": 9703,
+  "processed": 3186,
+  "from_cache": 6517
+ },
+ "3_bundle_A_again_new_chat": {
+  "wall_s": 1.52,
+  "prompt_tokens": 6779,
+  "processed": 262,
+  "from_cache": 6517
+ },
+ "4_bundle_A_continue": {
+  "wall_s": 1.14,
+  "prompt_tokens": 6795,
+  "processed": 33,
+  "from_cache": 6762
+ }
+}

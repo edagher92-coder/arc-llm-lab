@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0 - 2026-10-10
+**New**
+- `docs/TOOL-CALLING.md`: what tool schemas cost on a local model, a measured tool-bundle cache test (`bench/bundle-cache-test.py`: appending tools reuses the cached prefix, 7.6 s instead of a cold 15.6 s; returning to a known bundle takes 1.5 s), and loading rules for Open WebUI, Claude Code and Codex.
+- `bench/regression.ps1` logs per-turn new-prompt and cached tokens to `turns.csv`, so cache misses are visible. A re-run with logging passed at 57.3 s (baseline 54.9 s); two earlier runs at 84-89 s are unexplained, most likely a partial cache miss.
+
+**Fixes from a 10-lane review**
+- Eval harness: clean-exit wrong answers from Codex are no longer `api_error`; max-turns is classified before the log scan; checker crashes are `checker_error`; a failed metrics scrape records `None`, not the server's lifetime total; a sustained step that hit the timeout no longer counts as passed; the report applies the BOM re-scores and flags a memory probe with no compaction as not exercised.
+- Checkers (suite 1.2): `recover-env-var` re-runs app.py, so a hand-written out.txt cannot pass; `code-postcode` tests the 2235-2599 and ACT boundaries; `files-version-bump` accepts a missing final newline; `recover-missing-module` matches whole numbers.
+- `qwen window` falls back to 24576, not 100000, if the governor status file can't be read.
+- Voice: cancelling during transcription really cancels; a double tap can't start two recorders; no auto-listen after a cancel; browser-voice errors no longer leave the orb stuck; one meter loop instead of one per sentence; TTS requests time out after 15 s.
+- Site: honest description (42.3 tok/s is eval-suite throughput), shorter title, keywords limited to what the repo covers, charts survive a missing data series, contributor links checked client-side too; link checker covers issue forms.
+- Wrappers: the published `claude-qwen.cmd` matches the production config (the rejected "v2" settings are removed); `codex-qwen.cmd` documents `MCPOFF`.
+- Docs: TOKEN-EFFICIENCY no longer lists rejected settings as active; B70 KV headroom corrected to about 11.5 GiB; small number fixes in RELIABILITY.
+
 ## 2.0.1 - 2026-10-10
 **Results**
 - Claude Code sustained sessions on the fixed spec: **10/10 at 48K**, **9/10 at 64K**. At 64K, steps 1-9 passed and the step-10 memory probe came back `UNKNOWN`: the agent's compaction summary dropped a fact given only in conversation. No server overflow, reload or truncation in either run.

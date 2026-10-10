@@ -50,7 +50,7 @@ switch ($Cmd.ToLower()) {
   { $_ -in 'snapshot', 'history', 'rollback', 'diff' } { powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\snapshot.ps1" $Cmd $Arg }
   'window' {
     # Safe client context window = loaded ctx (or expected ctx if not loaded) minus 8k headroom
-    $w = 100000
+    $w = 24576   # safe fallback if status.json is unreadable: ctx_min 32768 minus 8K headroom (never larger than any real load)
     try { $s = Get-Content "$dir\public\status.json" -Raw | ConvertFrom-Json
           $c = if ($s.loaded -and $s.n_ctx) { [int]$s.n_ctx } elseif ($s.expected_ctx) { [int]$s.expected_ctx } else { 0 }
           if ($Arg -eq 'long') { $c = 262144 }

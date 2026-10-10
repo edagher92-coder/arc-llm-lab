@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Intel Arc LLM benchmarks: Arc Pro B60 24GB, llama.cpp Vulkan | arc-llm-lab</title>
+<title>Qwen 27B on Intel Arc Pro B60: llama.cpp Vulkan benchmarks</title>
 <meta name="description" content="__DESCRIPTION__">
 <meta name="author" content="Elie Dagher">
 <meta name="keywords" content="__KEYWORDS__">
@@ -252,6 +252,7 @@ function depth() {
     el('path', { d: 'M' + pts.map(p => p[0] + ',' + p[1]).join(' L'), fill: 'none', stroke: css(c), 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, svg);
     pts.forEach(([x, y, r]) => { const m = el('circle', { cx: x, cy: y, r: 6, fill: css(c), stroke: css('--bg'), 'stroke-width': 2 }, svg);
       bindTip(m, `<b>${(+r.pp2048_tok_s).toFixed(0)} tok/s</b><br>${lab}<br>at ${r.depth_tokens === '0' ? 'empty context' : (r.depth_tokens / 1024) + 'K tokens'}<br>generation ${r.tg32_tok_s} tok/s`); });
+    if (!pts.length) return;
     const [x, y, r] = pts[pts.length - 1]; el('text', { x: x + 12, y: y + 4 + (si === 2 ? 16 : 0), class: 'lab' }, svg, `${(+r.pp2048_tok_s).toFixed(0)} tok/s`);
   });
   table('tb-depth', ['Config', 'KV', 'Depth', 'pp2048 tok/s', 'tg32 tok/s'], D.depth.map(r => [r.config, r.kv_cache, r.depth_tokens, r.pp2048_tok_s, r.tg32_tok_s]));
@@ -305,7 +306,7 @@ function compare() {
     el('text', { x: 290, y: y + bh * .45, 'text-anchor': 'end', class: 'lab' }, svg, lab);
     el('text', { x: XV(v) + 8, y: y + bh * .45, class: k === 'ours' ? 'val' : '' }, svg, v.toFixed(1));
   });
-  table('tb-gpu', ['GPU', 'VRAM GB', 'Bandwidth GB/s', 'Price AUD', 'Fits 27B+32K', 'Ceiling tok/s (est.)', 'Measured'], D.gpus.map(r => [r.gpu, r.vram_gb, r.bandwidth_gbs, r.price_aud ? `<a href="${r.price_source}">A$${r.price_aud}</a> (${r.price_date})` : '-', r.fits_27b_q4_32k, r.theoretical_decode_tok_s || '-', r.measured_with_drafter_tok_s ? `${r.measured_decode_tok_s} / ${r.measured_with_drafter_tok_s} with drafter` : '-']));
+  table('tb-gpu', ['GPU', 'VRAM GB', 'Bandwidth GB/s', 'Price AUD', 'Fits 27B+32K', 'Ceiling tok/s (est.)', 'Measured'], D.gpus.map(r => [r.gpu, r.vram_gb, r.bandwidth_gbs, r.price_aud ? `<a href="${/^https?:\/\//.test(r.price_source) ? r.price_source : '#'}">A$${r.price_aud}</a> (${r.price_date})` : '-', r.fits_27b_q4_32k, r.theoretical_decode_tok_s || '-', r.measured_with_drafter_tok_s ? `${r.measured_decode_tok_s} / ${r.measured_with_drafter_tok_s} with drafter` : '-']));
 }
 document.getElementById('showTheo').onchange = compare;
 
@@ -336,7 +337,7 @@ function reliability() {
     el('text', { x: XV(v) + 8, y: y + bh * .45, class: 'val' }, svg, Math.round(v * 100) + '%  ' + r.tier.toLowerCase()); });
 }
 
-function all() { depth(); spec(); compare(); vram(); reliability(); }
+function all() { [depth, spec, compare, vram, reliability].forEach(f => { try { f(); } catch (e) { console.error(f.name, e); } }); }   // one bad data file must not blank every chart
 all(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
 </script>
 </body>

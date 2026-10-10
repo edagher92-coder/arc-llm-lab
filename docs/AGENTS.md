@@ -25,7 +25,7 @@ Claude Code talks to llama-swap's Anthropic-compatible `/v1/messages` endpoint.
 Codex talks to `/v1/responses`. Merge [agents/codex-qwen.config.toml](../agents/codex-qwen.config.toml) into your Codex config as profile `qwen`, with a `model_providers.qwen-b60` block pointing at `http://127.0.0.1:8090/v1`.
 
 - **Live window** with compaction at 85%.
-- **Disable heavy or cloud MCP servers** for the local profile (`-c mcp_servers.<name>.enabled=false`).
+- **Disable heavy or cloud MCP servers** for the local profile: list them in `MCPOFF` in the wrapper (`-c mcp_servers.<name>.enabled=false`). Every enabled server's tool schemas ride along on every request; on our runs Codex's fixed prompt prefix was about 15.8K tokens against about 6.5K for Claude Code.
 - **Windows sandbox gotchas** (each cost us hours):
   - Codex's sandbox can't grant itself access to an admin-owned `C:\Temp`, so the wrapper points `TEMP`/`TMP` at `%LOCALAPPDATA%\Temp`.
   - The sandbox runs commands as a separate `CodexSandboxUsers` account. If Python is installed per-user (under `%LOCALAPPDATA%`), that account can't see it, and every "run the tests" step fails. Codex then burns minutes hunting for an interpreter. In our smoke test the same fix took 314 s instead of 41 s. Fix, run once in your own PowerShell:
