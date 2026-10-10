@@ -153,6 +153,26 @@
  "sustained": {
   "codex-48k": "10/10 (steps 1-9 own tests pass; step-10 memory probe correct, re-scored after BOM fix)",
   "codex-64k": "10/10 (same)",
-  "claude-48k/64k v1 spec": "steps 1-4 pass; steps 5-10 invalid (harness spec defect, fixed); re-run on fixed spec in progress"
+  "claude-48k-fixed": "10/10 (own and cumulative tests pass; memory probe correct after 5 compactions; peak live prompt 36,563; 0 overflows, 0 reloads)",
+  "claude-64k-fixed": "9/10 (steps 1-9 pass; step-10 probe answered UNKNOWN after 2 compactions: agent summary lost the fact; peak live prompt 44,443 of 65,536; 0 overflows, 0 reloads)",
+  "claude-48k/64k v1 spec": "superseded: steps 1-4 pass; steps 5-10 invalid (harness spec defect, fixed)",
+  "note": "compactions_total in shipped Claude files is doubled (two records per compaction); true counts quoted here. Long sessions: Supervised for facts held only in conversation."
+ },
+ "cache_switch": {
+  "source": "bench/results/cache-switch-result.json",
+  "agent_cold": {
+   "wall_s": 87.63,
+   "prompt_tokens_processed": 36431
+  },
+  "phone_chat_between": {
+   "wall_s": 16.2,
+   "prompt_tokens_processed": 22
+  },
+  "agent_resume": {
+   "wall_s": 6.46,
+   "prompt_tokens_processed": 19,
+   "cached_tokens": 36432
+  },
+  "note": "host-RAM prompt cache restored the 36K agent prefix after an unrelated chat on the single slot: 13.6x faster resume"
  }
 }

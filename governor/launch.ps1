@@ -49,7 +49,7 @@ $args2 = @('-m', $v.model, '--mmproj', $cfg.mmproj, '-a', $v.id, '--host', '127.
            '-t', "$($p.threads)", '-tb', "$($p.threads)", '-cram', "$($p.cache_ram_mib)", '--prio', $prio) + @($cfg.common_args) + $extra
 foreach ($e in $cfg.env.PSObject.Properties) { Set-Item -Path "env:$($e.Name)" -Value $e.Value }
 
-@{ profile = $name; variant = $Variant; id = $v.id; port = $v.port; ctx = $ctx; ctk = $ctk; ctv = $ctv; others_gib = [math]::Round($others, 2); started = (Get-Date).ToString('s'); launcher_pid = $PID } | ConvertTo-Json | Set-Content "$dir\running.json"
-"$(Get-Date -f s) launch: $($v.id) profile=$name ctx=$ctx kv=$ctk/$ctv others=$([math]::Round($others,2))GiB port=$($v.port) $draftNote" | Add-Content "$dir\governor.log"
+try { @{ emergency = [bool]($draftNote -like 'session-protect*'); profile = $name; variant = $Variant; id = $v.id; port = $v.port; ctx = $ctx; ctk = $ctk; ctv = $ctv; others_gib = [math]::Round($others, 2); started = (Get-Date).ToString('s'); launcher_pid = $PID } | ConvertTo-Json | Set-Content "$dir\running.json" } catch {}   # governor may hold the file for a moment; never abort the launch for bookkeeping
+try { "$(Get-Date -f s) launch: $($v.id) profile=$name ctx=$ctx kv=$ctk/$ctv others=$([math]::Round($others,2))GiB port=$($v.port) $draftNote" | Add-Content "$dir\governor.log" } catch {}
 & $cfg.exe @args2
 exit $LASTEXITCODE

@@ -29,22 +29,22 @@
 <style>
 :root {
   --bg:#FFFFFF; --panel:#F6F8FA; --ink:#1F2328; --ink2:#59636E; --grid:#E6E9EC; --line:#D0D7DE;
-  --stock:#2F5BEA; --opt:#D9581A; --third:#8E4FC8; --tip:#1F2328; --tipink:#FFFFFF;
+  --stock:#2F5BEA; --opt:#D9581A; --third:#8E4FC8; --tip:#1F2328; --tipink:#FFFFFF; --btn:#B8470F; --btnink:#FFFFFF;
 }
 @media (prefers-color-scheme: dark) { :root {
   --bg:#0D1117; --panel:#161B22; --ink:#E6EDF3; --ink2:#9DA7B3; --grid:#21262D; --line:#30363D;
-  --stock:#4F7BFF; --opt:#E8661E; --third:#B26FE0; --tip:#E6EDF3; --tipink:#0D1117; } }
+  --stock:#4F7BFF; --opt:#E8661E; --third:#B26FE0; --tip:#E6EDF3; --tipink:#0D1117; --btn:#E8661E; --btnink:#0D1117; } }
 * { box-sizing:border-box }
 html { scroll-behavior:smooth }
 body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 Inter, system-ui, sans-serif; }
-a { color:var(--opt) }
+a { color:var(--btn) }
 .wrap { max-width:1080px; margin:0 auto; padding:0 20px }
 header { padding:56px 0 28px }
 h1 { font-size:clamp(34px,5vw,54px); line-height:1.05; letter-spacing:-.025em; margin:0 0 14px; font-weight:800 }
 .lede { font-size:19px; color:var(--ink2); max-width:62ch; margin:0 }
 .links { margin-top:18px; display:flex; gap:10px; flex-wrap:wrap }
 .btn { display:inline-block; padding:9px 16px; border-radius:10px; border:1px solid var(--line); color:var(--ink); text-decoration:none; font-weight:600; font-size:15px; background:var(--panel) }
-.btn.primary { background:var(--opt); border-color:var(--opt); color:#fff }
+.btn.primary { background:var(--btn); border-color:var(--btn); color:var(--btnink) }
 .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:30px 0 8px }
 .kpi { border-top:3px solid var(--line); padding:14px 2px 6px }
 .kpi.hot { border-top-color:var(--opt) }
@@ -328,7 +328,7 @@ function reliability() {
   const first = Object.values(R.runs).find(r => r.agent === 'claude');
   if (first) { const n = +first.tasks, p = first.passed / n, z = 1.96, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; document.getElementById('glance-rel-val').innerHTML = `<b>${first.passed}/${first.tasks}</b> (Claude Code @32K, single run, 95% CI ${((c - h) * 100).toFixed(1)}&ndash;${Math.round((c + h) * 100)}%), ${(+first.completed_per_min).toFixed(2)} completed tasks/min`; }
   box.innerHTML = '<div class="kpis">' + Object.entries(R.runs).map(([k, r]) => `<div class="kpi ${r.agent === 'claude' ? 'hot' : ''}"><b>${r.passed}/${r.tasks}</b><span>${k}: ${(r.completed_per_min).toFixed(2)} completed tasks/min, median ${r.median_pass_s}s</span></div>`).join('') + '</div>';
-  svg.replaceChildren(); const cats = Object.entries(R.categories); const bh = 260 / cats.length, XV = v => 200 + v * 640;
+  svg.replaceChildren(); const cats = Object.entries(R.categories); const bh = 260 / cats.length, XV = v => 200 + v * 430;
   cats.forEach(([c, r], i) => { const y = 10 + i * bh, v = r.pass_rate, col = v >= .9 ? '--opt' : v >= .6 ? '--stock' : '--third';
     const b = el('rect', { x: 200, y, width: Math.max(2, XV(v) - 200), height: bh * .62, rx: 4, fill: css(col) }, svg);
     bindTip(b, `<b>${Math.round(v * 100)}% pass</b><br>${c}, ${r.attempts} attempts<br>median ${r.median_s}s<br>tier: ${r.tier}`);

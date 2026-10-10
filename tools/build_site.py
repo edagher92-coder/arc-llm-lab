@@ -22,6 +22,7 @@ KEYWORDS = ["Intel Arc", "Arc Pro B60", "B580", "B570", "Arc B50", "Arc B70", "A
 
 def rows(n): return list(csv.DictReader(open(os.path.join(ROOT, "data", n), encoding="utf-8")))
 esc = html.escape
+def safe_url(u): return u if u.startswith(("https://", "http://")) else "#"   # data files are contributor-supplied: never emit javascript: or data: links
 
 def intel_table(gpus):
     """Static table of the Intel cards (readable without JavaScript). Only the B60 is measured; the rest is arithmetic."""
@@ -30,7 +31,7 @@ def intel_table(gpus):
     for r in gpus:
         if not r["gpu"].startswith("Intel"): continue
         measured = r["measured_decode_tok_s"] and "<b>%s tok/s</b>, %s with the draft model" % (esc(r["measured_decode_tok_s"]), esc(r["measured_with_drafter_tok_s"]))
-        price = ('<a href="%s">A$%s</a> (%s)' % (esc(r["price_source"], quote=True), esc(r["price_aud"]), esc(r["price_date"]))) if r["price_aud"] else "no sourced price"
+        price = ('<a href="%s">A$%s</a> (%s)' % (esc(safe_url(r["price_source"]), quote=True), esc(r["price_aud"]), esc(r["price_date"]))) if r["price_aud"] else "no sourced price"
         fits = r["fits_27b_q4_32k"] + (" (measured)" if measured else " (ESTIMATE)")
         body.append([esc(r["gpu"].replace("Intel ", "")), esc(r["vram_gb"]) + " GB", esc(r["bandwidth_gbs"]) + " GB/s", price, fits, measured or "not measured"])
     return table_html(head, body)
@@ -48,7 +49,7 @@ def community_table(recs):
         pp = " / ".join("%.0f" % d["depth_results"][k]["pp_tok_s"] for k in ds); tg = " / ".join("%.2f" % d["depth_results"][k]["tg_tok_s"] for k in ds)
         patches = ("%d" % len(d["patches"])) if d["patches"] else "none"
         gpu = esc(d["gpu"]) if ("%g" % d["vram_gb"]) in d["gpu"] else "%s (%g GB)" % (esc(d["gpu"]), d["vram_gb"])
-        if d.get("raw_log_url"): gpu += ' <a href="%s">log</a>' % esc(d["raw_log_url"], quote=True)
+        if d.get("raw_log_url"): gpu += ' <a href="%s">log</a>' % esc(safe_url(d["raw_log_url"]), quote=True)
         body.append([gpu, "%s %s" % (esc(d["backend"]), esc(d["llama_cpp_build"])), patches, "%s (KV %s/%s)" % (esc(d["model"]), esc(d["kv_cache"]["k"]), esc(d["kv_cache"]["v"])),
                      " / ".join(depth_label(k) for k in ds), pp, tg, "%s, %s" % (esc(d["driver"]), esc(d["os"])), esc(d["contributor"])])
     return table_html(head, body)

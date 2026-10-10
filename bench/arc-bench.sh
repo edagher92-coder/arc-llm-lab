@@ -54,6 +54,7 @@ while [ $# -gt 0 ]; do
 done
 command -v python3 >/dev/null || { echo "python3 is required to write the result file" >&2; exit 2; }
 [ -n "$VRAM" ] || { echo "--vram-gb is required (for example --vram-gb 24)" >&2; usage >&2; exit 2; }
+awk -v v="$VRAM" 'BEGIN{exit !(v ~ /^[0-9]+(\.[0-9]+)?$/ && v+0 > 0)}' || { echo "--vram-gb must be a positive number, got '$VRAM'" >&2; exit 2; }
 
 mkdir -p "$OUT_DIR"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -121,7 +122,7 @@ if E["ARC_RAMGB"].isdigit() and int(E["ARC_RAMGB"]) > 0: res["ram_gb"] = int(E["
 if E["ARC_RAWURL"]: res["raw_log_url"] = E["ARC_RAWURL"]
 if E["ARC_NOTES"]: res["notes"] = E["ARC_NOTES"]
 slug = lambda s: re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:48]
-path = os.path.join(E["ARC_OUT_DIR"], "%s-%s-%s-%s.json" % (E["ARC_DATE"], slug(gpu), slug(backend), slug(build)))
+path = os.path.join(E["ARC_OUT_DIR"], "%s-%s-%s-%s-%s.json" % (E["ARC_DATE"], slug(gpu), slug(backend), slug(build), slug(res["quant"])))
 json.dump(res, open(path, "w", encoding="utf-8"), indent=2); open(path, "a").write("\n")
 try:
     import jsonschema

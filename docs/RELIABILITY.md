@@ -86,11 +86,19 @@ Codex is about 2.5× slower per task here mainly because each Codex request carr
 |---|---|
 | **Codex, 48K window** | **10/10**: every step's own test passed, the v2 rules change was applied everywhere, and the step-10 memory probe was correct³ |
 | **Codex, 64K window** | **10/10** (same) |
-| Claude Code, 48K and 64K (first run) | Steps 1–4 passed; steps 5–10 **invalid**: the step-5 prompt never said "return a list", the model reasonably returned a dict, and cumulative tests then failed every later step on that one test. The prompt now states the return type and each step's own test is scored separately (provided earlier modules import). A re-run on the fixed spec is in progress and will be added here. The 48K run's memory probe at step 10 was correct. |
+| **Claude Code, 48K window** | **10/10**: every step passed both its own test and the cumulative regression check, and the step-10 memory probe was correct after 5 compactions |
+| **Claude Code, 64K window** | **9/10**: steps 1–9 passed (own and cumulative tests, including the rules change). At step 10 the agent wrote `UNKNOWN`: the code from step 1 was lost in one of its 2 compaction summaries. The server never overflowed or reloaded (peak live prompt 44.4K of 64K, 0 overflow errors), so this is the agent's summary dropping a detail, not truncation. The agent said it did not know instead of inventing a code. |
+| Claude Code, 48K and 64K (first run, superseded) | Steps 1–4 passed; steps 5–10 invalid because the step-5 prompt never said "return a list". Kept as `*-v1spec.jsonl` for the record. |
 
 ³ The probe answer was written with a BOM and re-scored after the checker fix, like the 32K task above.
 
-**What this shows:** a single Arc Pro B60 running Qwen3.8-27B can carry a 10-step, 48–64K-token agent session to the end, including a mid-session rules change and recall of a fact given 9 steps earlier, without silent truncation. Claude Code compacted 2–12 times during these sessions; Codex 0–2 times.
+Peak live prompt, wall time and VRAM for the fixed-spec Claude Code runs: 36.6K tokens, 33 min, 1.75 GiB minimum free (48K); 44.4K tokens, 22 min, 1.75 GiB (64K). Raw records: [sustained-claude-48k-fixed.jsonl](../evalsuite/results/sustained-claude-48k-fixed.jsonl), [sustained-claude-64k-fixed.jsonl](../evalsuite/results/sustained-claude-64k-fixed.jsonl).
+
+**Compaction counts.** Claude Code writes two records per compaction, and the first version of `sustained.py` counted both, so the `compactions_total` field in the shipped Claude files is double the true number (48K: 10 → 5; 64K: 4 → 2; first runs: up to 12 → 6). The harness now counts one per compaction. The Codex count is a word match on its log and only a rough guide.
+
+**What this shows:** a single Arc Pro B60 running Qwen3.8-27B carried 4 of 4 fixed-spec 10-step sessions through every coding step at 48–64K, including a mid-session rules change, with no overflow, no reload and no silent truncation by the server. Recall of a fact given only in conversation survived in 3 of 4 sessions; the one loss happened inside the agent's own compaction summary. These are single runs, so treat 3/4 as "usually", not as a rate.
+
+**Practical rule for long sessions:** anything the agent must still know after compaction (a client code, a decision, an exact figure) belongs in a file in the workspace, such as `CLAUDE.md`, `AGENTS.md` or a `NOTES.md`, not only in the conversation. Long sessions are therefore **Supervised** for facts held only in conversation, and fine to run unattended when the must-keep facts are written down.
 
 ## Context safety: how silent truncation is prevented
 

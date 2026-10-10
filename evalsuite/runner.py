@@ -54,7 +54,8 @@ class Sampler(threading.Thread):
             time.sleep(5)
 
 def kill_tree(pid):
-    subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=NOWIN)
+    try: subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=NOWIN, timeout=30)
+    except subprocess.TimeoutExpired: pass
 
 def agent_cmd(agent, ws, last):
     if agent == "claude":
@@ -94,12 +95,15 @@ def parse_codex(out, last):
 
 def classify(passed, timed_out, info, out, rc):
     if passed: return None
-    blob = (out or "")[-20000:] + " " + (info.get("final") or "") + " " + (info.get("error") or "")
+    # The run "failed" only if the agent itself reported an error or exited non-zero. A clean exit (rc 0, no error) with a failed
+    # checker is a wrong/missing result, even if the raw log contains retry noise or digits such as 503 inside token counts.
+    failed_run = bool(info.get("is_error")) or rc not in (0, None)
+    blob = (info.get("final") or "") + " " + (info.get("error") or "") + ((" " + (out or "")[-20000:]) if failed_run else "")
     if timed_out: return "timeout"
-    if re.search(r"exceed_context_size|context size|context length|context window|prompt is too long", blob, re.I): return "context_overflow"
+    if re.search(r"exceed_context_size|exceeds the available context|context length exceeded|prompt is too long", blob, re.I): return "context_overflow"
     if info.get("subtype") == "error_max_turns": return "max_turns"
-    if re.search(r"ECONNREFUSED|connection refused|502 Bad Gateway|503|stream disconnected|API Error", blob): return "api_error"
-    if info.get("is_error") or rc not in (0, None): return "agent_error"
+    if failed_run and re.search(r"ECONNREFUSED|connection refused|\b50[0-4] (?:Bad Gateway|Service Unavailable|Gateway Time-?out)|stream disconnected|API Error: *[45]\d\d", blob): return "api_error"
+    if failed_run: return "agent_error"
     if (info.get("final") or "").strip().endswith("?"): return "asked_user"
     return "wrong_result"
 
@@ -133,7 +137,7 @@ def run_task(t, agent, run, cap, resdir):
     except Exception as e:
         passed, why = False, "checker exception: %r" % e
     rec = dict(run=run, agent=agent, cap=cap, suite=SUITE.SUITE_VERSION, id=t["id"], cat=t["cat"], passed=bool(passed), reason=(why or "")[:600],
-               failure=classify(passed, timed_out, info, out, rc), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
+               failure=classify(passed, timed_out, info, out, rc), pass_after_timeout=bool(passed and timed_out), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
                turns=info.get("turns"), subtype=info.get("subtype"), client_in_tok=info.get("in_tok"), client_cached_tok=info.get("cached_tok"), client_out_tok=info.get("out_tok"),
                srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
                srv_prompt_s=round(d("prompt_seconds_total"), 1), srv_gen_s=round(d("tokens_predicted_seconds_total"), 1),
@@ -165,7 +169,7 @@ def main():
     done = set()
     rp = os.path.join(resdir, run + ".jsonl")
     if os.path.exists(rp):
-        for l in open(rp, encoding="utf-8"):
+        for l in open(rp, encoding="utf-8-sig"):
             try: done.add(json.loads(l)["id"])
             except Exception: pass
     ts = SUITE.TASKS

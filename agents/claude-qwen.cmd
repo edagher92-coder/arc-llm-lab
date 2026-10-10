@@ -7,9 +7,10 @@ if "%QWEN_MODEL%"=="" set "QWEN_MODEL=qwen3.8-27b:code"
 if "%QWEN_BASE%"=="" set "QWEN_BASE=http://127.0.0.1:8090"
 set "CLAUDE_BIN="
 if exist "%USERPROFILE%\.local\bin\claude.exe" set "CLAUDE_BIN=%USERPROFILE%\.local\bin\claude.exe"
-if not defined CLAUDE_BIN for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "(Get-ChildItem \"$env:USERPROFILE\AppData\Roaming\Claude\claude-code\" -Recurse -Force -Filter claude.exe -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName"`) do set "CLAUDE_BIN=%%p"
-if not defined CLAUDE_BIN ( echo Claude Code not found. Install it: powershell -c "irm https://claude.ai/install.ps1 ^| iex" & exit /b 2 )
+if not defined CLAUDE_BIN for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "$r=@($env:APPDATA+'\Claude\claude-code')+@(Get-ChildItem ($env:LOCALAPPDATA+'\Packages') -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName+'\LocalCache\Roaming\Claude\claude-code' }); ($r | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ -Recurse -Force -Filter claude.exe -ErrorAction SilentlyContinue } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName"`) do set "CLAUDE_BIN=%%p"
+if not defined CLAUDE_BIN ( echo Claude Code not found. Install it: powershell -c "irm https://claude.ai/install.ps1 | iex" & exit /b 2 )
 if "%LOCAL_QWEN_KEY%"=="" for /f "usebackq delims=" %%k in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('LOCAL_QWEN_KEY','User')"`) do set "LOCAL_QWEN_KEY=%%k"
+if not defined LOCAL_QWEN_KEY ( echo LOCAL_QWEN_KEY is not set - see docs\SETUP.md step 3. & exit /b 3 )
 set "ANTHROPIC_BASE_URL=%QWEN_BASE%"
 set "ANTHROPIC_AUTH_TOKEN=%LOCAL_QWEN_KEY%"
 set "ANTHROPIC_API_KEY="

@@ -1,3 +1,5 @@
+New-Item -ItemType Directory -Force 'C:\AI\whisper' | Out-Null
+$ProgressPreference = 'SilentlyContinue'
 $log = 'C:\AI\whisper\setup.log'; "start $(Get-Date -f s)" | Set-Content $log
 function L($m) { "$(Get-Date -f T) $m" | Add-Content $log }
 $d = 'C:\AI\whisper'; New-Item -ItemType Directory -Force "$d\models" | Out-Null
@@ -6,6 +8,7 @@ if (-not (Test-Path "$d\bin\whisper-server.exe")) {
   Invoke-WebRequest 'https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-blas-bin-x64.zip' -OutFile "$d\whisper.zip"
   Expand-Archive "$d\whisper.zip" "$d\x" -Force
   $srv = Get-ChildItem "$d\x" -Recurse -Filter whisper-server.exe | Select -First 1
+  if (-not $srv) { L 'whisper-server.exe not found in the zip'; throw 'whisper-server.exe not found in the downloaded archive' }   # otherwise "$null\*" resolves to the drive root
   New-Item -ItemType Directory -Force "$d\bin" | Out-Null; Copy-Item "$($srv.DirectoryName)\*" "$d\bin\" -Recurse -Force
 }
 L ("server: " + (Test-Path "$d\bin\whisper-server.exe"))

@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 
 PY = sys.executable
 TASKS = []
-SUITE_VERSION = "1.0"
+SUITE_VERSION = "1.1"  # bump whenever a checker, prompt or generator changes; results/*.jsonl carry it
 
 def T(id, cat, prompt, files, check, timeout=420):
     TASKS.append(dict(id=id, cat=cat, prompt=prompt, files=files, check=check, timeout=timeout))
@@ -28,10 +28,18 @@ def materialize(task, ws):
             open(p, "w", encoding="utf-8", newline="").write(content)
 
 def rd(ws, p):
+    """Text of ws/p with BOM stripped and newlines normalised; None only if the file is missing/unreadable.
+    Accepts UTF-8 (+/- BOM), UTF-16 (Windows PowerShell 5.1 '>' / Out-File default) and falls back to cp1252."""
     try:
-        return open(os.path.join(ws, p), encoding="utf-8-sig").read()  # utf-8-sig: accept a BOM (PowerShell writes one)
+        b = open(os.path.join(ws, p), "rb").read()
     except Exception:
         return None
+    if b[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        s = b.decode("utf-16", errors="replace")
+    else:
+        try: s = b.decode("utf-8-sig")
+        except UnicodeDecodeError: s = b.decode("cp1252", errors="replace")
+    return s.replace("\r\n", "\n").replace("\r", "\n")
 
 def rdb(ws, p):
     try:
@@ -767,7 +775,7 @@ T("long-code-trace", "longctx", "In rebates.py, what does compute_rebate_v37(10)
 # ---------------- F. BUSINESS MULTI-STEP (10): exact AUD money rules, checker recomputes from inputs ----------------
 D2 = Decimal("0.01")
 def _dec_eq(a, b):
-    try: return Decimal(str(a).replace("$", "").replace(",", "")).quantize(D2) == Decimal(str(b)).quantize(D2) and re.fullmatch(r"-?\$?[\d,]*\.?\d*", str(a).strip()) is not None
+    try: return Decimal(str(a).replace("$", "").replace(",", "")) == Decimal(str(b)).quantize(D2) and re.fullmatch(r"-?\$?[\d,]*\.\d{2}", str(a).strip()) is not None  # prompts demand exactly 2 decimals; do not round the agent's value for it
     except Exception: return False
 
 def _gst_order():
@@ -775,6 +783,7 @@ def _gst_order():
     items = [{"sku": "HIRE-DBL", "desc": "Double ice-machine hire", "qty": 3, "unit_price_ex": "4.15", "gst_free": False}]
     for i in range(9):
         items.append({"sku": "SKU%02d" % i, "desc": "item %d" % i, "qty": r.randrange(1, 13), "unit_price_ex": "%.2f" % (r.randrange(105, 9999) / 100), "gst_free": r.random() < 0.25})
+    items += [{"sku": "FEE-A", "desc": "fee a", "qty": 1, "unit_price_ex": "0.15", "gst_free": False}, {"sku": "FEE-B", "desc": "fee b", "qty": 1, "unit_price_ex": "0.15", "gst_free": False}]  # per-line (0.02+0.02) != on-total (0.03)
     sub = sum(Decimal(x["unit_price_ex"]) * x["qty"] for x in items)
     gst = sum(cents(Decimal(x["unit_price_ex"]) * x["qty"] * Decimal("0.1")) for x in items if not x["gst_free"])
     return {"invoice": "INV-2026-0042", "items": items}, cents(sub), gst, cents(sub) + gst

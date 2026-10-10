@@ -13,8 +13,10 @@ def refine(r):
     """Split 'wrong_result' into a near-miss when the correct answer appears in the agent's final message but was not saved."""
     import re
     if r.get("passed") or r.get("failure") != "wrong_result": return r
-    m = re.search(r"expected=['\"]?([^'\"\s]+)", r.get("reason") or "")
-    if m and "answer.txt=''" in (r.get("reason") or "") and m.group(1) in (r.get("final") or ""):
+    m = re.search(r"expected=(?:'([^']+)'|\"([^\"]+)\"|(\S+))", r.get("reason") or "")
+    exp = next((g for g in (m.groups() if m else ()) if g), None)
+    # whole-token match so that '14' does not match '2026-10-14' or '140'
+    if exp and "answer.txt=''" in (r.get("reason") or "") and re.search(r"(?<![\w.-])" + re.escape(exp) + r"(?![\w-])", r.get("final") or ""):
         r["failure"] = "answer_not_saved"
     return r
 
@@ -25,7 +27,7 @@ def load(runs=None):
         if runs and run not in runs: continue
         if not runs and (run.startswith("smoke") or run.startswith("sustained")): continue
         last = {}
-        for l in open(p, encoding="utf-8"):
+        for l in open(p, encoding="utf-8-sig"):  # -sig: a PowerShell-touched file must not silently lose its first record
             try: r = json.loads(l)
             except Exception: continue
             if "step" in r: continue  # sustained-session records are reported separately
@@ -44,12 +46,13 @@ def summarise(recs):
     S = {"runs": {}, "categories": {}, "tasks": {}}
     for run, rs in sorted(runs.items()):
         n = len(rs); ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs) / 60
-        tp = [r["wall_s"] for r in rs if r["passed"]]
+        tp = [r["wall_s"] for r in rs if r["passed"] and not r.get("timed_out")]  # a pass that needed a timeout kill has a censored time
         gen = sum(r.get("srv_gen_tok") or 0 for r in rs); gens = sum(r.get("srv_gen_s") or 0 for r in rs)
         S["runs"][run] = dict(agent=rs[0]["agent"], cap=rs[0]["cap"], tasks=n, passed=ok, pass_rate=ok / n if n else 0,
                               total_min=round(wall, 1), completed_per_min=round(ok / wall, 3) if wall else 0,
                               median_pass_s=round(statistics.median(tp), 1) if tp else None,
                               p90_pass_s=round(sorted(tp)[int(0.9 * (len(tp) - 1))], 1) if tp else None,
+                              passed_after_timeout=sum(bool(r["passed"] and r.get("timed_out")) for r in rs),
                               failures=dict(Counter(r["failure"] for r in rs if not r["passed"])),
                               vram_min_free_gib=min([r["vram_min_free_gib"] for r in rs if r.get("vram_min_free_gib") is not None] or [None]) if any(r.get("vram_min_free_gib") is not None for r in rs) else None,
                               model_reloads=sum(bool(r.get("model_reloaded")) for r in rs),
@@ -85,7 +88,8 @@ def markdown(S):
         L.append("| %s | %d | %s | %ss | **%s** |" % (c, x["attempts"], pct(x["pass_rate"]), x["median_s"], x["tier"]))
     L += ["", "## Failure reasons", ""]
     for run, x in S["runs"].items():
-        L.append("- %s: %s" % (run, ", ".join("%s %d" % kv for kv in sorted(x["failures"].items(), key=lambda kv: -kv[1])) or "none"))
+        L.append("- %s: %s%s" % (run, ", ".join("%s %d" % kv for kv in sorted(x["failures"].items(), key=lambda kv: -kv[1])) or "none",
+                                 ("; plus %d pass(es) only after a timeout kill (counted as passed, excluded from median/p90)" % x["passed_after_timeout"]) if x["passed_after_timeout"] else ""))
     for tname in ("ESCALATE", "SUPERVISED"):
         L += ["", "## Tasks — %s" % tname, ""]
         for i, x in S["tasks"].items():
@@ -97,7 +101,10 @@ def markdown(S):
 def sustained_md():
     L = []
     for p in sorted(glob.glob(os.path.join(HERE, "results", "sustained-*.jsonl"))):
-        rs = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        rs = []
+        for l in open(p, encoding="utf-8-sig"):
+            try: rs.append(json.loads(l))
+            except Exception: pass  # truncated last line of a run that was killed mid-write
         if not rs: continue
         run = os.path.basename(p)[:-6]; ok = sum(r["passed"] for r in rs); wall = sum(r["wall_s"] for r in rs)
         probe = [r for r in rs if r["step"] == 10]

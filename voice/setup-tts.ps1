@@ -1,7 +1,10 @@
+New-Item -ItemType Directory -Force 'C:\AI\tts' | Out-Null
+$ProgressPreference = 'SilentlyContinue'   # Windows PowerShell 5.1 downloads are 10-50x slower with the progress bar
 $log = 'C:\AI\tts\setup.log'; "start $(Get-Date -f s)" | Set-Content $log
 function L($m) { "$(Get-Date -f T) $m" | Add-Content $log }
 $d = 'C:\AI\tts'; $uv = "$env:USERPROFILE\.local\bin\uv.exe"
 Set-Location $d
+Copy-Item "$PSScriptRoot\tts_server.py" "$d\tts_server.py" -Force   # the server looks for the model files next to itself
 if (-not (Test-Path "$d\venv\Scripts\python.exe")) { L 'create venv (Python 3.12)'; & $uv venv --python 3.12 "$d\venv" *>> $log }
 L 'install kokoro-onnx'; & $uv pip install --python "$d\venv\Scripts\python.exe" kokoro-onnx soundfile numpy *>> $log
 foreach ($f in 'kokoro-v1.0.onnx','voices-v1.0.bin') {

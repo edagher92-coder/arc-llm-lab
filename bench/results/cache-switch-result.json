@@ -1,0 +1,23 @@
+{
+ "1_agent_cold": {
+  "wall_s": 87.63,
+  "prompt_n": 36431,
+  "cache_n": 0,
+  "prompt_ms": 85980.021,
+  "prompt_tokens": 36431
+ },
+ "2_phone_chat": {
+  "wall_s": 16.2,
+  "prompt_n": 22,
+  "cache_n": 0,
+  "prompt_ms": 494.574,
+  "prompt_tokens": 22
+ },
+ "3_agent_resume": {
+  "wall_s": 6.46,
+  "prompt_n": 19,
+  "cache_n": 36432,
+  "prompt_ms": 822.24,
+  "prompt_tokens": 36451
+ }
+}

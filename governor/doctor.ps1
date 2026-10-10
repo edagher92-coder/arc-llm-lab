@@ -23,7 +23,7 @@ if ($s.loaded) {
 } else { Check 'model loaded' $true "not loaded (loads on first request) - state $($s.state)" }
 $p = try { Get-Content "$dir\profiles.json" -Raw | ConvertFrom-Json } catch { $null }
 Check 'profiles.json' ($null -ne $p) $(if ($p) { 'valid JSON' } else { 'unreadable / invalid JSON' })
-$exe = $p.exe; R 'engine binary' (Test-Path $exe) "$exe"
+$exe = $p.exe; Check 'engine binary' (Test-Path $exe) "$exe"
 $ca = ($p.common_args -join ' ') + ' ' + ($p | ConvertTo-Json -Depth 8)
 Check 'no silent truncation' ($ca -match '--no-context-shift') 'context shift disabled (overflow = explicit error)'
 $sn = Get-Content "$dir\session-need.txt" -ErrorAction SilentlyContinue

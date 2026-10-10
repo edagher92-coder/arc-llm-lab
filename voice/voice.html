@@ -139,7 +139,7 @@ const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem('qv.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('qv.' + k, JSON.stringify(v)); } catch (e) {} } };
 let key = ''; try { key = localStorage.getItem('qwenKey') || ''; } catch (e) {}
 const cfg = { voice: store.get('voice', 'emma'), speed: store.get('speed', 1.05), speak: store.get('speak', true), handsfree: store.get('handsfree', false), mode: store.get('mode', 'qwen3.8-27b:code') };
-let history = [], busy = false, ttsOK = true;
+let history = [], busy = false, ttsOK = true, muted = false;
 
 /* ---------- ui helpers ---------- */
 const orb = $('orb');
@@ -161,7 +161,7 @@ function speechText(t) {
   return t.replace(/```[\s\S]*?```/g, ' ').replace(/`([^`]*)`/g, '$1').replace(/\*\*?|__|#{1,6}\s|>\s|\|/g, ' ').replace(/https?:\/\/\S+/g, 'the link').replace(/\s+/g, ' ').trim();
 }
 function enqueueSpeech(sentence) {
-  const t = speechText(sentence); if (!cfg.speak || !t || !/[A-Za-z0-9]/.test(t)) return;
+  const t = speechText(sentence); if (muted || !cfg.speak || !t || !/[A-Za-z0-9]/.test(t)) return;
   const gen = speechGen;
   const job = { gen, text: t, buf: null, done: false };
   ttsQueue.push(job); pumpTTS();
@@ -193,15 +193,15 @@ function playBuffer(buf) {
   const ctx = audio(); const src = ctx.createBufferSource(); src.buffer = buf; src.connect(outAn);
   const start = Math.max(ctx.currentTime + 0.03, playHead); src.start(start); playHead = start + buf.duration;
   if (!firstVoiceAt) firstVoiceAt = performance.now();
-  playing++; setState('speaking'); meterOut();
-  src.onended = () => { playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); };
+  playing++; setState('speaking', 'Speaking'); meterOut();
+  const g = speechGen; src.onended = () => { if (g !== speechGen) return; playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); };
   (window.__srcs = window.__srcs || []).push(src);
 }
 function browserSpeak(t) {
   try {
     const u = new SpeechSynthesisUtterance(t); u.lang = 'en-AU'; u.rate = cfg.speed;
     const v = speechSynthesis.getVoices().find(v => v.lang === 'en-AU') || speechSynthesis.getVoices().find(v => v.lang.startsWith('en')); if (v) u.voice = v;
-    playing++; setState('speaking'); u.onend = () => { playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); }; speechSynthesis.speak(u);
+    const g = speechGen; playing++; setState('speaking', 'Answering'); u.onend = () => { if (g !== speechGen) return; playing--; if (!playing && !ttsQueue.length && !busy) speechFinished(); }; speechSynthesis.speak(u);
     if (!firstVoiceAt) firstVoiceAt = performance.now();
   } catch (e) {}
 }
@@ -281,8 +281,8 @@ async function transcribe(blob) {
 /* ---------- chat: stream tokens, speak sentence by sentence ---------- */
 let abortCtl = null;
 async function ask(text, heardSecs) {
-  if (busy) return; if (!key) askKey(); if (!key) { setState('idle', 'Add your API key in settings'); return; }
-  busy = true; stopSpeaking(); firstVoiceAt = 0; add('me', text); history.push({ role: 'user', content: text });
+  if (busy) { setState('idle', 'Still answering, tap the orb to cancel first'); return; } if (!key) askKey(); if (!key) { setState('idle', 'Add your API key in settings'); return; }
+  busy = true; stopSpeaking(); muted = false; firstVoiceAt = 0; add('me', text); history.push({ role: 'user', content: text });
   const el = add('ai live', ''); setState('thinking', 'Thinking');
   const t0 = performance.now(); let first = 0, out = '', pending = '';
   abortCtl = new AbortController();
@@ -326,8 +326,8 @@ orb.onclick = () => {
   const s = orb.dataset.state;
   if (s === 'idle') listen().catch(e => setState('idle', 'Microphone blocked: ' + e.message));
   else if (s === 'listening') stopListening();
-  else if (s === 'thinking') { if (abortCtl) abortCtl.abort(); setState('idle', 'Cancelled'); }
-  else if (s === 'speaking') { stopSpeaking(); setState('idle', 'Stopped, tap to talk'); }
+  else if (s === 'thinking') { muted = true; stopSpeaking(); if (abortCtl) abortCtl.abort(); setState('idle', 'Cancelled'); }
+  else if (s === 'speaking') { muted = true; stopSpeaking(); setState('idle', 'Stopped, tap to talk'); }
 };
 $('typeform').onsubmit = e => { e.preventDefault(); audio(); const t = $('text').value.trim(); if (t) { $('text').value = ''; ask(t); } };
 $('new').onclick = () => { stopSpeaking(); if (abortCtl) abortCtl.abort(); history = []; $('log').innerHTML = ''; setState('idle', 'New conversation'); };

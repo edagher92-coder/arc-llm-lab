@@ -66,8 +66,9 @@ def make_handler(synth, whisper_url=WHISPER_URL):
             self.end_headers(); self.wfile.write(body)
         def log_message(self, *a): pass
         def _body(self, limit):
+            if "chunked" in self.headers.get("Transfer-Encoding", "").lower(): raise ValueError("chunked uploads are not supported; send Content-Length")
             n = int(self.headers.get("Content-Length", 0))
-            if n > limit: return None
+            if n < 0 or n > limit: self.close_connection = True; return None
             return self.rfile.read(n) if n else b""
         def do_GET(self):
             if self.path.split("?")[0].rstrip("/").endswith("/voices"):
@@ -81,16 +82,19 @@ def make_handler(synth, whisper_url=WHISPER_URL):
                 # /tts, /v1/audio/speech, and (as in the original server) any other POST path: `tailscale serve --set-path=/tts`
                 # can strip the mount path, so the phone voice page may arrive as POST / .
                 return self._speak()
+            except ValueError as e:
+                self._send(400, str(e).encode(), "text/plain")
             except Exception as e:
                 self._send(500, str(e).encode(), "text/plain")
         def _speak(self):
             raw = self._body(MAX_JSON)
             if raw is None: return self._send(413, b"request too large", "text/plain")
-            req = json.loads(raw or b"{}")
+            try: req = json.loads(raw or b"{}"); speed = float(req.get("speed") or 1.05)
+            except (ValueError, TypeError, AttributeError): return self._send(400, b"bad request body", "text/plain")
             text = clean(str(req.get("text") or req.get("input") or ""))[:1200]
             if not text: return self._send(400, b"no text", "text/plain")
             vid, lang, _ = resolve_voice(req.get("voice"))
-            speed = min(1.4, max(0.8, float(req.get("speed", 1.05))))
+            speed = min(1.4, max(0.8, speed))
             t = time.time(); body = synth(text, vid, lang, speed)
             self._send(200, body, "audio/wav", {"X-Synth-Seconds": "%.2f" % (time.time() - t)})
         def _transcribe(self):

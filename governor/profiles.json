@@ -94,7 +94,7 @@
       "ctv": "q4_0",
       "fixed_ctx": 262144,
       "extra_args": [],
-      "base_gib": 19.5,
+      "base_gib": 22.11,
       "optional_draft": {
         "cost_gib": 1.81,
         "min_free_gib": 1.3,

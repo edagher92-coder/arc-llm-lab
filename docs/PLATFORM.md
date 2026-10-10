@@ -72,6 +72,16 @@ The model has one slot. Open WebUI normally sends extra background requests afte
 
 You lose automatic chat titles. Rename chats by hand; that is the price of a stable cache.
 
+**Measured: a phone chat does not cost the agent its cache.** [cache-switch-test.py](../bench/cache-switch-test.py) sends a 36K-token agent prompt, then a short unrelated chat (as from the phone), then the agent prompt again plus one new line ([result](../bench/results/cache-switch-result.json), 2026-10-10):
+
+| Step | Prompt tokens processed | Restored from cache | Wall time |
+|---|---|---|---|
+| Agent prompt, cold | 36,431 | 0 | 87.6 s |
+| Short chat in between | 22 | — | 16.2 s |
+| Agent prompt again | 19 | 36,432 | **6.5 s** (13.6× faster) |
+
+The single slot does switch to the chat, but llama-server's host-RAM prompt cache (`--cache-ram`) keeps the agent's prefix and restores it on the next request. `--cache-reuse` plays no part on this model. The in-between chat took 16 s although it processed only 22 tokens, most likely because the server first saved the 36K agent state to RAM (inferred from the timings, not measured separately); the agent pays nothing for that on its return. One run; the save and restore cost grows with the size of the prefix.
+
 ## 3. Connect it to llama-swap
 
 If you set the two `OPENAI_` variables above, the connection exists already. Otherwise add it under Admin Settings, Connections: URL `http://127.0.0.1:8090/v1`, key your `LOCAL_QWEN_KEY`. The model is `qwen3.8-27b`; the presets in [AGENTS.md](AGENTS.md) (`:code`, `:plan`, `:vision`) are model *names* sent in the request. If they don't appear in the model list, add them as custom models (Workspace, Models) with that name; the exact menu wording varies between Open WebUI versions.

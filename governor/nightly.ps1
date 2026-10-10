@@ -7,7 +7,7 @@ function L($m) { "$(Get-Date -f s) $m" | Out-File $log -Append -Encoding utf8 }
 $busy = Get-CimInstance Win32_Process -Filter "Name='python.exe'" | ? { $_.CommandLine -match 'runner\.py|sustained\.py' }
 $st = try { Get-Content C:\AI\governor\public\status.json -Raw | ConvertFrom-Json } catch { $null }
 if ($busy -or ($st -and $st.processing)) { L 'SKIP: evaluation running or model busy'; exit 0 }
-L 'START'
+L 'START'; $t0 = Get-Date
 $doc = powershell -NoProfile -ExecutionPolicy Bypass -File C:\AI\governor\doctor.ps1 2>&1 | Out-String
 $docFails = ([regex]::Matches($doc, '(?m)^\s+FAIL')).Count
 L "doctor fails=$docFails"
@@ -22,13 +22,14 @@ $r = Get-Content "C:\AI\evalsuite\results\$run.jsonl" | % { $_ | ConvertFrom-Jso
 $pass = ($r | ? passed).Count; $mins = [math]::Round(($r | Measure wall_s -Sum).Sum / 60, 1)
 L "smoke $pass/$($r.Count) in $mins min"
 $alerts = @()
+if ([datetime]$b.time -lt $t0) { $alerts += 'benchmark wrote no new history row (regression.ps1 failed?)' }
 if ($docFails -gt 0) { $alerts += "doctor: $docFails failed checks" }
 if ([double]$b.three_turn_s -gt 63) { $alerts += "benchmark slow: $($b.three_turn_s)s (baseline 54.9)" }
 if ($b.coding -ne '7/7' -or $b.tools -ne '3/3') { $alerts += "benchmark accuracy: coding $($b.coding), tools $($b.tools)" }
 if ($pass -lt 12) { $alerts += "agent smoke: $pass/$($r.Count) passed (expect >= 12)" }
 [ordered]@{ time = (Get-Date -f s); ok = ($alerts.Count -eq 0); alerts = $alerts; doctor_fails = $docFails; three_turn_s = [double]$b.three_turn_s;
   bench_coding = $b.coding; bench_tools = $b.tools; smoke_passed = $pass; smoke_total = $r.Count; smoke_minutes = $mins;
-  failed_tasks = @($r | ? { -not $_.passed } | % { "$($_.id): $($_.failure)" }) } | ConvertTo-Json | Set-Content $out -Encoding UTF8
+  failed_tasks = @($r | ? { -not $_.passed } | % { "$($_.id): $($_.failure)" }) } | ConvertTo-Json | % { [IO.File]::WriteAllText($out, $_, (New-Object Text.UTF8Encoding $false)) }
 L ("END " + $(if ($alerts.Count) { 'ALERT ' + ($alerts -join '; ') } else { 'OK' }))
 # keep only the last 14 nightly runs' workspaces
 Get-ChildItem C:\AI\evalsuite\work -Directory -Filter 'nightly-*' | Sort Name -Descending | Select -Skip 14 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue

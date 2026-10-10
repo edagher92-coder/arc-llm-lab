@@ -4,6 +4,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: selftest-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   evalsuite:
     name: evalsuite checkers (${{ matrix.os }})
@@ -12,6 +17,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +44,8 @@ jobs:
       - name: Site is up to date
         run: |
           python tools/build_site.py
-          git diff --exit-code -- docs/index.html docs/sitemap.xml docs/robots.txt
+          git diff --exit-code -- docs
+          test -z "$(git status --porcelain docs)"
       - name: Community schema, issue templates, CSVs, patch checksums, benchmark scripts
         run: python tools/validate_repo.py
       - name: PowerShell and bash scripts parse

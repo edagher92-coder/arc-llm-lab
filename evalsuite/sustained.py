@@ -167,7 +167,7 @@ def compactions(agent, ws, log):
         n = 0
         for f in glob.glob(os.path.join(r"C:\AI\claude-local\projects", slug, "*.jsonl")):
             t = open(f, encoding="utf-8", errors="replace").read()
-            n += t.count('"compact_boundary"') + t.count('"isCompactSummary":true')
+            n += max(t.count('"compact_boundary"'), t.count('"isCompactSummary":true'))  # one compaction writes BOTH records
         return n
     return len(re.findall(r"compact", log, re.I))
 
@@ -185,8 +185,10 @@ def main():
     for rel, c in {"docs/requirements.md": requirements_md(), "data/machines.csv": mcsv, "data/bookings.csv": bcsv}.items():
         p = os.path.join(ws, rel); os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w", encoding="utf-8", newline="").write(c)
     meta = os.path.join(HERE, "work", run, "_meta"); os.makedirs(meta)
-    out = os.path.join(HERE, "results", run + ".jsonl"); open(out, "w").close()
-    env = dict(os.environ, QWEN_CLIENT_CAP=str(a.cap)); thread = None
+    out = os.path.join(HERE, "results", run + ".jsonl")
+    if os.path.exists(out) and os.path.getsize(out): sys.exit("refusing to overwrite existing results/%s.jsonl (rename it or pass --run)" % run)
+    open(out, "w").close()
+    env = dict(os.environ, QWEN_CLIENT_CAP=str(a.cap)); thread = None; codex_comp = 0
     for k, (prompt, ver) in enumerate(STEPS[:a.steps], 1):
         pf = os.path.join(meta, "step%02d.prompt.txt" % k); open(pf, "w", encoding="utf-8").write(prompt)
         logf = os.path.join(meta, "step%02d.log" % k); last = os.path.join(meta, "step%02d.last.txt" % k)
@@ -200,7 +202,7 @@ def main():
             p = subprocess.Popen(cmd, cwd=ws, stdin=fin, stdout=fo, stderr=subprocess.STDOUT, shell=True, env=env, creationflags=RN.NOWIN)
             try: rc = p.wait(timeout=1200)
             except subprocess.TimeoutExpired: timed_out = True; RN.kill_tree(p.pid); time.sleep(2); rc = None
-        wall = round(time.time() - t0, 1); poll.stop = True; smp.stop = True
+        wall = round(time.time() - t0, 1); poll.stop = True; smp.stop = True; poll.join(5)
         log = open(logf, encoding="utf-8", errors="replace").read()
         info = RN.parse_claude(log) if a.agent == "claude" else RN.parse_codex(log, last)
         if a.agent == "codex" and not thread:
@@ -218,11 +220,13 @@ def main():
             new_ok = ok
             leaked = [f for f in glob.glob(os.path.join(ws, "**", "*"), recursive=True) if os.path.isfile(f) and not f.endswith("answer.txt")
                       and PROBE in open(f, encoding="utf-8", errors="ignore").read()]
-            if leaked: why += " PROBE WRITTEN TO FILES (retention not provable): %s" % [os.path.relpath(x, ws) for x in leaked][:3]
+            if leaked: ok = new_ok = False; why += " PROBE WRITTEN TO FILES (retention not provable): %s" % [os.path.relpath(x, ws) for x in leaked][:3]
+        cpt = compactions(a.agent, ws, log)
+        if a.agent == "codex": codex_comp += cpt; cpt = codex_comp  # codex counts per step; make it cumulative like claude
         d = lambda key: (m1.get(key, 0) - m0.get(key, 0)) if m1.get(key, 0) >= m0.get(key, 0) else m1.get(key, 0)
         rec = dict(run=run, agent=a.agent, cap=a.cap, step=k, rules=ver, passed=bool(ok), new_test_passed=bool(new_ok), reason=(why or "")[:500], wall_s=wall, timed_out=timed_out, rc=rc,
                    failure=RN.classify(ok, timed_out, info, log, rc), turns=info.get("turns"), peak_prompt_tok=poll.peak, srv_n_ctx=sorted(x for x in poll.nctx if x),
-                   compactions_total=compactions(a.agent, ws, log), overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
+                   compactions_total=cpt, overflow_error=bool(re.search(r"exceed_context_size|exceeds the available context", log)),
                    srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
                    srv_gen_s=round(d("tokens_predicted_seconds_total"), 1), srv_prompt_s=round(d("prompt_seconds_total"), 1),
                    vram_min_free_gib=smp.min_free, model_reloaded=len(smp.starts | {r0.get("started"), r1.get("started")} - {None}) > 1,

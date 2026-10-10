@@ -36,6 +36,7 @@ function Mode { try { $m = (Get-Content "$dir\mode.txt" -ErrorAction Stop).Trim(
 function Sense {
   $s = [ordered]@{ idle_sec = [math]::Round([IdleTime]::Seconds()) }
   $c = Get-Counter -Counter '\Memory\Available MBytes','\Processor(_Total)\% Processor Time','\GPU Adapter Memory(*)\Dedicated Usage' -ErrorAction SilentlyContinue
+  if (-not $c -and $script:lastSense) { return $script:lastSense }   # transient PDH failure: reuse last good sample, never act on zeros
   $smp = $c.CounterSamples
   $s.ram_avail_gb = [math]::Round((($smp | ? Path -like '*available mbytes').CookedValue | measure -Sum).Sum / 1024, 2)
   $s.cpu_total = [math]::Round((($smp | ? Path -like '*processor(_total)*').CookedValue | measure -Sum).Sum, 1)
@@ -53,11 +54,11 @@ function Sense {
   $s.vram_llama_gib = [math]::Round($llamaV / 1GB, 2)
   $s.vram_others_gib = [math]::Round(($vUsed - $llamaV) / 1GB, 2)
   $s.cpu_others = [math]::Round([math]::Max(0, $s.cpu_total - $llamaCpu), 1)
-  $s
+  $script:lastSense = $s; $s
 }
 function ModelState {
   $st = [ordered]@{ loaded = $false; state = 'stopped'; other_running = $null; processing = $false; tokens = $null; n_ctx = $null }
-  try { $r = (Api GET '/running').running } catch { $st.state = 'swap-down'; return $st }
+  try { $r = (Api GET '/running').running } catch { $we = $_.Exception; $st.state = $(if (($we -is [System.Net.WebException]) -and -not $we.Response) { 'swap-down' } else { 'api-error' }); return $st }
   foreach ($m in @($r)) {
     if ($ids -contains $m.model) { $st.state = $m.state; $st.loaded = ($m.state -eq 'ready'); $script:curId = $m.model
       $script:curPort = $ports[$m.model] }
@@ -77,10 +78,11 @@ function ModelState {
   } else { $script:ctxCache = $null }
   $st
 }
+function LoadedEmergency { try { [bool](Get-Content "$dir\running.json" -Raw | ConvertFrom-Json).emergency } catch { $false } }
 function LoadedProfile { try { (Get-Content "$dir\running.json" -Raw | ConvertFrom-Json).profile } catch { $null } }
 function Unload($why) { try { Api POST "/api/models/unload/$($script:curId)" | Out-Null; Log "UNLOAD ($why)"; $script:lastReload = Get-Date; $script:ctxCache = $null } catch { Log "unload failed: $($_.Exception.Message)" } }
 function Prewarm($why) {
-  $script:lastPrewarm = Get-Date
+  $script:lastPrewarm = Get-Date; $script:lastBusy = $script:lastPrewarm   # a fresh load is not 'idle': otherwise idle_unload_min kills it on the next sample
   try {
     $hdr = "$dir\.auth-header"; "Authorization: Bearer $(Key)" | Set-Content $hdr -NoNewline
     $body = "$dir\.prewarm.json"; '{"model":"' + $script:curId + '","max_tokens":1,"messages":[{"role":"user","content":"hi"}],"chat_template_kwargs":{"enable_thinking":false}}' | Set-Content $body -NoNewline
@@ -118,7 +120,7 @@ function SetPriority($prof) {
 $cfg = Get-Content "$dir\profiles.json" -Raw | ConvertFrom-Json; $A = $cfg.auto
 $committed = 'BALANCED'; $candidate = $null; $count = 0
 $lastBusy = Get-Date; $lastTokens = $null; $script:lastReload = (Get-Date).AddHours(-1); $script:lastPrewarm = (Get-Date).AddHours(-1)
-$swapFails = 0; $lastRestart = (Get-Date).AddHours(-1); $cpuHigh = 0; $script:lastTsStart = (Get-Date).AddHours(-1)
+$script:lastOthers = 1.5; $swapFails = 0; $lastRestart = (Get-Date).AddHours(-1); $cpuHigh = 0; $script:lastTsStart = (Get-Date).AddHours(-1)
 if (-not (Test-Path "$dir\mode.txt")) { 'AUTO' | Set-Content "$dir\mode.txt" }
 Set-Content "$dir\desired.txt" $committed
 Log "governor start pid=$PID"
@@ -126,6 +128,8 @@ while ($true) {
   try {
     $cfg = Get-Content "$dir\profiles.json" -Raw | ConvertFrom-Json; $A = $cfg.auto
     $mode = Mode; $s = Sense; $m = ModelState; $now = Get-Date
+    # model is ready but its per-process GPU counter reads ~0: its own VRAM would be booked as 'others' (bogus LEAN + unload). Keep last good value.
+    if ($m.loaded -and $s.vram_llama_gib -lt 4 -and $s.vram_used_gib -gt 12) { $s.vram_others_gib = $script:lastOthers; $s.vram_llama_gib = [math]::Round($s.vram_used_gib - $script:lastOthers, 2) } else { $script:lastOthers = $s.vram_others_gib }
     # --- watchdog for llama-swap ---
     if ($m.state -eq 'swap-down') {
       $swapFails++
@@ -164,13 +168,13 @@ while ($true) {
       $idleLimit = $cfg.profiles.$committed.idle_unload_min
       if ($acute -and $quietSec -ge 30) {
         if ($committed -eq 'LEAN') { Unload "pressure, LEAN" }
-        elseif ($sinceReload -ge 3 -and $script:curId -ne 'qwen3.8-27b-long') { Unload "free VRAM $($s.vram_free_gib) GiB < $($A.vram_free_pressure_gib) -> re-fit context ($committed)"; Prewarm "re-fit as $committed" }
+        elseif ($sinceReload -ge 3 -and $script:curId -ne 'qwen3.8-27b-long' -and -not (LoadedEmergency)) { Unload "free VRAM $($s.vram_free_gib) GiB < $($A.vram_free_pressure_gib) -> re-fit context ($committed)"; Prewarm "re-fit as $committed" }
       }
       elseif ($idleLimit -gt 0 -and $quietSec -ge $idleLimit * 60) { Unload "idle $([math]::Round($quietSec/60)) min in $committed" }
       elseif ($loadedProf -eq 'LEAN' -and $committed -ne 'LEAN' -and $quietSec -ge $A.model_quiet_sec_before_reload -and $sinceReload -ge 10) { Unload "upgrade LEAN -> $committed"; Prewarm "upgrade to $committed" }
       elseif ($loadedProf -eq 'BALANCED' -and $committed -eq 'MAX' -and $quietSec -ge $A.max_upgrade_quiet_min * 60 -and $sinceReload -ge 10) { Unload "upgrade BALANCED -> MAX"; Prewarm "upgrade to MAX" }
     } elseif (-not $m.loaded -and $m.state -eq 'stopped' -and $committed -eq 'MAX' -and -not $m.other_running -and ($now - $script:lastPrewarm).TotalMinutes -ge $A.prewarm_cooldown_min) {
-      Prewarm 'PC idle - keep model warm in MAX'
+      $script:curId = $model; $script:curPort = $ports[$model]; Prewarm 'PC idle - keep model warm in MAX'
     }
     # --- status for humans / remote ---
     $status = [ordered]@{ time = $now.ToString('s'); mode = $mode; profile = $committed; loaded = $m.loaded; loaded_profile = $loadedProf; state = $m.state
@@ -182,7 +186,7 @@ while ($true) {
           $status['expected_ctx'] = [math]::Max([int]$pp.ctx_min, [math]::Min([int]$vd.ctx_max, $ec)) } catch {}
     $status['model_id'] = $script:curId
     $status['power_plan'] = $power; $status['power_mode'] = PowerMode; $status['session_need_tokens'] = $sessNeed
-    $status | ConvertTo-Json | Set-Content "$dir\public\status.json"
+    $status | ConvertTo-Json | Set-Content "$dir\public\status.json.tmp"; try { Move-Item "$dir\public\status.json.tmp" "$dir\public\status.json" -Force } catch {}
   } catch { Log "loop error: $($_.Exception.Message)" }
   Start-Sleep -Seconds ([int]$A.sample_sec)
 }
