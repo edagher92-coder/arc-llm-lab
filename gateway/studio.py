@@ -83,6 +83,9 @@ def _public_job(j):
          "started": j.get("started"), "ended": j.get("ended"), "seconds": j.get("seconds"), "error": j.get("error", ""),
          "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files")), "fav": bool(j.get("fav"))}
     if isinstance(j.get("progress"), (int, float)) and not isinstance(j.get("progress"), bool): d["progress"] = max(0.0, min(100.0, float(j["progress"])))   # staged workflows report a real percentage
+    if isinstance(j.get("step"), str) and re.match(r"^\d{1,4}/\d{1,4}$", j["step"]): d["step"] = j["step"]                      # live sampler step, e.g. "3/8"
+    if isinstance(j.get("eta_s"), (int, float)) and not isinstance(j.get("eta_s"), bool) and 0 <= j["eta_s"] < 86400: d["eta_s"] = round(float(j["eta_s"]), 1)
+    if isinstance(j.get("phase"), str) and re.match(r"^[a-z0-9_]{1,16}$", j["phase"]): d["phase"] = j["phase"]
     if j.get("drive_rel"): d["drive"] = j["drive_rel"]                 # "2026-10/<job>_<clip>.mp4": a path inside the Drive folder, never the folder itself
     if j.get("drive_error"): d["drive_error"] = str(j["drive_error"])[:120]
     d["clips"] = [{"name": os.path.basename(p), "type": CLIP_TYPES.get(os.path.splitext(p)[1].lower(), "application/octet-stream")}

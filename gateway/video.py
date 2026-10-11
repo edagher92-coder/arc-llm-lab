@@ -30,6 +30,12 @@ MEDIA_KEYS = ("videos", "gifs", "images", "audio")
 DRIVE_MODES = ("all", "favourites", "off")
 LLM_MODE = "MAX"                                   # the governor mode the LLM runs in when nothing overrides it (what _take_gpu falls back to)
 VIDEO_MODE = "OFF"                                 # the governor mode that keeps the LLM off the GPU
+# Live progress of an ordinary (non-staged) job, read from ComfyUI's log. (low, high) share of the 0-100 bar each phase owns; sampler bars are linear in steps.
+PROG_ENCODE, PROG_LOAD, PROG_STAGE1, PROG_UPSCALE = (0, 12), (12, 20), (20, 62), (62, 66)
+PROG_STAGE2, PROG_VDECODE, PROG_ADECODE, PROG_SAVING = (66, 88), (88, 96), (96, 99), 99
+PROG_TAIL_BYTES = 256 * 1024                       # most of the log read per job; the newest part is what matters
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+_TQDM = re.compile(r"(\d+)/(\d+) \[\s*[\d:]+<([\d:]+|\?),\s*([\d.]+|\?)\s*(s/it|it/s)")
 
 
 class VideoError(Exception):
@@ -1096,6 +1102,10 @@ class Queue:
     def _run_graph(self, jid, graph, span=None, expect_s=None, deadline=None):
         """Submit one filled graph and wait for it. Returns the history outputs."""
         c, e = self.cfg, self.env
+        try:
+            log_off = os.path.getsize(self.log_path)                      # only log text written after this point belongs to this prompt
+        except OSError:
+            log_off = 0
         r = e.http("POST", c.comfy_url + "/prompt", {"prompt": graph, "client_id": "gw-" + jid}, timeout=30)
         if r.get("node_errors"):
             raise VideoError("ComfyUI rejected the workflow: %s" % json.dumps(r["node_errors"])[:400])
@@ -1104,7 +1114,7 @@ class Queue:
             raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
         with self.lock:
             self.own_pids.add(pid)
-        return self._wait(jid, pid, span, expect_s, deadline)
+        return self._wait(jid, pid, span, expect_s, deadline, log_off)
 
     # -- two-process split
     def _cond_dir(self, jid):
@@ -1255,14 +1265,17 @@ class Queue:
         shutil.copyfile(path, os.path.join(self.cfg.input_dir, name))
         return name
 
-    def _wait(self, jid, pid, span=None, expect_s=None, deadline=None):
+    def _wait(self, jid, pid, span=None, expect_s=None, deadline=None, log_off=0):
         """Poll until the prompt is in /history. span=(lo, hi) and expect_s (staged jobs only) move the job's progress from lo towards hi
         by elapsed/expected time, never past 95 % of the span until the stage really ends; deadline replaces the per-wait timeout."""
         c, e = self.cfg, self.env
         t_in = time.time()
         end = deadline if deadline is not None else t_in + c.job_timeout_s
         shown = span[0] if span else 0
+        prog = {"pos": log_off, "buf": b"", "key": None, "best": 0.0}      # non-staged jobs: live progress from the ComfyUI log
         while time.time() < end:
+            if not span:
+                self._log_progress(jid, prog)
             if span:
                 p = span[0] + (span[1] - span[0]) * min(0.95, (time.time() - t_in) / expect_s)
                 if p - shown >= 1:
@@ -1296,6 +1309,26 @@ class Queue:
             pass
         raise VideoError("the job exceeded %d s and was stopped" % c.job_timeout_s)
 
+    def _log_progress(self, jid, st):
+        """Read only the log bytes written since the last poll (at most the last 256 KB), parse them and publish the job's phase when it changed."""
+        try:
+            size = os.path.getsize(self.log_path)
+            if size < st["pos"]:
+                st["pos"], st["buf"] = 0, b""                         # the log was replaced
+            if size > st["pos"]:
+                with open(self.log_path, "rb") as f:
+                    f.seek(max(st["pos"], size - PROG_TAIL_BYTES))
+                    st["buf"] = (st["buf"] + f.read(PROG_TAIL_BYTES))[-PROG_TAIL_BYTES:]
+                st["pos"] = size
+                p = parse_progress(st["buf"].decode("utf-8", "replace"))
+                st["best"] = max(st["best"], p["progress"])           # never backwards
+                key = (st["best"], p["label"], p["step"], p["eta_s"], p["phase"])
+                if key != st["key"]:
+                    st["key"] = key
+                    self._set(jid, progress=st["best"], note=p["label"], step=p["step"], eta_s=p["eta_s"], phase=p["phase"])
+        except OSError:
+            pass
+
     def _collect(self, jid, outputs):
         c, e = self.cfg, self.env
         dest = os.path.join(self.out_dir, jid)
@@ -1320,6 +1353,75 @@ class _Cancelled(Exception):
 
 def m_state_loading(running):
     return any(str(m.get("state", "ready")) not in ("ready", "stopped") for m in running)
+
+
+def _clock_s(s):
+    """"01:19" -> 79.0, "1:02:03" -> 3723.0, "?" -> None."""
+    try:
+        v = 0.0
+        for part in s.split(":"):
+            v = v * 60 + int(part)
+        return v
+    except ValueError:
+        return None
+
+
+def parse_progress(text):
+    """What a two-stage ComfyUI job is doing, from the log text written since its prompt was submitted (ANSI colours and tqdm \\r bars allowed).
+    Returns {phase, label, progress (0-100), step ("3/8" or None), eta_s (seconds left in the current bar or None), s_per_it (or None)}.
+    Sampler bars are counted in order (first = stage 1, second = stage 2), each with its own total. Only the text after the last "got prompt" counts."""
+    text = _ANSI.sub("", text or "")
+    i = text.rfind("got prompt")
+    if i >= 0:
+        text = text[i:]
+    bars, ph, upscaled = [], "starting", False          # bars: [n, total, eta_s, s_per_it] per sampler bar, in order
+    for ln in re.split(r"[\r\n]+", text):
+        m = _TQDM.search(ln)
+        if m:
+            n, tot = int(m.group(1)), int(m.group(2))
+            rate = float(m.group(4)) if m.group(4) != "?" else 0.0
+            spi = (rate if m.group(5) == "s/it" else 1.0 / rate if rate else None) if rate else None
+            if tot > 0:
+                if not bars or n < bars[-1][0] or tot != bars[-1][1]:
+                    bars.append([n, tot, None, None])                    # a new sampler bar (restarted, or a different length)
+                bars[-1][:2] = [n, tot]
+                bars[-1][2:] = [None if n >= tot else _clock_s(m.group(3)), spi]
+                ph = "stage1" if len(bars) == 1 else "stage2"
+        elif "Requested to load" in ln:
+            done = bool(bars) and bars[-1][0] >= bars[-1][1]
+            if "LTXAVTEModel" in ln:
+                ph = "encode"
+            elif re.search(r"load LTXAV(?![A-Za-z_])", ln):
+                ph = "load"
+            elif "LatentUpsampler" in ln:
+                if bars:
+                    ph, upscaled = "upscale", True
+            elif "CausalDiffusionVAE" in ln:
+                if done and (len(bars) >= 2 or not upscaled):
+                    ph = "decode"                                         # an earlier load of it (before stage 2) is not the decode
+            elif "AudioVAE" in ln:
+                if done and ph in ("decode", "stage1", "stage2"):
+                    ph = "audio"
+        elif "Prompt executed in" in ln and bars:
+            ph = "saving"
+    b = bars[-1] if bars else None
+    step = "%d/%d" % (b[0], b[1]) if b and ph in ("stage1", "stage2") else None
+    eta = b[2] if step else None
+    spi = b[3] if step else None
+    frac = (b[0] / b[1]) if step else 0.0
+    nstage = 2
+    r = {
+        "starting": ("Starting", PROG_ENCODE[0]),
+        "encode": ("Reading your prompt", PROG_ENCODE[1] / 2.0),
+        "load": ("Loading the video model", PROG_LOAD[0]),
+        "stage1": ("Stage 1 of %d: drafting motion · step %s of %s" % (nstage, b[0] if b else 0, b[1] if b else 0), PROG_STAGE1[0] + (PROG_STAGE1[1] - PROG_STAGE1[0]) * frac),
+        "upscale": ("Upscaling ×2", PROG_UPSCALE[0]),
+        "stage2": ("Stage 2 of %d: refining detail · step %s of %s" % (nstage, b[0] if b else 0, b[1] if b else 0), PROG_STAGE2[0] + (PROG_STAGE2[1] - PROG_STAGE2[0]) * frac),
+        "decode": ("Decoding video frames", PROG_VDECODE[0]),
+        "audio": ("Decoding sound", PROG_ADECODE[0]),
+        "saving": ("Saving", PROG_SAVING),
+    }[ph]
+    return {"phase": ph, "label": r[0], "progress": round(float(r[1]), 1), "step": step, "eta_s": eta, "s_per_it": spi}
 
 
 def est_minutes(wf):

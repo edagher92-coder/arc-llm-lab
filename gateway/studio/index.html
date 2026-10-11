@@ -830,7 +830,7 @@ function renderStage(root, id) {
       track.classList.toggle("ind", pct == null); bar.style.width = pct == null ? "" : pct + "%";
       if (pct != null) track.setAttribute("aria-valuenow", String(Math.round(pct))); else track.removeAttribute("aria-valuenow");
       const sq = S.sys && S.sys.queue && S.sys.queue.running_id === c.id ? S.sys.queue.stage : "";
-      eta.textContent = (c.state === "running" ? "Elapsed " : c.state === "starting" ? "Loading " : "Waiting ") + mmss(s) + (est && c.state === "running" ? " of about " + (est < 90 ? Math.round(est) + " s" : Math.round(est / 60) + " min") : "") + (real ? " · " + Math.round(c.progress) + "%" : "") + (est && c.state === "running" && s > est ? " · longer than usual" : "");
+      eta.textContent = (c.state === "running" ? "Elapsed " : c.state === "starting" ? "Loading " : "Waiting ") + mmss(s) + (est && c.state === "running" ? " of about " + (est < 90 ? Math.round(est) + " s" : Math.round(est / 60) + " min") : "") + (real ? " · " + Math.round(c.progress) + "%" : "") + (c.state === "running" && c.step ? " · step " + c.step : "") + (c.state === "running" && typeof c.eta_s === "number" && c.eta_s > 0 ? " · ~" + leftIn(c.eta_s) + " left in this stage" : "") + (est && c.state === "running" && s > est ? " · longer than usual" : "");
       eta.classList.toggle("over", !!est && c.state === "running" && s > est);
       note.textContent = (sq && sq !== c.state ? sq + ". " : "") + noteFor(c);
     }; S.ticks[root.id]();
@@ -851,7 +851,9 @@ function renderStage(root, id) {
   if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn warn", type: "button", onclick: () => act("delete", j.id)}, "Delete"));
   st.append(acts);
 }
+function leftIn(sec) { return sec < 90 ? Math.round(sec) + " s" : Math.round(sec / 60) + " min"; }
 function noteFor(j) {
+  if (j.state === "running" && typeof j.note === "string" && j.note) return j.note;                    // the live phase from the render log
   return {queued: "In line", waiting: "Waiting for Qwen to finish what it is doing", starting: "Handing the GPU over from Qwen, then loading the video model", running: "Rendering"}[j.state] || j.note || j.state;
 }
 function closeViewer() { const d = $("#viewer"); if (d.open) d.close(); }
@@ -1070,7 +1072,7 @@ function slate(j, n) {
     : j.seconds ? h("span", {class: "t"}, "took " + mmss(j.seconds)) : "";
   return h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
     h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderQueue(); if (matchMedia("(max-width:980px)").matches) openViewer(j.id); }},
-      h("span", {class: "no"}, "#" + String(n).padStart(2, "0")), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, LABEL[j.state] || j.state), h("span", {}, ago(j.created)), tm)),
+      h("span", {class: "no"}, "#" + String(n).padStart(2, "0")), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, j.state === "running" && j.note ? j.note.split(" \u00b7 ")[0] + (typeof j.progress === "number" ? " \u00b7 " + Math.round(j.progress) + "%" : "") : LABEL[j.state] || j.state), h("span", {}, ago(j.created)), tm)),
     h("div", {class: "end"}, live ? h("button", {class: "btn warn sm", type: "button", "aria-label": "Cancel: " + title(j).slice(0, 60), onclick: () => act("cancel", j.id)}, "Cancel")
       : h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix"), starBtn(j, false)));
 }

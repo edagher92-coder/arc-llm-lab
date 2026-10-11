@@ -795,6 +795,77 @@ def test_settle_after_unload_only():
         assert q.order == ([] if sess else ["unload", "start"]), q.order      # a reused session neither unloads nor starts
     assert video.Cfg({}).comfy_settle_s == 3.0 and video.Cfg({}).comfy_stall_s == 45.0 and video.Cfg({"comfy_settle_s": "bad"}).comfy_settle_s == 3.0
 
+# ---- live progress of ordinary jobs, from ComfyUI's log (real LTX-2.5 two-stage log in tests/fixtures)
+def fixture_job():
+    """The last complete job in the real log: from its "got prompt" to its "Prompt executed in"."""
+    raw = open(os.path.join(HERE, "fixtures", "comfy_ltx25_t2v.log"), "rb").read().decode("utf-8", "replace")
+    i = raw.rfind("got prompt"); return raw[i:]
+
+def cut_after(txt, marker, extra=0):
+    i = txt.index(marker); return txt[:i + len(marker) + extra]
+
+def test_parse_progress_fixture_cut_points():
+    txt = fixture_job(); P = video.parse_progress
+    cuts = [("encode", cut_after(txt, "Requested to load LTXAVTEModel_")), ("load", cut_after(txt, "Requested to load LTXAV\r")),
+            ("stage1", cut_after(txt, " 3/8 [00:25<00:39,  7.96s/it]")), ("upscale", cut_after(txt, "Requested to load LatentUpsampler")),
+            ("stage2", cut_after(txt, " 2/3 [04:43<02:21, 141.24s/it]")), ("decode", txt[:txt.rindex("Requested to load CausalDiffusionVAE") + 40]),
+            ("audio", cut_after(txt, "Requested to load AudioVAE")), ("saving", cut_after(txt, "Prompt executed in"))]
+    out = [(k, P(c)) for k, c in cuts]
+    assert [r["phase"] for _, r in out] == [k for k, _ in cuts], [r["phase"] for _, r in out]
+    ps = [r["progress"] for _, r in out]; assert ps == sorted(ps) and len(set(ps)) == len(ps) and 0 <= ps[0] and ps[-1] == 99, ps
+    d = dict(out)
+    assert d["encode"]["label"] == "Reading your prompt" and d["load"]["label"] == "Loading the video model"
+    assert d["stage1"]["label"] == "Stage 1 of 2: drafting motion \u00b7 step 3 of 8" and d["stage1"]["step"] == "3/8" and d["stage1"]["eta_s"] == 39.0 and abs(d["stage1"]["s_per_it"] - 7.96) < 1e-9
+    assert 20 < d["stage1"]["progress"] < 62 and abs(d["stage1"]["progress"] - (20 + 42 * 3 / 8)) < 0.06
+    assert d["upscale"]["label"] == "Upscaling \u00d72" and d["upscale"]["step"] is None and d["upscale"]["eta_s"] is None
+    assert d["stage2"]["label"] == "Stage 2 of 2: refining detail \u00b7 step 2 of 3" and d["stage2"]["step"] == "2/3" and d["stage2"]["eta_s"] == 141.0
+    assert d["decode"]["label"] == "Decoding video frames" and d["audio"]["label"] == "Decoding sound" and d["saving"]["label"] == "Saving"
+    assert P("") ["phase"] == "starting" and P("")["progress"] == 0 and P(None)["step"] is None
+
+def test_parse_progress_every_prefix_is_monotonic_and_early_vae_is_not_decode():
+    txt = fixture_job(); last = -1
+    for n in range(0, len(txt), 97):
+        r = video.parse_progress(txt[:n]); assert r["progress"] >= last, (n, r, last); last = r["progress"]
+        if n < txt.index("100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 3/3"): assert r["phase"] not in ("decode", "audio", "saving"), (n, r)    # the CausalDiffusionVAE load before stage 2
+    early = txt[:txt.index(" 1/3 [")]; assert "CausalDiffusionVAE" in early and video.parse_progress(early)["phase"] == "stage2"
+    # tqdm lines separated by \r, with colour codes, and a different bar length (not hardcoded to 8 and 3)
+    s = "got prompt\r\n\x1b[32m[INFO]\x1b[0m Requested to load LTXAV\n 50%|#| 5/10 [00:10<00:10,  2.00s/it]\r 60%|#| 6/10 [00:12<00:08,  2.00s/it]\r"
+    r = video.parse_progress(s); assert r["step"] == "6/10" and r["eta_s"] == 8.0 and "step 6 of 10" in r["label"], r
+    r = video.parse_progress(s + "50%| 1/2 [00:01<01:02:03,  1.5it/s]"); assert r["phase"] == "stage2" and r["step"] == "1/2" and r["eta_s"] == 3723.0 and abs(r["s_per_it"] - 1 / 1.5) < 1e-9, r
+
+def test_wait_sets_live_progress_for_ordinary_job():
+    r = Rig(mode="slow")
+    try:
+        txt = fixture_job(); marks = ["Requested to load LTXAVTEModel_", "Requested to load LTXAV\r", " 3/8 [00:25<00:39,  7.96s/it]", "Requested to load LatentUpsampler", " 2/3 [04:43<02:21, 141.24s/it]"]
+        pos = [0] + [txt.index(m) + len(m) for m in marks]; pos.append(txt.index("Prompt executed in"))
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x"}); r.wait(jid, ("running",))
+        def feed():
+            for a, b in zip(pos, pos[1:]):
+                open(r.q.log_path, "ab").write(txt[a:b].encode()); time.sleep(0.3)
+        th = threading.Thread(target=feed); th.start()
+        seen, last = [], -1.0
+        while r.q.get(jid)["state"] == "running":
+            j = r.q.get(jid)
+            if isinstance(j.get("progress"), float):
+                assert j["progress"] >= last, (j["progress"], last); last = j["progress"]
+                if not seen or seen[-1] != j.get("phase"): seen.append(j.get("phase"))
+                if j.get("phase") == "stage1" and j.get("step"): assert j["note"].startswith("Stage 1 of 2") and isinstance(j["eta_s"], float), j
+            time.sleep(0.03)
+        th.join(); j = r.wait(jid, ("done", "failed"))
+        assert j["state"] == "done", j
+        assert seen[:2] == ["encode", "load"] and seen[2:5] == ["stage1", "upscale", "stage2"], seen
+        assert last >= 62, last
+    finally: r.close()
+
+def test_wait_ignores_log_written_before_submit():
+    r = Rig(mode="slow")
+    try:
+        open(r.q.log_path, "ab").write(fixture_job().encode())                       # a finished earlier prompt is already in the log
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x"}); j = r.wait(jid, ("running",)); time.sleep(0.5)
+        j = r.q.get(jid); assert j.get("phase") in (None, "starting") and (j.get("progress") or 0) < 12, j
+        assert r.wait(jid, ("done", "failed"))["state"] == "done"
+    finally: r.close()
+
 if __name__ == "__main__":
     fails = 0
     for n, f in sorted(globals().items()):

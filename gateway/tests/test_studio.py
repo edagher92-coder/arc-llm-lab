@@ -467,6 +467,13 @@ def test_v3_shell_comfy_session_wiring_and_links():
     assert 'target: "_blank"' in html and 'rel: "noopener noreferrer"' in html
 
 
+def test_v3_shell_live_render_progress_hooks():
+    html = _shell_html()
+    assert 'c.step ? " \u00b7 step " + c.step' in html and 'typeof c.eta_s === "number"' in html and '" left in this stage"' in html      # step and stage ETA under the bar
+    assert 'function leftIn(sec)' in html and 'j.state === "running" && typeof j.note === "string" && j.note' in html                    # the live phase label is the note while rendering
+    assert 'j.note.split(" \\u00b7 ")[0]' in html and 'Math.round(j.progress) + "%"' in html                                           # queue list item: phase label and %
+    assert "typeof c.progress" in html and "pct = c.progress" in html                                                                    # the real bar is preferred when numeric
+
 def test_v3_shell_system_poll_and_tabs():
     html = _shell_html()
     assert 'api("system")' in html and "visibilitychange" in html and "document.hidden" in html
