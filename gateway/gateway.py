@@ -334,6 +334,8 @@ def build():
     if vq is not None and vq.cfg.enabled:
         import studio as _studio
         _studio.register(approvals, vq, vq.cfg, HERE, cfg=CFG)
+        import studio_chat as _studio_chat
+        _studio_chat.register(approvals, CFG, vq, HERE)   # code tab: POST /approvals/studio/api/chat + GET code.js
     gw.add_transform(Hide())
     gw.add_transform(search)
     gw.add_transform(Describe())

@@ -586,6 +586,74 @@ def test_p2_stream_and_stats_routes_and_tiers():
     assert approvals._ident["srv"] is None                                                       # no studio.ts_identity config: no identity listener
 
 
+def test_p2_shell_stream_wiring():
+    html = _shell_html()
+    assert "new EventSource(" in html and 'studio/api/stream?backfill=' in html and "withCredentials: true" in html
+    for ev in ("hello", "m", "job", "sys", "error"):
+        assert 'addEventListener("%s"' % ev in html, ev                                              # one stream, the contract's four events
+    assert "function applyHello(" in html and "api.state.points" in html and "api.state.jobs" in html and "api.state.live" in html
+    assert "api.on = " in html and "api.get = " in html and "api.post = " in html                   # the contract's front-end interface
+    assert "j.gone" in html and "api.state.jobs.delete(" in html and "api.state.jobs.set(" in html  # job upsert / removal
+    assert 'document.visibilityState !== "visible"' in html and "if (document.hidden) { closeStream();" in html and "else { openStream();" in html   # open only while visible
+    assert "EventSource.CLOSED" in html and "function loop()" in html and "if (S.live || document.hidden" in html                                 # 429 / closed -> polling, and no polling while live
+    assert 'emit("auth"' in html and 'api("stats")' in html
+    assert "FAST_N = 900" in html and "GAP_S = 5" in html
+
+
+def test_p2_shell_header_switch_and_tally():
+    html = _shell_html()
+    assert 'id="hdrSwitch"' in html and '$("#hdrSwitch").append(gpuSwitch())' in html                # the Video / Qwen switch is in the header on every tab
+    assert "Loading Qwen…" in html and "Video engine warm · " in html and "GOV_LOADING" in html and "linger_until" in html
+    assert "function askSwitch(" in html and "when it finishes" in html and '"Cancel"' in html and '"OK"' in html and "S.after = m" in html      # 409 -> a sheet, not a red line
+    assert "function ownerNow(" in html and '"handoff"' in html and '"idle"' in html and "gpu_owner" in html
+
+
+def test_p2_shell_sparkline_and_charts():
+    html = _shell_html()
+    assert "const charts = {" in html and "spark(el, series, opts)" in html and "charts.spark(" in html
+    assert 'preserveAspectRatio: "none"' in html and "vector-effect:non-scaling-stroke" in html and "opts.gap_s" in html and 'line.style.stroke = "var(" + opts.colour + ")"' in html
+    assert "<canvas" not in html and 'createElementNS(NS' in html                                   # inline SVG only
+    for k in ("cpu", "ram", "vram", "tps"):
+        assert '{k: "%s"' % k in html, k
+    assert 'fmtPct = v => num(v) ? Math.round(v) + "%" : "—"' in html and "function paintCharts(" in html and "span_s: FAST_N" in html   # nulls read as a dash, 15-minute window
+    assert "function paintTele()" in html and "if (document.hidden) return;" in html and "S.dirty" in html                                   # redraw only when dirty and visible
+
+
+def test_p2_shell_live_panel_phase_strip():
+    html = _shell_html()
+    assert "const PHASES = [" in html
+    for ph in ("encode", "load", "stage1", "upscale", "stage2", "decode", "audio", "saving"):
+        assert '["%s", ' % ph in html, ph
+    assert "function phaseStrip()" in html and "function paintPhases(" in html and '"data-phase"' in html and '"data-on"' in html
+    assert 'bar.style.transform = "scaleX("' in html and "transition:transform .9s linear" in html   # transform-only progress motion
+    assert 'kv("step", c.step)' in html and 'kv("stage", ' in html and 'kv("overall", ' in html and "function tc(s)" in html
+
+
+def test_p2_shell_code_tab_lazy_load():
+    html = _shell_html()
+    assert '["code", "Code"]' in html and 'id="v-code"' in html
+    assert 'fetch(B + "studio/code.js"' in html and "r.status !== 200" in html and "Qwen coding studio coming soon" in html
+    assert "typeof mod.mount !== \"function\"" in html and "mod.mount(root, api)" in html and "function loadInline(" in html
+
+
+def test_p2_shell_responsive_and_a11y():
+    html = _shell_html()
+    assert "@media (min-width:600px)" in html and "@media (min-width:1101px)" in html and '"nav main live"' in html and '"nav main live metrics"' in html
+    assert 'id="livepane"' in html and 'id="metricspane"' in html and "function layout()" in html
+    assert "env(safe-area-inset-bottom)" in html and ":focus-visible{outline:2px solid" in html
+    assert 'role: "progressbar"' in html and 'role="status"' in html and 'aria-live="polite"' in html
+
+
+def test_p2_shell_inline_script_parses():
+    import shutil, subprocess
+    node = shutil.which("node")
+    if not node: print("skip: node not installed"); return
+    m = re.search(r"<script>\n(.*)</script>", _shell_html(), re.S); assert m
+    f = os.path.join(tv.TMP, "studio_inline.js"); open(f, "w", encoding="utf-8").write(m.group(1))
+    out = subprocess.run([node, "--check", f], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+
+
 if __name__ == "__main__":
     fails = 0
     for n, f in sorted(globals().items()):

@@ -34,7 +34,7 @@ button{touch-action:manipulation}
 .ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
 /* frame: header, rail (desktop) / tab bar (phone), views */
-.app{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:100vw;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh;grid-template-areas:"bar" "main" "nav"}
+.app{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:100vw;grid-template-rows:auto auto minmax(0,1fr) auto;height:100dvh;grid-template-areas:"bar" "tele" "main" "nav"}
 .bar{grid-area:bar;position:relative;display:flex;align-items:center;gap:10px;padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));padding-top:calc(8px + env(safe-area-inset-top));background:var(--deck);border-bottom:1px solid var(--line)}
 .bar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:4px;background:repeating-linear-gradient(115deg,var(--ember) 0 14px,transparent 14px 28px);opacity:.85;transform-origin:left;pointer-events:none}
 .brand{display:flex;align-items:center;gap:9px;flex:none}
@@ -43,16 +43,7 @@ button{touch-action:manipulation}
 .brand b{font:700 21px/1 var(--display);letter-spacing:.14em;text-transform:uppercase}
 .brand small{font:11px var(--mono);color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
 .sp{flex:1 1 0;min-width:0}
-.pill{display:flex;align-items:center;gap:8px;min-height:44px;min-width:0;flex:0 1 auto;padding:4px 12px;border:1px solid var(--line2);border-radius:999px;background:var(--bg);cursor:pointer;transition:border-color .2s,transform .12s}
-.pill:hover{border-color:var(--cobalt-hi)}
-.pill:active{transform:scale(.97)}
 .lamp{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none;transition:background .3s}
-.pill .k{font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);flex:none}
-.pill span.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--mute);min-width:0}
-.pill b{color:var(--ink);font-weight:600}
-.pill[data-own="video"] .lamp{background:var(--ember);animation:tally 1.5s ease-in-out infinite}
-.pill[data-own="llm"] .lamp{background:var(--go)}
-.pill[data-own="handoff"] .lamp{background:var(--wait);animation:tally 1s ease-in-out infinite}
 @keyframes tally{0%{box-shadow:0 0 0 0 #ff6b2c99}70%,100%{box-shadow:0 0 0 7px #ff6b2c00}}
 .iconbtn{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line2);border-radius:12px;background:var(--bg);cursor:pointer;color:var(--ink);transition:border-color .2s,transform .12s}
 .iconbtn:hover{border-color:var(--cobalt-hi)}
@@ -73,7 +64,7 @@ main{grid-area:main;min-height:0;position:relative}
 .intro .view.on .sec:nth-child(4){animation-delay:.32s}
 .intro .view.on .sec:nth-child(n+5){animation-delay:.4s}
 
-.nav{grid-area:nav;display:grid;grid-template-columns:repeat(4,1fr);background:var(--deck);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.nav{grid-area:nav;display:grid;grid-template-columns:repeat(5,1fr);background:var(--deck);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .nav button{position:relative;display:grid;justify-items:center;align-content:center;gap:2px;min-height:56px;padding:6px 2px;background:none;border:0;color:var(--faint);font:700 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,background .2s}
 .nav button:active{background:var(--raise)}
 .nav button[aria-current="page"]{color:var(--ink)}
@@ -185,16 +176,9 @@ details.adv .field:first-of-type{margin-top:6px}
 .screen audio{width:90%;margin:30px 0}
 .empty{padding:36px 22px;text-align:center;color:var(--mute);max-width:44ch}
 .empty b{display:block;color:var(--ink);font:700 18px var(--display);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
-.live{display:grid;gap:12px;justify-items:center;padding:34px 18px;text-align:center;width:100%}
 .live .on-air{display:inline-flex;align-items:center;gap:8px;padding:3px 10px;border:1px solid var(--ember);border-radius:3px;color:var(--ember);font:700 12px var(--display);letter-spacing:.2em;text-transform:uppercase}
 .live .on-air i{width:8px;height:8px;border-radius:50%;background:var(--ember);animation:tally 1.2s ease-in-out infinite}
 .live .on-air.wait{color:var(--wait);border-color:var(--wait)}.live .on-air.wait i{background:var(--wait)}
-.clock{font:300 56px/1 var(--mono);letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.track{position:relative;width:min(440px,84%);height:14px;border-radius:3px;background:var(--deck);border:1px solid var(--line2);overflow:hidden}
-.track i{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(115deg,var(--ember) 0 10px,#ff9161 10px 20px);background-size:28px 100%;transition:width .8s linear;animation:slide 1.2s linear infinite}
-.track.ind i{width:35%;animation:sweep 1.6s var(--ease) infinite,slide 1.2s linear infinite;transition:none}
-@keyframes slide{to{background-position:28px 0}}
-@keyframes sweep{0%{left:-35%}100%{left:100%}}
 .eta{font:13px var(--mono);color:var(--mute);overflow-wrap:anywhere}
 .eta.over{color:var(--wait)}
 .live .note{color:var(--mute);font-size:14px;max-width:46ch}
@@ -316,30 +300,134 @@ dialog.wide{max-width:900px}
 .shot .acts .btn{flex:1 1 auto}
 .shot .acts .go{flex:2 1 40%;width:auto;font-size:14px;min-height:44px;letter-spacing:.08em}
 
-/* wider screens: rail + two columns */
-@media (min-width:981px){
-  .app{grid-template-columns:84px minmax(0,1fr);grid-template-areas:"bar bar" "nav main"}
-  .nav{grid-template-columns:1fr;grid-auto-rows:76px;align-content:start;border-top:0;border-right:1px solid var(--line);padding:6px 0}
+
+/* telemetry strip: tally + four sparklines, under the header on every tab */
+.tele{grid-area:tele;display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:6px;align-items:stretch;padding:5px max(14px,env(safe-area-inset-right)) 6px max(14px,env(safe-area-inset-left));background:var(--deck);border-bottom:1px solid var(--line);min-width:0}
+.tally{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 10px 0 4px;background:none;border:0;border-right:1px solid var(--line);color:var(--ink);cursor:pointer;text-align:left;min-width:0;max-width:44vw}
+.tally .lamp{width:11px;height:11px}
+.tally[data-own="video"] .lamp{background:var(--ember);animation:tally 1.5s ease-in-out infinite}
+.tally[data-own="llm"] .lamp{background:var(--go)}
+.tally[data-own="idle"] .lamp{background:var(--cobalt-hi)}
+.tally[data-own="handoff"] .lamp{background:var(--wait);animation:tally 1s ease-in-out infinite}
+.tally .k{font:700 10.5px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);display:block;line-height:1.1}
+.tally .s{display:none;font-size:12px;color:var(--ink);white-space:nowrap}
+.tally .t{display:block;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.tk{position:relative;display:grid;grid-template-rows:auto minmax(0,1fr);gap:1px;min-height:44px;padding:2px 4px 0;background:none;border:0;border-radius:4px;color:inherit;cursor:pointer;text-align:left;min-width:0;overflow:hidden}
+.tk:hover{background:var(--raise)}
+.tk .l{display:flex;justify-content:space-between;align-items:baseline;gap:4px;min-width:0}
+.tk .l b{font:700 10.5px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.tk .l output{font:600 12px var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tk .l output.unk{color:var(--faint)}
+.tk .l output.held{color:var(--mute)}
+.tk .g{min-height:18px;min-width:0}
+.spark{display:block;width:100%;height:100%;overflow:visible}
+.spark .sl{fill:none;stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+.spark .sf{opacity:.18;stroke:none}
+.tk .spark .sf{opacity:.12}
+.spark .sg{stroke:var(--line2);stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:2 3}
+
+/* header switch: compact Video / Qwen on every tab */
+.hsw .gsw{min-width:148px}
+.hsw .gsw button{min-height:40px;font-size:13px;letter-spacing:.1em;gap:6px}
+.hsw .gsw button i{width:7px;height:7px}
+
+/* panes */
+.livepane,.metricspane{display:none;grid-area:live;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;border-left:1px solid var(--line);padding:16px 14px 28px;background:linear-gradient(180deg,var(--deck) 0,var(--bg) 160px)}
+.metricspane{grid-area:metrics}
+.livehd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.livehd h2{margin:0;font:700 13px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+
+/* live render panel */
+.live{display:grid;gap:12px;justify-items:center;padding:22px 16px 18px;text-align:center;width:100%}
+.live .slatebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px}
+.live .shotno{font:700 12px var(--mono);letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.live .stg{font:700 19px/1.2 var(--display);letter-spacing:.06em;text-transform:uppercase;max-width:36ch;overflow-wrap:anywhere}
+.live .pct{font:300 56px/1 var(--mono);letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.live .pct small{font-size:22px;color:var(--mute)}
+.track{position:relative;width:min(440px,88%);height:14px;border-radius:3px;background:var(--deck);border:1px solid var(--line2);overflow:hidden}
+.track i{position:absolute;left:0;top:0;bottom:0;width:100%;transform:scaleX(0);transform-origin:left;background:repeating-linear-gradient(115deg,var(--ember) 0 10px,#ff9161 10px 20px);transition:transform .9s linear;will-change:transform}
+.track i::after{content:"";position:absolute;inset:0 -28px 0 0;background:inherit;animation:slide 1.2s linear infinite}
+.track.ind i{width:35%;transform:none;animation:sweep 1.6s var(--ease) infinite;transition:none}
+@keyframes slide{to{transform:translateX(-28px)}}
+@keyframes sweep{0%{left:-35%}100%{left:100%}}
+.phases{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;width:min(480px,96%);margin:0;padding:0;list-style:none}
+.phases li{display:grid;gap:5px;justify-items:center;min-width:0}
+.phases li i{display:block;width:100%;height:5px;border-radius:2px;background:var(--line);transition:background .4s,box-shadow .4s}
+.phases li span{font:700 10px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.phases li[data-on="done"] i{background:var(--go)}
+.phases li[data-on="now"] i{background:var(--ember);box-shadow:0 0 10px #ff6b2c88;animation:tally 1.2s ease-in-out infinite}
+.phases li[data-on="now"] span{color:var(--ink)}
+.live .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;font:12.5px var(--mono);color:var(--mute)}
+.live .stats b{color:var(--ink);font-weight:500}
+.live .clock{font:600 14px var(--mono);letter-spacing:.08em;color:var(--mute);font-variant-numeric:tabular-nums}
+.live .clock b{color:var(--ink);font-weight:600}
+@media (max-width:420px){.live .pct{font-size:44px}.phases li span{display:none}}
+
+/* metrics: 15-minute charts */
+.mgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.mc{display:grid;gap:4px;align-content:start;padding:10px 12px 8px;background:var(--deck);border:1px solid var(--line);border-top:3px solid var(--line2);border-radius:4px;min-width:0}
+.mc[data-t="cpu"]{border-top-color:var(--cobalt)}.mc[data-t="ram"]{border-top-color:var(--cobalt-hi)}.mc[data-t="vram"]{border-top-color:var(--ember)}.mc[data-t="tps"]{border-top-color:var(--go)}
+.mc .l{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mc .l h3{margin:0;font:700 11.5px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.mc .l output{font:600 20px/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.mc .l output.unk{color:var(--faint);font-size:16px}
+.mc .l output.held{color:var(--mute)}
+.mc .g{position:relative;height:64px;min-width:0}
+.mc .ax{position:absolute;right:0;padding:0 3px;background:#0b1222cc;border-radius:2px;font:10px var(--mono);color:var(--faint);pointer-events:none}
+.mc .ax.top{top:0}.mc .ax.bot{bottom:0}
+.mc .f{display:flex;justify-content:space-between;font:10.5px var(--mono);color:var(--faint)}
+.gov{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+.gov dt{color:var(--faint)}.gov dd{margin:0;font-family:var(--mono);font-size:12.5px;text-align:right;overflow-wrap:anywhere}
+
+/* developer readout */
+.devbar{position:fixed;right:10px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:8;padding:6px 9px;background:#02050dd9;border:1px solid var(--line2);border-radius:6px;font:11px/1.5 var(--mono);color:var(--mute);max-width:min(92vw,360px);pointer-events:none;white-space:pre-wrap}
+.devbar b{color:var(--ink);font-weight:500}
+
+/* code tab */
+.coderoot{min-height:50vh;display:grid}
+.coderoot>.empty{align-self:center;justify-self:center}
+
+/* ask sheet */
+.ask p{margin:0 0 14px;color:var(--mute)}
+
+/* layout tiers: phone (< 600) bottom tabs; tablet (600–1100) Create | Live; desktop (> 1100) Create | Live | Metrics */
+@media (min-width:600px){
+  .app{grid-template-columns:64px minmax(0,1fr) minmax(300px,36%);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"bar bar bar" "tele tele tele" "nav main live"}
+  .livepane{display:block}
+  .nav{grid-template-columns:1fr;grid-auto-rows:68px;align-content:start;border-top:0;border-right:1px solid var(--line);padding:6px 0 env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .nav button{font-size:10px;letter-spacing:.08em}
   .nav button[aria-current="page"]::before{top:20%;bottom:20%;left:0;right:auto;width:3px;height:auto;border-radius:0 3px 3px 0}
-  .nav .badge{top:10px;left:calc(50% + 6px)}
-  .view{padding:20px 28px 32px}
-  #v-create .split{grid-template-columns:minmax(360px,440px) minmax(0,1fr);gap:0 36px;align-items:start}
+  .nav .badge{top:8px;left:calc(50% + 6px)}
+  .nav button[data-tab="queue"]{display:none}
+  .view{padding:18px 22px 32px}
   .presets{flex-wrap:wrap;overflow:visible;margin:0 0 14px;padding:0}
   .dock{margin:8px 0 -32px;padding-left:0;padding-right:0}
-  .qgrid{grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:32px;align-items:start}
-  .qgrid .stagecol{order:2;position:sticky;top:0}
+  .tele{grid-template-columns:minmax(150px,auto) repeat(4,minmax(0,1fr));gap:10px}
+  .tally{max-width:none}
   .brand small{display:inline}
   dialog{border-radius:14px;margin:auto;max-height:86dvh}
   #toasts{bottom:24px}
   .hint{bottom:20px;max-width:420px}
+  .devbar{bottom:12px}
 }
-@media (max-width:980px){.brand small{display:none}}
+@media (min-width:1101px){
+  .app{grid-template-columns:72px minmax(0,1fr) minmax(340px,30%) minmax(280px,22%);grid-template-areas:"bar bar bar bar" "tele tele tele tele" "nav main live metrics"}
+  .metricspane{display:block}
+  .nav{grid-auto-rows:76px}
+  .nav button{font-size:11.5px;letter-spacing:.1em}
+  #v-create .split{grid-template-columns:minmax(0,1fr);max-width:760px}
+  .view{padding:20px 28px 32px}
+  .mgrid{grid-template-columns:1fr}
+}
+@media (max-width:599px){.brand small{display:none}.tele{gap:4px}.tally{padding:0 6px 0 2px;gap:6px}.tally .k,.tally .t{display:none}.tally .s{display:block}.tk{padding:2px 2px 0}.tk .l{flex-direction:column;align-items:flex-start;gap:0;line-height:1.1}.tk .l output{font-size:11px}.tk .g{min-height:12px}}
 @media (max-width:420px){
-  .clock{font-size:44px}
   .brand b{font-size:19px;letter-spacing:.1em}
-  .pill .k{display:none}
+  .tally .k{display:none}
+  .hsw .gsw{min-width:132px}
+  .hsw .gsw button{font-size:12px;letter-spacing:.06em;padding:0 4px}
+  .hsw .gsw button i{display:none}
 }
-@media (max-width:359px){.pill .t .long{display:none}}
+@media (max-width:359px){.tele{grid-template-columns:auto repeat(2,minmax(0,1fr))}.tk[data-k="vram"],.tk[data-k="tps"]{display:none}}
 @media (pointer:coarse){input[type=checkbox]{min-width:24px;min-height:24px}}
 
 /* motion: system setting by default, overridable in Settings */
@@ -358,13 +446,16 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
   </form>
 </div>
 
-<div class="app intro" id="app" data-live="0">
+<div class="app intro" id="app" data-live="0" data-stream="off">
   <header class="bar">
     <div class="brand"><i class="rec" aria-hidden="true"></i><b>Studio</b><small>LTX 2.5 · Arc B60</small></div>
     <div class="sp"></div>
-    <button class="pill" id="gpu" type="button" data-own="" aria-live="polite" title="Open the System tab. Green: Qwen has the GPU. Amber: handing over. Orange: video has the GPU."><i class="lamp"></i><span class="k">GPU</span><span class="t" id="gpuText">Connecting</span></button>
+    <div class="hsw" id="hdrSwitch" title="Who has the GPU. One tap hands it over."></div>
     <button class="iconbtn" id="openSettings" type="button" aria-label="Settings and advanced" title="Settings and advanced"></button>
   </header>
+  <div class="tele" id="tele" aria-label="Live telemetry">
+    <button class="tally" id="gpu" type="button" data-own="" aria-live="polite" title="GPU owner. Opens the System tab."><i class="lamp"></i><span><span class="k">GPU</span><span class="t" id="gpuText">Connecting</span><span class="s" id="gpuShort">…</span></span></button>
+  </div>
   <main>
     <section class="view" id="v-create" aria-label="Create" hidden>
       <div class="split">
@@ -373,9 +464,9 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
       </div>
     </section>
     <section class="view" id="v-queue" aria-label="Queue" hidden>
-      <div class="qgrid">
+      <div id="livePane">
+        <div class="sec stagecol"><div class="livehd"><h2>Monitor</h2><small class="mono" id="liveTc"></small></div><div id="stage"></div></div>
         <div class="sec"><div class="hd"><span>On the slate</span><small id="qCount"></small></div><div class="reel" id="qList"></div></div>
-        <div class="sec stagecol"><div class="hd"><span>Monitor</span></div><div id="stage"></div></div>
       </div>
     </section>
     <section class="view" id="v-gallery" aria-label="Gallery" hidden>
@@ -383,18 +474,33 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
     </section>
     <section class="view" id="v-system" aria-label="System" hidden>
       <div class="sec"><div class="hd"><span>GPU control</span><small id="sysAge"></small></div><div class="gpuline" id="gpuRow2"></div></div>
+      <div class="sec" id="sysMetrics"></div>
       <div class="sec" id="comfyCol"></div>
       <div class="sec"><div class="hd"><span>Machine</span></div><div class="panel" id="sysPanel"></div></div>
+      <div class="sec" id="devRaw" hidden></div>
+    </section>
+    <section class="view" id="v-code" aria-label="Code" hidden>
+      <div class="sec"><div class="hd"><span>Code</span><small id="codeState"></small></div><div class="coderoot" id="codeRoot"></div></div>
     </section>
   </main>
+  <aside class="livepane" id="livepane" aria-label="Live"></aside>
+  <aside class="metricspane" id="metricspane" aria-label="Metrics"></aside>
   <nav class="nav" id="nav" aria-label="Sections"></nav>
+</div>
+
+<div id="metrics" class="sec" hidden>
+  <div class="hd"><span>Telemetry</span><small id="mAge">last 15 min</small></div>
+  <div class="mgrid" id="mgrid"></div>
+  <div class="inst" data-t="llm" style="margin-top:10px"><h3>Governor</h3><dl class="gov" id="govList"></dl></div>
 </div>
 
 <dialog id="settings" aria-label="Settings and advanced"><div class="dh"><h2>Settings</h2><button class="btn sm" id="closeSettings" type="button">Done</button></div><div class="db" id="settingsBody"></div></dialog>
 <dialog id="viewer" class="wide" aria-label="Clip"><div class="dh"><h2>Clip</h2><button class="btn sm" id="closeViewer" type="button">Close</button></div><div class="db" id="viewerBody"></div></dialog>
+<dialog id="ask" aria-label="A render is running"><div class="dh"><h2>A render is running</h2></div><div class="db ask" id="askBody"></div></dialog>
 
 <div class="hint" id="a2hs" role="note" hidden><span>Install Studio: tap <b>Share</b>, then <b>Add to Home Screen</b>.</span><button class="btn sm" id="a2hsOk" type="button">Got it</button></div>
 <div id="toasts" role="status" aria-live="polite"></div>
+<div class="devbar mono" id="devbar" hidden></div>
 
 <script>
 "use strict";
@@ -403,8 +509,10 @@ const $ = s => document.querySelector(s);
 if (B !== "/approvals/") for (const l of document.querySelectorAll('link[rel="manifest"],link[rel="apple-touch-icon"]')) l.href = B + "studio/" + l.getAttribute("href").split("/").pop();   // behind a path prefix (the tailnet)
 const ACTIVE = ["queued", "waiting", "starting", "running"];
 const COMFY_PORT = 8448;                                          // CueForge / ComfyUI on the tailnet
-const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, status: null, sys: null, sysAt: 0, upload: null, enabled: true, mode: "single", shots: [], stripOpen: null,
-           favOnly: false, tab: "create", loaded: false, ticks: {}, modeBusy: false, comfyBusy: false, modeMsg: "", seen: {}};
+const FAST_N = 900, GAP_S = 5;                                    // the server's fast ring: 900 points, 1 s apart while watched
+const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, sys: null, sysAt: 0, upload: null, enabled: true, mode: "single", shots: [], stripOpen: null,
+           favOnly: false, tab: "create", loaded: false, ticks: {}, modeBusy: false, comfyBusy: false, modeMsg: "", seen: {}, after: null,
+           live: false, lastEv: 0, seq: null, m: null, tps: null, tpsAt: 0, dirty: true, net: {req: [], ev: []}};
 
 /* per-viewer convenience only: every access is guarded, and the app works without it */
 const store = {
@@ -413,12 +521,12 @@ const store = {
 };
 
 /* ---------- settings (persisted) ---------- */
-const DEFAULTS = {wf: "", len: 0, size: "", seedLock: false, autoOpen: true, haptics: true, sound: false, motion: "system", poll: "normal"};
+const DEFAULTS = {wf: "", len: 0, size: "", seedLock: false, autoOpen: true, haptics: true, sound: false, motion: "system", poll: "normal", dev: false};
 const POLL = {live: {label: "Live (every 2 s while rendering)", busy: 2000, idle: 6000}, normal: {label: "Normal (every 3 s while rendering)", busy: 3000, idle: 9000}, saver: {label: "Battery saver (every 8 s while rendering)", busy: 8000, idle: 30000}};
 const CFG = Object.assign({}, DEFAULTS);
 (function () { const s = store.get("studio.settings.v3"); if (s && typeof s === "object") for (const k of Object.keys(DEFAULTS)) if (typeof s[k] === typeof DEFAULTS[k]) CFG[k] = s[k]; if (!POLL[CFG.poll]) CFG.poll = "normal"; if (!["system", "reduce", "full"].includes(CFG.motion)) CFG.motion = "system"; })();
 function saveCfg() { store.set("studio.settings.v3", CFG); applyCfg(); }
-function applyCfg() { document.documentElement.dataset.motion = CFG.motion; }
+function applyCfg() { document.documentElement.dataset.motion = CFG.motion; const d = $("#devbar"); if (d) d.hidden = !CFG.dev; const r = $("#devRaw"); if (r) r.hidden = !CFG.dev; }
 applyCfg();
 
 function h(tag, attrs, ...kids) {
@@ -430,17 +538,19 @@ function h(tag, attrs, ...kids) {
   for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
   return e;
 }
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); return e; }
 const ICONS = {
   create: ["M12 5v14", "M5 12h14"],
   queue: ["M8 6h12", "M8 12h12", "M8 18h12", "M4 6h.01", "M4 12h.01", "M4 18h.01"],
   gallery: ["M4 4h7v7H4z", "M13 4h7v7h-7z", "M4 13h7v7H4z", "M13 13h7v7h-7z"],
   system: ["M7 7h10v10H7z", "M10 3v4", "M14 3v4", "M10 17v4", "M14 17v4", "M3 10h4", "M3 14h4", "M17 10h4", "M17 14h4"],
+  code: ["M8 7l-5 5 5 5", "M16 7l5 5-5 5", "M14 4l-4 16"],
   sliders: ["M4 7h10", "M18 7h2", "M4 17h2", "M10 17h10", "M14 5v4", "M6 15v4"]
 };
 function icon(name) {
-  const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg");
-  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "ic"); s.setAttribute("aria-hidden", "true");
-  for (const d of ICONS[name]) { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.append(p); }
+  const s = svgEl("svg", {viewBox: "0 0 24 24", class: "ic", "aria-hidden": "true"});
+  for (const d of ICONS[name]) s.append(svgEl("path", {d}));
   return s;
 }
 function toast(msg, kind, action) {
@@ -451,9 +561,12 @@ function toast(msg, kind, action) {
   setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 300); }, kind === "err" ? 6000 : 3500);
 }
 function mmss(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+function tc(s) { s = Math.max(0, Math.round(s)); return String(Math.floor(s / 3600)).padStart(2, "0") + ":" + mmss(s % 3600); }
 function ago(t) { const s = Date.now() / 1000 - t; return s < 90 ? "just now" : s < 5400 ? Math.round(s / 60) + " min ago" : s < 129600 ? Math.round(s / 3600) + " h ago" : Math.round(s / 86400) + " d ago"; }
-function lock() { const g = $("#gate"); g.hidden = false; $("#pin").focus(); }
+function lock() { const g = $("#gate"); g.hidden = false; $("#pin").focus(); closeStream(); }
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const num = v => typeof v === "number" && isFinite(v);
+const unk = v => v == null || v === "" || (typeof v === "number" && !isFinite(v));
 const wfByName = n => S.wfs.find(w => w.name === n);
 function estSec(w) { const n = String((w && w.est_minutes) || "").match(/[\d.]+/g); return n ? parseFloat(n[n.length - 1]) * 60 : 0; }
 /* the workflow's measured time, scaled by size and length when it says what it was measured at (est_ref = [width, height, seconds]) */
@@ -464,16 +577,251 @@ function estFor(j) {
   return Math.max(e, 10);
 }
 const isTyping = () => { const a = document.activeElement; return !!a && /^(TEXTAREA|INPUT|SELECT)$/.test(a.tagName); };
+const wide = () => matchMedia("(min-width:600px)").matches, xl = () => matchMedia("(min-width:1101px)").matches;
+const liveShown = () => wide() || S.tab === "queue";
+const chartsShown = () => !document.hidden && (xl() || S.tab === "system");
 
+/* ---------- api: requests, the one event stream, and the state it keeps current ----------
+   api(path, o)       the request helper (GET by default; o.method, o.json, o.body, o.headers)
+   api.get / api.post the contract's shorthands; both throw {status, error} (an Error with those fields)
+   api.on(ev, fn)     "hello" | "m" | "job" | "sys" | "open" | "error" | "auth" -> unsubscribe
+   api.state          {points, jobs: Map, sys, live} */
+function noteReq() { const t = Date.now(), r = S.net.req; r.push(t); while (r.length && r[0] < t - 60000) r.shift(); }
 async function api(path, o) {
-  o = o || {};
+  o = o || {}; noteReq();
   const r = await fetch(B + "studio/api/" + path, {method: o.method || "GET", credentials: "same-origin",
     headers: Object.assign({"X-Requested-With": "approvals"}, o.json ? {"Content-Type": "application/json"} : {}, o.headers || {}),
     body: o.json ? JSON.stringify(o.json) : o.body});
-  if (r.status === 401) { lock(); throw new Error("signed out"); }
+  if (r.status === 401) { lock(); emit("auth", {status: 401}); const e = new Error("signed out"); e.status = 401; e.error = e.message; throw e; }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error(d.error || d.result || ("request failed (" + r.status + ")")); e.status = r.status; throw e; }
+  if (!r.ok) { const e = new Error(d.error || d.result || ("request failed (" + r.status + ")")); e.status = r.status; e.error = e.message; e.reason = d.reason; throw e; }
   return d;
+}
+api.get = path => api(path);
+api.post = (path, body) => api(path, {method: "POST", json: body});
+api.state = {points: [], jobs: new Map(), sys: null, live: false};
+const subs = {};
+api.on = (ev, fn) => { (subs[ev] = subs[ev] || []).push(fn); return () => { subs[ev] = (subs[ev] || []).filter(f => f !== fn); }; };
+function emit(ev, data) { for (const f of subs[ev] || []) { try { f(data); } catch (e) { /* a listener must not break the stream */ } } }
+
+let es = null, esFails = 0, esTimer = null;
+function setLive(on) {
+  if (S.live === on) return;
+  S.live = api.state.live = on; $("#app").dataset.stream = on ? "on" : "off";
+  if (on) { clearTimeout(timer); timer = null; } else if (!document.hidden) { clearTimeout(timer); timer = setTimeout(loop, 1500); }
+}
+function openStream() {
+  if (es || document.visibilityState !== "visible" || !$("#gate").hidden) return;
+  if (typeof EventSource !== "function") { loop(); return; }
+  try { es = new EventSource(B + "studio/api/stream?backfill=" + FAST_N, {withCredentials: true}); } catch (e) { es = null; loop(); return; }
+  const parse = e => { try { return JSON.parse(e.data); } catch (x) { return null; } };
+  es.addEventListener("hello", e => { const d = parse(e); if (!d) return; esFails = 0; S.lastEv = Date.now(); applyHello(d); setLive(true); emit("open", d); emit("hello", d); });
+  es.addEventListener("m", e => { const d = parse(e); if (!d) return; S.lastEv = Date.now(); noteEv(); onM(d); emit("m", d); });
+  es.addEventListener("job", e => { const d = parse(e); if (!d) return; S.lastEv = Date.now(); noteEv(); onJob(d); emit("job", d); });
+  es.addEventListener("sys", e => { const d = parse(e); if (!d) return; S.lastEv = Date.now(); noteEv(); onSys(d); emit("sys", d); });
+  es.addEventListener("error", () => {
+    const closed = es && es.readyState === EventSource.CLOSED;                                      // 429 / 401 / refused: the browser will not retry
+    setLive(false); emit("error", {closed});
+    if (closed) { closeStream(); esFails++; esTimer = setTimeout(openStream, Math.min(300000, 15000 * Math.pow(2, Math.min(esFails - 1, 4)))); }
+  });                                                                                                  // otherwise EventSource retries in 3 s (retry: 3000); polling covers the gap
+}
+function closeStream() { clearTimeout(esTimer); esTimer = null; if (es) { try { es.close(); } catch (e) { /* already closed */ } es = null; } setLive(false); }
+function noteEv() { const t = Date.now(), r = S.net.ev; r.push(t); while (r.length && r[0] < t - 10000) r.shift(); }
+function applyHello(d) {
+  S.seq = d.seq;
+  api.state.points = Array.isArray(d.points) ? d.points.filter(p => p && num(p.t)) : [];
+  S.m = api.state.points.length ? api.state.points[api.state.points.length - 1] : null; holdTps();
+  if (Array.isArray(d.jobs)) applyJobs(d.jobs, true);
+  if (d.sys && typeof d.sys === "object") mergeSys(d.sys);
+  S.dirty = true; paintTele();
+}
+function onM(p) {
+  if (!num(p.t)) return;
+  const pts = api.state.points; if (pts.length && pts[pts.length - 1].t >= p.t) return;            // replayed point: every event is safe to see twice
+  pts.push(p); const cut = p.t - FAST_N - 20; while (pts.length > FAST_N + 60 || (pts.length && pts[0].t < cut)) pts.shift();
+  S.m = p; holdTps(); S.dirty = true; paintTele();
+}
+function holdTps() { if (S.m && num(S.m.tps)) { S.tps = S.m.tps; S.tpsAt = S.m.t; } }
+function onJob(j) {
+  if (!j || typeof j.id !== "string") return;
+  if (j.gone) { api.state.jobs.delete(j.id); S.jobs = S.jobs.filter(x => x.id !== j.id); if (S.sel === j.id) S.sel = null; delete S.seen[j.id]; }
+  else api.state.jobs.set(j.id, j);
+  applyJobs([...api.state.jobs.values()], false);
+}
+function onSys(s) { mergeSys(s); }
+function mergeSys(part) {
+  const prev = S.sys || {}, comfy = Object.assign({}, prev.comfy || {}, part.comfy || {});
+  S.sys = Object.assign({}, prev, part, {comfy}); S.sysAt = Date.now(); api.state.sys = S.sys;
+  if (typeof part.enabled === "boolean") S.enabled = part.enabled;
+  renderGpu(); paintSwitches(); if (S.tab === "system") renderSystem(); paintGov(); maybeAfter();
+}
+const lingerUntil = () => { const y = S.sys; if (!y) return null; const v = y.linger_until != null ? y.linger_until : (y.comfy && y.comfy.linger_until); return num(v) ? v : null; };
+/* the status the old /api/status gave, from what the stream keeps current */
+function statusNow() {
+  const active = S.jobs.find(j => ["starting", "running", "waiting"].includes(j.state)) || null, queued = S.jobs.filter(j => j.state === "queued").length;
+  return {enabled: S.enabled, queued, active, gpu: S.sys ? (S.sys.mode === "llm" ? "llm" : S.sys.mode ? "video" : "") : (S.m ? S.m.gpu_owner : "")};
+}
+/* one place where a new job list lands, from hello, a job event or a poll: finished-clip effects, badge, re-render of whatever is on screen */
+function applyJobs(list, replace) {
+  if (replace) { api.state.jobs = new Map(list.map(j => [j.id, j])); }
+  const jobs = [...api.state.jobs.values()].sort((a, b) => (b.created || 0) - (a.created || 0));
+  S.jobs = jobs;
+  let finished = null;
+  for (const j of jobs) { if (S.seen[j.id] && S.seen[j.id] !== j.state && j.state === "done") finished = j; S.seen[j.id] = j.state; }
+  if (S.sel && !jobs.some(j => j.id === S.sel)) S.sel = null;
+  if (!S.sel && jobs.length) S.sel = (jobs.find(j => ACTIVE.includes(j.state)) || jobs.find(j => j.state === "done") || jobs[0]).id;
+  S.loaded = true;
+  renderGpu(); paintSwitches(); renderBadge(); syncShots();
+  if (liveShown()) renderQueue(); if (S.tab === "gallery") renderGallery(); if (S.tab === "system") renderSystem();
+  if (finished) {
+    finishFx();
+    const fj = finished;
+    if (CFG.autoOpen && !isTyping() && !$("#viewer").open) { S.sel = fj.id; if (!wide()) tab("queue"); else renderQueue(); toast("Clip ready", "ok"); }
+    else toast("Clip ready", "ok", {label: "View", fn: () => { S.sel = fj.id; if (!wide()) tab("queue"); else renderQueue(); }});
+  }
+  const busy = jobs.some(j => ACTIVE.includes(j.state));
+  document.title = busy ? "Rendering · Studio" : "Studio";
+  maybeAfter();
+  return busy;
+}
+
+/* ---------- charts: inline SVG sparklines (the shell CSP allows no external scripts or styles) ----------
+   charts.spark(el, series, opts) -> {update(series), destroy()}
+   series: [{t, v}] or [number|null]. A null, or a gap in t longer than gap_s, breaks the line: nothing is interpolated across it.
+   opts: {min, max, unit, label, height: 32, gap_s: 5, colour: "--accent", fill: true, span_s (fixed time window ending at the newest t or opts.now)} */
+const charts = {
+  spark(el, series, opts) {
+    opts = Object.assign({height: 32, gap_s: GAP_S, colour: "--cobalt", fill: true}, opts || {});
+    const W = 300, H = opts.height;
+    const svg = svgEl("svg", {viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", class: "spark", "aria-hidden": "true", focusable: "false"});
+    const grid = svgEl("path", {class: "sg", d: "M0 " + (H / 2) + "H" + W}), fill = svgEl("path", {class: "sf"}), line = svgEl("path", {class: "sl"});
+    fill.style.fill = "var(" + opts.colour + ")"; line.style.stroke = "var(" + opts.colour + ")"; if (!opts.fill) fill.style.display = "none";
+    svg.append(grid, fill, line); el.append(svg);
+    let last = {min: null, max: null};
+    const f2 = v => Math.round(v * 100) / 100;
+    function update(series, o2) {
+      if (o2) Object.assign(opts, o2);
+      const pts = (series || []).map((p, i) => (p && typeof p === "object") ? p : {t: i, v: p}).filter(p => num(p.t));
+      const vs = pts.filter(p => num(p.v)).map(p => p.v);
+      let min = opts.min, max = opts.max;
+      if (!num(min)) min = vs.length ? Math.min(0, ...vs) : 0;
+      if (!num(max)) max = vs.length ? Math.max(...vs) : 1;
+      if (max - min < 1e-9) max = min + 1;
+      const pad = (max - min) * 0.08; const lo = num(opts.min) ? min : min - (min === 0 ? 0 : pad), hi = num(opts.max) ? max : max + pad;
+      const t1 = num(opts.now) ? opts.now : (pts.length ? pts[pts.length - 1].t : 1), t0 = opts.span_s ? t1 - opts.span_s : (pts.length ? pts[0].t : 0), span = Math.max(1e-9, t1 - t0);
+      const X = t => f2((t - t0) / span * W), Y = v => f2(H - 1 - (v - lo) / (hi - lo) * (H - 2));
+      let d = "", fd = "", seg = [];
+      const flush = () => { if (!seg.length) return; d += "M" + seg.map(p => p.x + " " + p.y).join("L"); if (seg.length === 1) d += "h0.01"; fd += "M" + seg[0].x + " " + H + "L" + seg.map(p => p.x + " " + p.y).join("L") + "L" + seg[seg.length - 1].x + " " + H + "Z"; seg = []; };
+      let prev = null;
+      for (const p of pts) {
+        if (p.t < t0 - 1) { prev = null; continue; }
+        if (!num(p.v) || (prev && p.t - prev.t > opts.gap_s)) flush();
+        if (num(p.v)) { seg.push({x: X(p.t), y: Y(p.v)}); prev = p; } else prev = null;
+      }
+      flush();
+      line.setAttribute("d", d); fill.setAttribute("d", opts.fill ? fd : "");
+      last = {min: lo, max: hi, n: vs.length};
+      return last;
+    }
+    update(series);
+    return {update, destroy() { svg.remove(); }, get range() { return last; }, el: svg};
+  }
+};
+const fmtPct = v => num(v) ? Math.round(v) + "%" : "—";
+const fmtGb = v => num(v) ? (v >= 100 ? Math.round(v) : v.toFixed(1)) + " GiB" : "—";
+const fmtTps = v => num(v) ? (v >= 100 ? Math.round(v) : v.toFixed(1)) + " t/s" : "—";
+/* the four live metrics the strip and the System charts share: key, label, field, colour, formatter, fixed range */
+const METRICS = [
+  {k: "cpu", label: "CPU", f: "cpu", colour: "--cobalt", fmt: fmtPct, min: 0, max: 100},
+  {k: "ram", label: "RAM", f: "ram_used_gb", colour: "--cobalt-hi", fmt: fmtGb, min: 0, maxOf: p => p.ram_total_gb},
+  {k: "vram", label: "VRAM", f: "vram_used_gb", colour: "--ember", fmt: fmtGb, min: 0},
+  {k: "tps", label: "Qwen", f: "tps", colour: "--go", fmt: fmtTps, min: 0, hold: true}
+];
+
+/* ---------- telemetry strip (header sparklines) and the 15-minute charts ---------- */
+const TELE = {}, CH = {};
+function buildTele() {
+  const root = $("#tele");
+  for (const m of METRICS) {
+    const out = h("output", {class: "unk"}, "—"), g = h("div", {class: "g"});
+    const cell = h("button", {class: "tk", type: "button", "data-k": m.k, "aria-label": m.label + " over the last 90 seconds", onclick: () => tab("system")}, h("div", {class: "l"}, h("b", {}, m.label), out), g);
+    root.append(cell);
+    TELE[m.k] = {out, spark: charts.spark(g, [], {height: 18, colour: m.colour, min: m.min, max: m.max, span_s: 90, fill: true})};
+  }
+}
+function buildCharts() {
+  const grid = $("#mgrid"); grid.replaceChildren();
+  for (const m of METRICS) {
+    const out = h("output", {class: "unk"}, "—"), g = h("div", {class: "g"}), top = h("span", {class: "ax top"}), bot = h("span", {class: "ax bot"});
+    const card = h("div", {class: "mc", "data-t": m.k}, h("div", {class: "l"}, h("h3", {}, m.label), out), g, h("div", {class: "f"}, h("span", {}, "15 min ago"), h("span", {class: "mean"}, ""), h("span", {}, "now")));
+    g.append(top, bot); grid.append(card);
+    CH[m.k] = {out, top, bot, mean: card.querySelector(".mean"), spark: charts.spark(g, [], {height: 64, colour: m.colour, min: m.min, max: m.max, span_s: FAST_N, fill: true})};
+  }
+}
+function metricValue(m) {
+  const p = S.m; if (!p) return {v: null, held: false};
+  if (m.hold) { const fresh = num(p.tps); const v = fresh ? p.tps : (S.tps != null && p.t - S.tpsAt < 120 ? S.tps : null); return {v, held: !fresh && v != null}; }
+  return {v: p[m.f], held: false};
+}
+function paintValue(out, m) {
+  const {v, held} = metricValue(m);
+  out.textContent = m.fmt(v); out.classList.toggle("unk", v == null); out.classList.toggle("held", held);
+  out.title = v == null ? "Unknown: this PC did not report it" : held ? "Last measured speed; Qwen is idle" : "";
+}
+/* ≤ 1 Hz, only when something changed and the chart can be seen */
+function paintTele() {
+  if (document.hidden) return;
+  for (const m of METRICS) { const t = TELE[m.k]; if (!t) continue; paintValue(t.out, m); }
+  const last = S.m;
+  if (!S.dirty) return;
+  const pts = api.state.points, now = last ? last.t : Date.now() / 1000;
+  for (const m of METRICS) {
+    const t = TELE[m.k]; if (!t) continue;
+    const max = m.maxOf ? (last ? m.maxOf(last) : null) : m.max;
+    t.spark.update(pts.slice(-100).map(p => ({t: p.t, v: p[m.f]})), {now, max: num(max) ? max : undefined});
+  }
+  if (chartsShown()) paintCharts(pts, now);
+  S.dirty = false;
+}
+function paintCharts(pts, now) {
+  for (const m of METRICS) {
+    const c = CH[m.k]; if (!c) continue;
+    paintValue(c.out, m);
+    const max = m.maxOf ? (S.m ? m.maxOf(S.m) : null) : m.max;
+    const r = c.spark.update(pts.map(p => ({t: p.t, v: p[m.f]})), {now, max: num(max) ? max : undefined});
+    const vs = pts.map(p => p[m.f]).filter(num);
+    c.top.textContent = vs.length ? m.fmt(r.max) : ""; c.bot.textContent = vs.length ? m.fmt(r.min) : "";
+    c.mean.textContent = vs.length ? "avg " + m.fmt(vs.reduce((a, b) => a + b, 0) / vs.length) : "no data yet";
+  }
+  const age = $("#mAge"); if (age) age.textContent = pts.length ? "last 15 min · " + pts.length + " points" : "last 15 min";
+}
+function paintGov() {
+  const dl = $("#govList"); if (!dl) return; dl.replaceChildren();
+  const g = S.sys && S.sys.governor, y = S.sys || {};
+  const row = (k, v) => dl.append(h("dt", {}, k), h("dd", {}, unk(v) ? "—" : String(v)));
+  if (!g) { row("Status", S.sys ? "status.json missing" : "—"); }
+  else {
+    row("Phase", g.phase ? g.phase + (num(g.phase_since) ? " · " + mmss(Date.now() / 1000 - g.phase_since) : "") : null);
+    row("Mode", g.mode); row("Profile", g.profile); row("Model", g.loaded == null ? null : g.loaded ? "loaded" : "not loaded");
+    if (g.stale) row("Data", "stale (older than 2 min)");
+  }
+  row("GPU", y.mode === "busy" ? "video (busy)" : y.mode || null); row("Queue", S.m ? (unk(S.m.queue) ? "—" : S.m.queue) : null);
+  const lu = lingerUntil(); if (lu && lu > Date.now() / 1000) row("Video engine", "warm · " + Math.ceil((lu - Date.now() / 1000) / 60) + " min");
+}
+/* the charts live in one node that moves between the System tab and the desktop Metrics pane; the live panel likewise */
+function layout() {
+  const m = $("#metrics"), lp = $("#livePane");
+  if (xl()) { if (m.parentNode !== $("#metricspane")) $("#metricspane").append(m); } else if (m.parentNode !== $("#sysMetrics")) $("#sysMetrics").append(m);
+  m.hidden = false;
+  if (wide()) { if (lp.parentNode !== $("#livepane")) $("#livepane").append(lp); if (S.tab === "queue") tab("create"); }
+  else if (lp.parentNode !== $("#v-queue")) $("#v-queue").append(lp);
+  S.dirty = true; if (liveShown()) renderQueue(); paintTele();
+}
+async function loadStats() {                                                   // the fast ring on open, when the stream did not already fill it
+  const pts = api.state.points, now = Date.now() / 1000;
+  if (pts.length && now - pts[pts.length - 1].t < 15) return;
+  try { const d = await api("stats"); if (Array.isArray(d.fast)) { api.state.points = d.fast.filter(p => p && num(p.t)); S.m = api.state.points[api.state.points.length - 1] || S.m; holdTps(); S.dirty = true; paintTele(); } }
+  catch (x) { /* polling will try again */ }
 }
 
 /* ---------- sign in ---------- */
@@ -485,21 +833,22 @@ $("#gateForm").addEventListener("submit", async e => {
 });
 
 /* ---------- tabs ---------- */
-const TABS = [["create", "Create"], ["queue", "Queue"], ["gallery", "Gallery"], ["system", "System"]];
+const TABS = [["create", "Create"], ["queue", "Queue"], ["gallery", "Gallery"], ["system", "System"], ["code", "Code"]];
 function buildNav() {
   const nav = $("#nav"); nav.replaceChildren();
   for (const [id, label] of TABS) nav.append(h("button", {type: "button", "data-tab": id, "aria-current": "false", onclick: () => tab(id)}, icon(id), h("span", {}, label), id === "queue" ? h("i", {class: "badge", id: "qBadge", hidden: true}) : null));
 }
 function tab(t) {
   if (!TABS.some(x => x[0] === t)) t = "create";
+  if (t === "queue" && wide()) t = "create";
   S.tab = t; store.set("studio.tab.v3", t);
   document.querySelectorAll(".view").forEach(v => { const on = v.id === "v-" + t; if (on && v.hidden) { v.hidden = false; v.classList.remove("on"); void v.offsetWidth; v.classList.add("on"); } else if (!on) { v.hidden = true; v.classList.remove("on"); } });
   document.querySelectorAll("#nav button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t ? "page" : "false"));
-  if (t === "queue") renderQueue(); if (t === "gallery") renderGallery(); if (t === "system") { renderSystem(); pollSys(); }
+  if (t === "queue") renderQueue(); if (t === "gallery") renderGallery(); if (t === "system") { renderSystem(); pollSys(); loadStats(); S.dirty = true; paintTele(); } if (t === "code") renderCode();
   const v = $("#v-" + t); if (v) v.scrollTop = 0;
 }
 
-/* ---------- GPU switch (Video / Qwen) ---------- */
+/* ---------- GPU switch (Video / Qwen): in the header on every tab, and in Create and System ---------- */
 function gpuView() {
   const s = S.sys; if (!s) return "";
   if (s.mode === "video" || s.mode === "busy") return "video";
@@ -513,25 +862,50 @@ function gpuControl(root) {
   root.replaceChildren(h("div", {class: "hd"}, h("span", {}, "GPU"), h("small", {class: "gsw-state"}, "")), gpuSwitch(), h("div", {class: "gsw-msg", role: "status"}, ""));
   paintSwitches();
 }
+const GOV_LOADING = ["loading", "restoring", "warming", "starting"], GOV_UNLOADING = ["unloading", "stopping"];
+function govPhase() { const g = S.sys && S.sys.governor; return g && !g.stale && typeof g.phase === "string" ? g.phase : ""; }
+function switchText() {
+  const s = S.sys; if (!s) return "Reading the PC";
+  const gp = govPhase(), lu = lingerUntil(), now = Date.now() / 1000;
+  if (s.mode === "busy") return s.comfy && s.comfy.session ? "Busy: ComfyUI session open" : "Busy: video is in the queue";
+  if (s.mode === "video") return lu && lu > now ? "Video engine warm · " + Math.ceil((lu - now) / 60) + " min, then it sleeps" : "Video has the GPU, Qwen is unloaded";
+  if (s.mode === "llm") return GOV_LOADING.includes(gp) ? "Loading Qwen…" : GOV_UNLOADING.includes(gp) ? "Unloading Qwen" : (s.llm_loaded || (s.governor && s.governor.loaded)) ? "Qwen has the GPU, model loaded" : "Qwen has the GPU, model not loaded yet";
+  return "Unknown";
+}
 function paintSwitches() {
   const v = gpuView(), s = S.sys;
   document.querySelectorAll(".gsw").forEach(sw => {
     sw.dataset.v = v; sw.setAttribute("aria-busy", String(S.modeBusy));
     sw.querySelectorAll("button").forEach(b => { b.setAttribute("aria-checked", String(b.dataset.m === v)); b.disabled = S.modeBusy; });
   });
-  const txt = !s ? "Reading the PC" : s.mode === "busy" ? (s.comfy && s.comfy.session ? "Busy: ComfyUI session open" : "Busy: video is in the queue") : s.mode === "video" ? "Video has the GPU, Qwen is unloaded" : s.mode === "llm" ? (s.llm_loaded ? "Qwen has the GPU, model loaded" : "Qwen has the GPU, model not loaded yet") : "Unknown";
   document.querySelectorAll(".gsw-state").forEach(e => e.textContent = s ? (s.mode === "video" ? "VIDEO" : s.mode === "llm" ? "QWEN" : s.mode === "busy" ? "BUSY" : "") : "");
-  document.querySelectorAll(".gsw-msg").forEach(e => { e.textContent = S.modeMsg || txt; e.classList.toggle("bad", !!S.modeMsg); });
+  document.querySelectorAll(".gsw-msg").forEach(e => { e.textContent = S.modeMsg || switchText(); e.classList.toggle("bad", !!S.modeMsg); });
+  const hs = $("#hdrSwitch .gsw"); if (hs) hs.title = (S.after ? "Will switch to " + (S.after === "llm" ? "Qwen" : "Video") + " when the render finishes. " : "") + switchText();
 }
 async function setMode(m) {
   if (S.modeBusy || gpuView() === m && !(S.sys && S.sys.mode === "busy" && m === "llm")) return;
   S.modeBusy = true; S.modeMsg = ""; paintSwitches();
-  try { await api("mode", {method: "POST", json: {mode: m}}); toast(m === "video" ? "GPU handed to Video" : "GPU handed back to Qwen", "ok"); }
+  try { await api("mode", {method: "POST", json: {mode: m}}); S.after = null; toast(m === "video" ? "GPU handed to Video" : "GPU handed back to Qwen", "ok"); }
   catch (x) {
-    S.modeMsg = x.status === 409 ? (x.message && x.message.length > 8 ? x.message : "A video is rendering; wait or cancel it first") : x.message;
-    toast(S.modeMsg, "err");
+    if (x.status === 409) { S.modeMsg = x.message && x.message.length > 8 ? x.message : "A video is rendering; wait or cancel it first"; askSwitch(m); }
+    else { S.modeMsg = x.message; toast(S.modeMsg, "err"); }
   }
   S.modeBusy = false; await pollSys(); if (!S.modeMsg) paintSwitches();
+}
+/* 409: a clear sheet instead of a red line. OK remembers the wish for this page and sends it when the queue goes quiet (server-side deferral is M2). */
+function askSwitch(m) {
+  const d = $("#ask"), b = $("#askBody"); b.replaceChildren();
+  const who = m === "llm" ? "Qwen" : "Video", active = statusNow().active;
+  b.append(h("p", {}, "A render" + (active ? " (" + title(active).slice(0, 60) + ")" : "") + " holds the GPU. Switching now would kill the clip."),
+    h("p", {}, "Switch to " + who + " when it finishes?"),
+    h("div", {class: "acts"}, h("button", {class: "btn go", type: "button", style: "width:auto;min-width:140px;font-size:14px", onclick: () => { S.after = m; S.modeMsg = ""; d.close(); paintSwitches(); toast("OK: " + who + " takes over when the render is done"); }}, "OK"),
+      h("button", {class: "btn", type: "button", onclick: () => { S.modeMsg = ""; d.close(); paintSwitches(); }}, "Cancel")));
+  if (!d.open) d.showModal();
+}
+function maybeAfter() {
+  if (!S.after || S.modeBusy || !S.sys) return;
+  if (S.jobs.some(j => ACTIVE.includes(j.state)) || (S.sys.comfy && S.sys.comfy.session)) return;
+  const m = S.after; S.after = null; if (gpuView() !== m) setMode(m);
 }
 
 /* ---------- ComfyUI / CueForge session ---------- */
@@ -564,12 +938,13 @@ function renderComfy() {
         h("a", {class: "btn quiet", href: comfyUrl("/"), target: "_blank", rel: "noopener noreferrer"}, "Open ComfyUI")) : null));
 }
 
-/* ---------- system poll + System tab ---------- */
+/* ---------- /api/system: the slow counters the stream leaves out (disk, last speed, ComfyUI idle). Polled only on the System tab, every 10 s. ---------- */
+let sysTimer = null;
 async function pollSys() {
-  try { S.sys = await api("system"); S.sysAt = Date.now(); } catch (x) { if (x.message === "signed out") return; }
-  renderGpu(); paintSwitches(); if (S.tab === "system") renderSystem();
+  clearTimeout(sysTimer); sysTimer = null;
+  try { const d = await api("system"); mergeSys(d); } catch (x) { if (x.message === "signed out") return; }
+  if (S.tab === "system" && !document.hidden) sysTimer = setTimeout(pollSys, 10000);
 }
-const unk = v => v == null || v === "" || (typeof v === "number" && !isFinite(v));
 const gb = mb => (mb / 1024).toFixed(mb >= 10240 ? 0 : 1) + " GB";
 function inst(title, big, lines, tone, meter) {
   return h("div", {class: "inst", "data-t": tone || ""}, h("h3", {}, title), h("div", {class: "big" + (big === "Unknown" ? " unk" : "")}, big),
@@ -579,25 +954,27 @@ function inst(title, big, lines, tone, meter) {
 function renderSystem() {
   const root = $("#sysPanel"); if (!root) return;
   if (!$("#gpuRow2").firstChild) gpuControl($("#gpuRow2"));
-  renderComfy();
+  renderComfy(); paintGov();
   const s = S.sys;
   $("#sysAge").textContent = s ? "updated " + mmss((Date.now() - S.sysAt) / 1000) + " ago" : "";
   if (!s) { root.replaceChildren(...[0, 1, 2, 3].map(() => h("div", {class: "sk tall"}))); return; }
   const owner = s.mode === "video" ? "Video" : s.mode === "llm" ? "Qwen" : s.mode === "busy" ? "Video (busy)" : "Unknown";
   const ram = s.ram || {}, ramT = ram.total_mb || 0, ramA = ram.avail_mb || 0, ramUsed = ramT ? ramT - ramA : 0;
-  const v = s.vram;
+  const v = s.vram, m = S.m;
   const vramOk = v && typeof v === "object" && Number.isFinite(+v.total_mb) && +v.total_mb > 0 && Number.isFinite(+v.used_mb);
   const q = s.queue || {}, lastR = s.last || {}, dr = s.drive || {};
   const cards = [
     inst("GPU owner", owner, [s.mode === "busy" ? (s.comfy && s.comfy.session ? "A ComfyUI session is holding the GPU." : "A video is queued or rendering.") : null], s.mode === "llm" ? "llm" : s.mode ? "video" : ""),
-    inst("Qwen", unk(s.llm_loaded) ? "Unknown" : s.llm_loaded ? "Loaded" : "Not loaded", ["The language model that writes prompts."], "llm"),
+    inst("Qwen", unk(s.llm_loaded) ? "Unknown" : s.llm_loaded ? "Loaded" : "Not loaded", [govPhase() ? "Governor: " + govPhase() : "The language model that writes prompts."], "llm"),
     vramOk ? inst("VRAM", gb(+v.used_mb) + " used", [gb(+v.total_mb - +v.used_mb) + " free of " + gb(+v.total_mb)], "blue", (+v.used_mb / +v.total_mb) * 100)
+      : m && num(m.vram_used_gb) ? inst("VRAM", fmtGb(m.vram_used_gb) + " used", ["From the governor's status file."], "blue")
       : inst("VRAM", "Unknown", ["This PC does not report GPU memory to Studio yet."], "blue"),
     inst("System RAM", ramT ? gb(ramUsed) + " used" : "Unknown", ramT ? [gb(ramA) + " free of " + gb(ramT)] : ["The PC did not report memory."], "blue", ramT ? ramUsed / ramT * 100 : null),
     inst("Queue", unk(q.len) ? "Unknown" : q.len + (q.len === 1 ? " job" : " jobs"), [q.running_id ? "Rendering " + q.running_id + (q.stage ? ": " + q.stage : "") + (typeof q.progress === "number" ? " (" + Math.round(q.progress) + "%)" : "") : "Nothing rendering"], "video", typeof q.progress === "number" ? q.progress : null),
     inst("Disk for clips", s.disk && s.disk.out_free_gb ? s.disk.out_free_gb + " GB free" : "Unknown", ["Where finished clips are saved."], "blue"),
     inst("Last render", lastR.seconds != null ? mmss(lastR.seconds) : "Unknown", [lastR.out_seconds ? lastR.out_seconds + " s of film" + (lastR.seconds ? " · " + (lastR.seconds / lastR.out_seconds).toFixed(1) + " s per second of film" : "") : "No finished render to measure yet."], "video"),
     h("div", {class: "inst", "data-t": "blue"}, h("h3", {}, "Services"), h("dl", {class: "kvlist"},
+      h("dt", {}, "Live stream"), h("dd", {}, S.live ? "connected" : es ? "reconnecting (polling)" : "polling"),
       h("dt", {}, "Drive copy"), h("dd", {}, unk(dr.mode) ? "Unknown" : dr.mode === "off" ? "Off" : dr.mode + (dr.dir_ok ? "" : " (folder not writable)")),
       h("dt", {}, "Last copied"), h("dd", {}, dr.last_path || (dr.last_error ? "Error: " + dr.last_error : "None")),
       h("dt", {}, "Phone alerts"), h("dd", {}, unk(s.ntfy) ? "Unknown" : s.ntfy ? "On" : "Off"),
@@ -607,8 +984,35 @@ function renderSystem() {
     s.error ? h("div", {class: "err"}, "The PC could not read all its numbers (" + s.error + "). What is shown is what it had.") : null
   ];
   root.replaceChildren(...cards.filter(Boolean));
+  const raw = $("#devRaw"); if (raw && CFG.dev) raw.replaceChildren(h("div", {class: "hd"}, h("span", {}, "Developer: raw state")), h("pre", {class: "req"}, JSON.stringify({sys: S.sys, m: S.m, seq: S.seq, live: S.live}, null, 1)));
 }
 
+/* ---------- Code tab: another lane ships studio/code.js (exports mount(el, api)); until that route answers 200, a placeholder ---------- */
+const CODE = {state: "idle", mod: null};
+async function renderCode() {
+  const root = $("#codeRoot"), st = $("#codeState"); if (CODE.state === "mounted") return;
+  if (CODE.state === "idle") {
+    CODE.state = "loading"; st.textContent = "looking"; root.replaceChildren(h("div", {class: "sk tall"}));
+    try {
+      const r = await fetch(B + "studio/code.js", {credentials: "same-origin", headers: {"X-Requested-With": "approvals"}});
+      if (r.status !== 200) throw new Error("no module (" + r.status + ")");
+      const mod = loadInline(await r.text());
+      if (!mod || typeof mod.mount !== "function") throw new Error("code.js has no mount(el, api)");
+      CODE.mod = mod; root.replaceChildren(); st.textContent = "Qwen"; await mod.mount(root, api); CODE.state = "mounted"; return;
+    } catch (x) { CODE.state = "soon"; CODE.why = x && x.message; }
+  }
+  if (CODE.state === "soon") { st.textContent = "soon"; root.replaceChildren(h("div", {class: "empty"}, h("b", {}, "Qwen coding studio coming soon"), "Chat with the local Qwen about code, right here. The module is being built in another lane; Studio looks for it each time this tab opens.", CFG.dev && CODE.why ? h("div", {class: "help", style: "margin-top:8px"}, CODE.why) : "")); CODE.state = "idle"; }
+}
+/* the shell CSP allows inline scripts only, so the module text is run as one: top-level `export` keywords are dropped and mount() is picked up; a classic script may set window.StudioCode = {mount} instead */
+function loadInline(src) {
+  if (typeof src !== "string" || !src.trim()) return null;
+  const body = src.replace(/^\s*export\s+default\s+/m, "exports.default = ").replace(/^\s*export\s+(?=(?:async\s+)?function\b|const\b|let\b|var\b|class\b)/gm, "").replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "");
+  window.StudioCode = window.StudioCode || {};
+  const s = document.createElement("script");
+  s.textContent = "(function (exports) {\n" + body + "\n;if (typeof mount === 'function') exports.mount = mount; else if (exports.default && typeof exports.default.mount === 'function') exports.mount = exports.default.mount;\n})(window.StudioCode);";
+  document.head.append(s); s.remove();
+  return window.StudioCode;
+}
 /* ---------- compose ---------- */
 function wfNow() { return wfByName(S.wf); }
 function pickWf(name) {
@@ -839,15 +1243,29 @@ async function generate() {
   try {
     const d = await api("generate", {method: "POST", json: {workflow: S.wf, params: r.params}});
     toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); S.sel = d.id;
-    await refresh(); tab("queue");
+    await refresh(); showQueue(d.id);
     if (CFG.seedLock) renderCompose();
   } catch (x) { err.textContent = x.message; err.hidden = false; } finally { b.disabled = !S.enabled; }
 }
 
-/* ---------- stage: monitor for one clip (used in Queue and in the Gallery viewer) ---------- */
+/* ---------- stage: monitor for one clip (used in Queue / the Live pane and in the Gallery viewer) ---------- */
 function clipUrl(j, c, dl) { return B + "studio/api/clip/" + j.id + "/" + encodeURIComponent(c.name) + (dl ? "?dl=1" : ""); }
 function title(j) { return (j.params && j.params.prompt) || (wfByName(j.workflow) || {}).title || j.workflow; }
 function jobNow(id) { return S.jobs.find(x => x.id === id); }
+function showQueue(id) { if (id) S.sel = id; if (wide()) renderQueue(); else tab("queue"); }
+/* the render pipeline as the server reports it (job.phase): lights up left to right */
+const PHASES = [["encode", "Encode", "Enc"], ["load", "Load", "Load"], ["stage1", "Stage 1", "St 1"], ["upscale", "Upscale", "Up"], ["stage2", "Stage 2", "St 2"], ["decode", "Decode", "Dec"], ["audio", "Audio", "Aud"], ["saving", "Save", "Save"]];
+function phaseStrip() { return h("ol", {class: "phases", "aria-label": "Render phases", "data-phase": ""}, PHASES.map(([k, l, sh]) => h("li", {"data-phase": k, "data-on": "0", title: l, "aria-label": l}, h("i"), h("span", {}, sh)))); }
+function phaseOf(j) {
+  if (typeof j.phase === "string" && PHASES.some(p => p[0] === j.phase)) return j.phase;
+  const n = String(j.note || "").toLowerCase();                                        // older jobs: read it off the label
+  return /stage 1/.test(n) ? "stage1" : /stage 2/.test(n) ? "stage2" : /upscal/.test(n) ? "upscale" : /decoding video/.test(n) ? "decode" : /sound/.test(n) ? "audio" : /saving/.test(n) ? "saving" : /loading the video/.test(n) ? "load" : /reading your prompt/.test(n) ? "encode" : "";
+}
+function paintPhases(el, phase) {
+  if (el.dataset.phase === phase) return;
+  el.dataset.phase = phase; const i = PHASES.findIndex(p => p[0] === phase);
+  el.querySelectorAll("li").forEach((li, n) => { li.dataset.on = n < i ? "done" : n === i ? "now" : "0"; });
+}
 function renderStage(root, id) {
   const j = jobNow(id);
   const key = j ? j.id + ":" + j.state : "";
@@ -868,22 +1286,41 @@ function renderStage(root, id) {
     scr.append(h("div", {class: "empty"}, h("b", {}, j.state === "failed" ? "This clip did not finish" : "Cancelled"), j.error || "Nothing was saved."));
   } else {
     const t0 = () => { const c = jobNow(id) || j; return c.started || c.created; };
-    const clock = h("div", {class: "clock"}, "00:00"), track = h("div", {class: "track ind", role: "progressbar", "aria-label": "Rendering progress", "aria-valuemin": "0", "aria-valuemax": "100"}, h("i")), eta = h("div", {class: "eta"}), note = h("div", {class: "note"});
     const tag = h("span", {class: "on-air"}, h("i"), "On air");
-    scr.append(h("div", {class: "live"}, tag, clock, track, eta, note, h("button", {class: "btn warn sm", type: "button", onclick: () => act("cancel", id)}, "Cancel")));
+    const stg = h("div", {class: "stg", "aria-live": "polite"}, ""), big = h("div", {class: "pct"}, "—"), clock = h("div", {class: "clock"}, "");
+    const track = h("div", {class: "track ind", role: "progressbar", "aria-label": "Rendering progress", "aria-valuemin": "0", "aria-valuemax": "100"}, h("i"));
+    const strip = phaseStrip(), stats = h("div", {class: "stats"}), eta = h("div", {class: "eta"}), note = h("div", {class: "note"});
+    scr.append(h("div", {class: "live"}, h("div", {class: "slatebar"}, tag, h("span", {class: "shotno"}, "Take " + j.id.slice(0, 4))), stg, big, track, strip, stats, clock, eta, note,
+      h("button", {class: "btn warn sm", type: "button", onclick: () => act("cancel", id)}, "Cancel")));
+    let lastPct = null;
     S.ticks[root.id] = () => {
       const c = jobNow(id) || j, running = c.state === "running" || c.state === "starting", est = estFor(c), s = Date.now() / 1000 - t0();
-      clock.textContent = mmss(s); tag.lastChild.textContent = running ? "On air" : c.state === "waiting" ? "Standing by" : "In line"; tag.classList.toggle("wait", !running);
+      tag.lastChild.textContent = running ? "On air" : c.state === "waiting" ? "Standing by" : "In line"; tag.classList.toggle("wait", !running);
       const real = typeof c.progress === "number", bar = track.firstChild;
       let pct = null; if (real) pct = c.progress; else if (est && c.state === "running") pct = Math.min(96, s / est * 100);
-      track.classList.toggle("ind", pct == null); bar.style.width = pct == null ? "" : pct + "%";
-      if (pct != null) track.setAttribute("aria-valuenow", String(Math.round(pct))); else track.removeAttribute("aria-valuenow");
-      const sq = S.sys && S.sys.queue && S.sys.queue.running_id === c.id ? S.sys.queue.stage : "";
+      track.classList.toggle("ind", pct == null);
+      if (pct != null) { if (pct !== lastPct) { bar.style.transform = "scaleX(" + (clamp(pct, 0, 100) / 100).toFixed(4) + ")"; lastPct = pct; } track.setAttribute("aria-valuenow", String(Math.round(pct))); } else { bar.style.transform = ""; track.removeAttribute("aria-valuenow"); }
+      big.replaceChildren(pct == null ? "—" : String(Math.round(pct)), h("small", {}, pct == null ? "" : "%"));
+      const ph = c.state === "running" ? phaseOf(c) : ""; paintPhases(strip, ph);
+      const label = c.state === "running" && c.note ? c.note.split(" · ")[0] : {queued: "In line", waiting: "Standing by for Qwen", starting: "Handing over the GPU"}[c.state] || "";
+      stg.textContent = label;
+      /* overall: the real rate once a few percent are in, else the workflow's measured time */
+      const overall = real && c.progress > 3 && s > 5 && c.state === "running" ? s / (c.progress / 100) : (c.state === "running" ? est : 0);
+      stats.replaceChildren();
+      const kv = (k, v) => stats.append(h("span", {}, k + " ", h("b", {}, v)));
+      if (c.state === "running" && c.step) kv("step", c.step);
+      if (c.state === "running" && typeof c.eta_s === "number" && c.eta_s > 0) kv("stage", "~" + leftIn(c.eta_s) + " left");
+      if (overall) kv("overall", s < overall ? "~" + leftIn(overall - s) + " left of ~" + leftIn(overall) : "past ~" + leftIn(overall));
+      if (c.state !== "running" && statusNow().queued) kv("queue", statusNow().queued + " waiting");
+      clock.replaceChildren("TC ", h("b", {}, tc(s)), c.state === "running" ? " elapsed" : c.state === "starting" ? " loading" : " waiting");
       eta.textContent = (c.state === "running" ? "Elapsed " : c.state === "starting" ? "Loading " : "Waiting ") + mmss(s) + (est && c.state === "running" ? " of about " + (est < 90 ? Math.round(est) + " s" : Math.round(est / 60) + " min") : "") + (real ? " · " + Math.round(c.progress) + "%" : "") + (c.state === "running" && c.step ? " · step " + c.step : "") + (c.state === "running" && typeof c.eta_s === "number" && c.eta_s > 0 ? " · ~" + leftIn(c.eta_s) + " left in this stage" : "") + (est && c.state === "running" && s > est ? " · longer than usual" : "");
       eta.classList.toggle("over", !!est && c.state === "running" && s > est);
-      note.textContent = (sq && sq !== c.state ? sq + ". " : "") + noteFor(c);
+      const sq = S.sys && S.sys.queue && S.sys.queue.running_id === c.id ? S.sys.queue.stage : "";
+      const nt = noteFor(c); note.textContent = nt === c.note && c.state === "running" && !/\u00b7/.test(nt) ? "" : (sq && sq !== c.state && !(c.state === "running" && c.note) ? sq + ". " : "") + nt;   // the stage title already says it
+      const ltc = $("#liveTc"); if (ltc && root.id === "stage") ltc.textContent = running ? "REC " + tc(s) : "";
     }; S.ticks[root.id]();
   }
+  if (root.id === "stage" && !ACTIVE.includes(j.state)) { const ltc = $("#liveTc"); if (ltc) ltc.textContent = j.seconds ? "took " + mmss(j.seconds) : ""; }
   const p = j.params || {}, kv = h("div", {class: "kv"});
   const add = (a, b) => b != null && b !== "" && kv.append(h("span", {}, a + " "), h("b", {}, String(b)));
   add("workflow", j.workflow); add("size", p.width && p.height ? p.width + "×" + p.height : ""); add("frames", p.frames); add("length", p.seconds ? p.seconds + " s" : ""); add("seed", p.seed); add("render", j.seconds ? mmss(j.seconds) : "");
@@ -926,7 +1363,7 @@ async function toggleFav(j) {
 }
 async function rerun(j, btn) {
   const was = btn && btn.textContent; if (btn) btn.disabled = true;
-  try { const d = await api("rerun", {method: "POST", json: {id: j.id}}); toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); S.sel = d.id; closeViewer(); await refresh(); tab("queue"); }
+  try { const d = await api("rerun", {method: "POST", json: {id: j.id}}); toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); closeViewer(); await refresh(); showQueue(d.id); }
   catch (x) { toast(x.message, "err"); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
 }
 /* the share sheet takes files only where the browser says so (iOS and Android Chrome); everywhere else the Download link is the way */
@@ -1096,7 +1533,7 @@ function shotCard(s, i) {
       h("label", {class: "lock"}, lockBox, "Lock seed"), seed)),
     h("div", {class: "acts"}, h("button", {class: "btn go", type: "button", "data-do": "make", onclick: () => makeShot(s)}, "Make this shot"), qw,
       h("button", {class: "btn", type: "button", "data-do": "next", hidden: true, onclick: e => continueShot(s, e.currentTarget)}, "Continue from last frame"),
-      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; tab("queue"); }}, "View"),
+      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => showQueue(s.job)}, "View"),
       h("button", {class: "btn", type: "button", "data-do": "again", hidden: true, onclick: e => { const j = shotJob(s); if (j) rerun(j, e.currentTarget); }}, "Run again"),
       h("button", {class: "btn star", type: "button", "data-do": "fav", hidden: true, "aria-label": "Favourite shot " + (i + 1), onclick: () => { const j = shotJob(s); if (j) toggleFav(j); }}, "☆")));
 }
@@ -1124,13 +1561,13 @@ function slate(j, n) {
   const tm = live ? h("span", {class: "t", "data-t0": String(j.state === "running" ? (j.started || j.created) : j.created), "data-est": String(j.state === "running" ? estFor(j) : 0)}, "")
     : j.seconds ? h("span", {class: "t"}, "took " + mmss(j.seconds)) : "";
   return h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
-    h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderQueue(); if (matchMedia("(max-width:980px)").matches) openViewer(j.id); }},
+    h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderQueue(); if (!wide()) openViewer(j.id); }},
       h("span", {class: "no"}, "#" + String(n).padStart(2, "0")), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, j.state === "running" && j.note ? j.note.split(" \u00b7 ")[0] + (typeof j.progress === "number" ? " \u00b7 " + Math.round(j.progress) + "%" : "") : LABEL[j.state] || j.state), h("span", {}, ago(j.created)), tm)),
     h("div", {class: "end"}, live ? h("button", {class: "btn warn sm", type: "button", "aria-label": "Cancel: " + title(j).slice(0, 60), onclick: () => act("cancel", j.id)}, "Cancel")
       : h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix"), starBtn(j, false)));
 }
 function renderQueue() {
-  const list = $("#qList"); if (!list || S.tab !== "queue") return;
+  const list = $("#qList"); if (!list || !liveShown()) return;
   if (!S.loaded) { list.replaceChildren(...[0, 1, 2].map(() => h("div", {class: "sk"}))); $("#stage").replaceChildren(h("div", {class: "sk tall"})); $("#stage").dataset.key = ""; return; }
   const live = S.jobs.filter(j => ACTIVE.includes(j.state)), rest = S.jobs.filter(j => !ACTIVE.includes(j.state)).slice(0, 12);
   $("#qCount").textContent = live.length ? live.length + " active" : "idle";
@@ -1166,6 +1603,16 @@ function tickAll() {
     el.classList.toggle("over", !!est && s > est);
   });
   if (S.tab === "system" && S.sysAt) { const e = $("#sysAge"); if (e) e.textContent = "updated " + mmss((Date.now() - S.sysAt) / 1000) + " ago"; }
+  if (S.live && S.lastEv && Date.now() - S.lastEv > 25000) { closeStream(); openStream(); }          // the sampler ticks every second while a stream is open: silence means the pipe is dead
+  if (S.dirty) paintTele(); else if (chartsShown() && CH.cpu) { for (const m of METRICS) paintValue(CH[m.k].out, m); }
+  if (S.tab === "system" || xl()) paintGov();
+  paintDev();
+}
+function paintDev() {
+  const d = $("#devbar"); if (!d || !CFG.dev) return;
+  const t = Date.now(), req = S.net.req.filter(x => x > t - 60000).length, ev = S.net.ev.length, m = S.m;
+  d.replaceChildren(h("b", {}, S.live ? "STREAM live" : es ? "STREAM reconnecting" : "POLLING"), " seq " + (S.seq == null ? "—" : S.seq) + " · ev " + (ev / 10).toFixed(1) + "/s · req " + (req / 60).toFixed(2) + "/s (" + req + "/min)",
+    "\npts " + api.state.points.length + " · last m " + (m ? mmss((t / 1000) - m.t) + " ago" : "—") + " · owner " + (m ? m.gpu_owner : "—") + " · tab " + S.tab + " · " + (xl() ? "desktop" : wide() ? "tablet" : "phone"));
 }
 
 /* ---------- settings sheet ---------- */
@@ -1182,7 +1629,7 @@ function renderSettings() {
   const sizeSel = h("select", {"aria-label": "Default frame size", onchange: e => { CFG.size = e.target.value; saveCfg(); }}, h("option", {value: ""}, "Workflow default"), (w ? w.sizes : []).map(s => h("option", {value: s[0] + "x" + s[1]}, (s[2] ? s[2] + " " : "") + s[0] + "×" + s[1])));
   sizeSel.value = CFG.size;
   const motion = h("select", {"aria-label": "Motion", onchange: e => { CFG.motion = e.target.value; saveCfg(); }}, h("option", {value: "system"}, "Follow my device setting"), h("option", {value: "reduce"}, "Reduce motion"), h("option", {value: "full"}, "Full motion")); motion.value = CFG.motion;
-  const poll = h("select", {"aria-label": "Refresh rate", onchange: e => { CFG.poll = e.target.value; saveCfg(); loop(); }}, Object.entries(POLL).map(([k, v]) => h("option", {value: k}, v.label))); poll.value = CFG.poll;
+  const poll = h("select", {"aria-label": "Refresh rate", onchange: e => { CFG.poll = e.target.value; saveCfg(); if (!S.live) loop(); }}, Object.entries(POLL).map(([k, v]) => h("option", {value: k}, v.label))); poll.value = CFG.poll;
   root.append(
     h("div", {class: "hd"}, h("span", {}, "Defaults for new videos")),
     h("div", {class: "field"}, h("label", {}, "Workflow"), wfSel),
@@ -1195,7 +1642,8 @@ function renderSettings() {
     h("div", {class: "field"}, toggleRow("Chime", "A soft two-note tone.", "sound", on => { if (on) chime(); })),
     h("div", {class: "hd", style: "margin-top:22px"}, h("span", {}, "Display and data")),
     h("div", {class: "field"}, h("label", {}, "Motion"), motion),
-    h("div", {class: "field"}, h("label", {}, "Refresh rate"), poll, h("div", {class: "help"}, "Studio slows right down when the page is in the background.")),
+    h("div", {class: "field"}, h("label", {}, "Refresh rate"), poll, h("div", {class: "help"}, "Used only when the live stream is unavailable (for example through the voice proxy). With the stream, Studio polls nothing.")),
+    h("div", {class: "field"}, toggleRow("Developer readout", "Stream state, event and request rates, raw system state on the System tab.", "dev", () => { renderSystem(); paintDev(); })),
     h("div", {class: "hd", style: "margin-top:22px"}, h("span", {}, "Advanced")),
     h("p", {class: "help", style: "margin-top:0"}, "Per-video options (seed, avoid list, quality and any workflow extras) are under Advanced on the Create tab. They only list what the chosen workflow accepts, and the Request preview shows exactly what will be sent."),
     h("div", {class: "acts"}, h("button", {class: "btn", type: "button", onclick: () => { Object.assign(CFG, DEFAULTS); saveCfg(); renderSettings(); if (S.wf) renderCompose(); toast("Settings reset"); }}, "Reset settings"),
@@ -1212,56 +1660,58 @@ function chime() {
 }
 function finishFx() { if (CFG.haptics) buzz(); if (CFG.sound) chime(); }
 
-/* ---------- GPU pill + polling ---------- */
-function renderGpu() {
-  const s = S.status, y = S.sys, g = $("#gpu"), t = $("#gpuText");
-  if (!s && !y) return;
-  t.replaceChildren();
-  const q = s && s.queued ? " · " + s.queued + " in line" : "", a = s && s.active && s.active.state;
-  const own = y ? (y.mode === "llm" ? "llm" : y.mode ? "video" : "") : (s ? s.gpu : "");
-  g.dataset.own = own;
-  if (s && !s.enabled) { g.dataset.own = ""; t.append("Video is not set up on this PC"); return; }
-  if (y && y.comfy && y.comfy.session) { t.append(h("b", {}, "ComfyUI"), h("span", {class: "long"}, y.comfy.idle_s == null ? " · starting" : " · session open")); }
-  else if (a === "starting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Switching to Video"), h("span", {class: "long"}, " · Qwen is unloading" + q)); }
-  else if (a === "running") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · rendering, Qwen is paused" + q));
-  else if (a === "waiting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, " · finishing up, then your clip starts" + q)); }
-  else if (own === "video") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · Qwen unloaded" + q));
-  else if (own === "llm") t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, (y && y.llm_loaded ? " · model loaded" : " · idle") + q));
-  else t.append(h("b", {}, "Unknown"));
-  $("#app").dataset.live = (a === "running" || a === "starting") ? "1" : "0";
+/* ---------- GPU tally (Video / Qwen / handing over / idle), from sys + the latest metric point ---------- */
+function ownerNow() {
+  const y = S.sys, st = statusNow(), a = st.active && st.active.state, gp = govPhase(), now = Date.now() / 1000, q = st.queued ? " · " + st.queued + " in line" : "";
+  if (!y && !S.m) return ["", "Connecting"];
+  if (y && !S.enabled) return ["", "Video is not set up on this PC"];
+  if (y && y.comfy && y.comfy.session) return ["video", "ComfyUI" + (y.comfy.idle_s == null ? " · starting" : " · session open")];
+  if (a === "starting") return ["handoff", "Handing over to Video" + q];
+  if (a === "waiting") return ["handoff", "Qwen finishing, then your clip" + q];
+  if (a === "running") return ["video", "Video · rendering" + q];
+  if (y && y.mode === "llm" && GOV_LOADING.includes(gp)) return ["handoff", "Loading Qwen…"];
+  if (y && y.mode === "llm" && GOV_UNLOADING.includes(gp)) return ["handoff", "Unloading Qwen"];
+  const own = y ? (y.mode === "llm" ? "llm" : y.mode ? "video" : "") : (S.m ? S.m.gpu_owner : "");
+  if (own === "video") { const lu = lingerUntil(); return ["video", lu && lu > now ? "Video engine warm · " + Math.ceil((lu - now) / 60) + " min" : "Video · Qwen unloaded" + q]; }
+  if (own === "llm") { const loaded = y && (y.llm_loaded === true || (y.governor && y.governor.loaded === true)); return loaded ? ["llm", "Qwen · ready" + (S.tps != null && now - S.tpsAt < 120 ? " · " + fmtTps(S.tps) : "")] : ["idle", "Qwen · idle, model not loaded"]; }
+  return ["", "Unknown"];
 }
-async function refresh() {
-  try {
-    const [jobs, st, sys] = await Promise.all([api("jobs"), api("status"), api("system").catch(x => { if (x.message === "signed out") throw x; return null; })]);
-    S.jobs = jobs; S.status = st; S.enabled = st.enabled; if (sys) { S.sys = sys; S.sysAt = Date.now(); }
-    let finished = null;
-    for (const j of jobs) { if (S.seen[j.id] && S.seen[j.id] !== j.state && j.state === "done") finished = j; S.seen[j.id] = j.state; }
-    if (!S.sel && jobs.length) S.sel = (jobs.find(j => ACTIVE.includes(j.state)) || jobs.find(j => j.state === "done") || jobs[0]).id;
-    S.loaded = true;
-    renderGpu(); paintSwitches(); renderBadge(); syncShots();
-    if (S.tab === "queue") renderQueue(); else if (S.tab === "gallery") renderGallery(); else if (S.tab === "system") renderSystem();
-    if (finished) {
-      finishFx();
-      const fj = finished;
-      if (CFG.autoOpen && !isTyping() && !$("#viewer").open) { S.sel = fj.id; tab("queue"); toast("Clip ready", "ok"); }
-      else toast("Clip ready", "ok", {label: "View", fn: () => { S.sel = fj.id; tab("queue"); }});
-    }
-    const busy = jobs.some(j => ACTIVE.includes(j.state));
-    document.title = busy ? "Rendering · Studio" : "Studio";
-    return busy;
-  } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; return false; }
+function renderGpu() {
+  const g = $("#gpu"), t = $("#gpuText"); if (!g) return;
+  const [own, text] = ownerNow();
+  g.dataset.own = own; t.textContent = text; $("#gpuShort").textContent = {video: "Video", llm: "Qwen", handoff: "Handover", idle: "Idle"}[own] || "—"; g.title = text + ". Opens the System tab.";
+  const a = statusNow().active && statusNow().active.state;
+  $("#app").dataset.live = (a === "running" || a === "starting") ? "1" : "0";
 }
 function renderBadge() {
   const n = S.jobs.filter(j => ACTIVE.includes(j.state)).length, b = $("#qBadge"); if (!b) return;
   b.hidden = !n; b.textContent = String(n);
 }
-let timer;
+
+/* ---------- polling fallback: only while the stream is not delivering (429, the voice proxy, an old browser) ---------- */
+async function refresh() {
+  try {
+    const want = [api("jobs"), api("system").catch(x => { if (x.message === "signed out") throw x; return null; })];
+    if (chartsShown() && !S.live) want.push(api("stats").catch(() => null));
+    const [jobs, sys, stats] = await Promise.all(want);
+    if (sys) mergeSys(sys);
+    if (stats && Array.isArray(stats.fast)) { api.state.points = stats.fast.filter(p => p && num(p.t)); S.m = api.state.points[api.state.points.length - 1] || S.m; holdTps(); S.dirty = true; paintTele(); }
+    return applyJobs(jobs, true);
+  } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; return false; }
+}
+let timer = null;
 async function loop() {
-  clearTimeout(timer); const busy = await refresh(), p = POLL[CFG.poll] || POLL.normal;
-  timer = setTimeout(loop, document.hidden ? 60000 : busy ? p.busy : p.idle);
+  clearTimeout(timer); timer = null;
+  if (S.live || document.hidden || !$("#gate").hidden) return;
+  const busy = await refresh(), p = POLL[CFG.poll] || POLL.normal;
+  if (!S.live && !document.hidden) timer = setTimeout(loop, busy ? p.busy : p.idle);
 }
 setInterval(() => { if (!document.hidden) tickAll(); }, 1000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden) loop(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { closeStream(); clearTimeout(timer); timer = null; clearTimeout(sysTimer); sysTimer = null; }
+  else { openStream(); if (!S.live) loop(); if (S.tab === "system") pollSys(); S.dirty = true; }
+});
+for (const mq of ["(min-width:600px)", "(min-width:1101px)"]) matchMedia(mq).addEventListener("change", layout);
 
 $("#favFilter").addEventListener("click", () => { S.favOnly = !S.favOnly; saveFlags(); renderGallery(); });
 $("#gpu").addEventListener("click", () => tab("system"));
@@ -1270,7 +1720,7 @@ $("#openSettings").addEventListener("click", () => { renderSettings(); $("#setti
 $("#closeSettings").addEventListener("click", () => $("#settings").close());
 $("#closeViewer").addEventListener("click", closeViewer);
 $("#viewer").addEventListener("close", () => { const b = $("#viewerBody"); b.replaceChildren(); b.dataset.key = ""; delete S.ticks.viewerBody; });
-for (const d of ["#settings", "#viewer"]) $(d).addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+for (const d of ["#settings", "#viewer", "#ask"]) $(d).addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 
 /* iOS has no install prompt: say once how to add the app to the Home Screen, unless it is already running as one */
 (function () {
@@ -1281,15 +1731,16 @@ for (const d of ["#settings", "#viewer"]) $(d).addEventListener("click", e => { 
   $("#a2hsOk").addEventListener("click", () => { $("#a2hs").hidden = true; store.set("studio.a2hs.v1", true); });
 })();
 
+let built = false;
 async function boot() {
   try {
-    loadUi(); buildNav(); gpuControl($("#gpuRow"));
+    if (!built) { built = true; loadUi(); buildNav(); buildTele(); buildCharts(); gpuControl($("#gpuRow")); $("#hdrSwitch").append(gpuSwitch()); layout(); }
     tab(store.get("studio.tab.v3") || "create");
     setTimeout(() => $("#app").classList.remove("intro"), 1500);
     const d = await api("workflows"); S.wfs = d.workflows; S.enabled = d.enabled;
     if (!S.wfs.length) { $("#compose").replaceChildren(h("div", {class: "hd"}, h("span", {}, "Create")), h("div", {class: "empty"}, h("b", {}, "No workflows installed"), "Put workflow files in the gateway's video workflows folder.")); }
     else { const first = (CFG.wf && wfByName(CFG.wf)) ? CFG.wf : S.wfs[0].name; if (!S.wf || !S.wfs.some(w => w.name === S.wf)) pickWf(first); else renderCompose(); }
-    renderStrip(); loop();
+    renderStrip(); openStream(); if (!S.live) { timer = setTimeout(loop, es ? 2500 : 0); }      // the stream's hello usually lands first; if not, one poll fills the screen
   } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; }
 }
 boot();
