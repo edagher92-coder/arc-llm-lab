@@ -1,7 +1,7 @@
 """Studio tests: the real approvals server with the Studio routes, a mock llama-swap and a mock ComfyUI. Run: python tests/test_studio.py"""
 import hashlib, json, os, re, sys, tempfile, time, traceback, urllib.request, urllib.error
 import socket
-for _m in ("gateway", "approvals", "skills", "outbox", "agent", "studio", "video", "tts_server", "cc_notify", "tools_video_mcp", "tools_local_llm", "build_workflow", "test_video"):
+for _m in ("gateway", "approvals", "skills", "outbox", "agent", "studio", "studio_metrics", "video", "tts_server", "cc_notify", "tools_video_mcp", "tools_local_llm", "build_workflow", "test_video"):
     sys.modules.pop(_m, None)     # other test files in the same process may have imported these with their own port/state
 _s = socket.socket(); _s.bind(("127.0.0.1", 0)); os.environ["GW_APPROVAL_PORT"] = str(_s.getsockname()[1]); _s.close()
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, D); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -569,6 +569,21 @@ def test_v3_shell_csp_safe_and_self_contained():
     assert not re.search(r"<[a-z][^>]*\son[a-z]+=", html, re.I), "no inline event-handler attributes"
     assert "eval(" not in html and "new Function" not in html
     assert "X-Requested-With" in html and '"approvals"' in html
+
+
+def test_p2_stream_and_stats_routes_and_tiers():
+    for p in ("/api/stream", "/api/stats"):
+        assert call("GET", T + p)[0] == 401, p
+    s, b, h = call("GET", T + "/api/stats", cookie=cookie)
+    d = json.loads(b)
+    assert s == 200 and d["fields"][0] == "t" and isinstance(d["fast"], list) and isinstance(d["slow"], list), d
+    assert studio.LAST_SAMPLER is not None and studio.LAST_SAMPLER.running()                     # started on first use
+    pt = studio.LAST_SAMPLER.sample()
+    assert pt["vram_used_gb"] is None and pt["tps"] is None and (os.name == "nt" or pt["cpu"] is None), pt   # no governor or Windows APIs here: nulls
+    keys = studio.ts_ok_keys(studio.routes(rig.q, vc, D, env)[0])
+    assert T + "/api/delete" not in " ".join(keys) and "GET " + T + "/api/stream" in keys and "POST " + T + "/api/generate" in keys and "GET " + T in keys
+    assert studio.PIN_ONLY.match("POST " + T + "/api/dev/reload") and studio.PIN_ONLY.match("GET " + T + "/api/dev") and not studio.PIN_ONLY.match("POST " + T + "/api/developer")
+    assert approvals._ident["srv"] is None                                                       # no studio.ts_identity config: no identity listener
 
 
 if __name__ == "__main__":

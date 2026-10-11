@@ -8,7 +8,8 @@ The model cannot approve its own calls: approval needs the PIN, and the pending 
 Page: http://127.0.0.1:8093/approvals (published on the tailnet through the voice server's /tts/approvals route).
 PIN: set once on the PC with set-approval-pin.ps1 (stored as a PBKDF2 hash in approval-pin.json). No PIN set = nothing can be approved.
 """
-import fnmatch, hashlib, hmac, html, json, mimetypes, os, re, secrets, shutil, sys, threading, time, urllib.error, urllib.request
+import fnmatch, hashlib, hmac, html, json, mimetypes, os, re, secrets, shutil, socket, sys, threading, time, urllib.error, urllib.request
+from email.header import decode_header, make_header
 from urllib.parse import quote, unquote, parse_qs
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -48,6 +49,10 @@ _guard = None      # the gateway Guard: owns the hash-chained audit log
 _extra_max = {}    # route key -> max POST body in bytes (uploads); everything else is capped at BODY_MAX
 GPU_BUSY = None   # set by studio.register: callable returning True while a video render holds the GPU (mode/model changes are refused)
 _extra = {}        # "GET /approvals/x" or "POST /approvals/x" -> handler(req) -> (status, body, ctype); filled by register_extra()
+_extra_ts = set()  # extra route keys that the Tailscale-identity tier ("ts", cookie gws) may use; everything else needs the PIN session
+STREAM_MAX = 4     # concurrent text/event-stream responses (a 5th gets 429)
+_streams = threading.BoundedSemaphore(STREAM_MAX)
+_stream_n = {"n": 0}
 _rate = {}
 _audit_lock = threading.RLock()
 
@@ -55,6 +60,14 @@ _lock = threading.Lock()
 _pending = {}    # id -> {id, key, tool, args, why, created, state: pending|approved|denied, decided}
 _allow = {}      # tool name -> expiry (allow this tool for a while)
 _sessions = {}   # token -> expiry
+_ts_sessions = {}  # gws token -> (expiry, login): Studio-only sessions minted from a Tailscale identity on the identity listener
+TS_TTL = 12 * 3600
+TS_COOKIE_PATH = "/approvals/studio"
+LOOPBACK = ("127.0.0.1", "::1")
+# Identity listener (off by default). When enabled it is a SECOND loopback-only socket (default 127.0.0.1:8096) meant to sit behind
+# `tailscale serve`, which adds Tailscale-User-Login for tailnet traffic and strips client-supplied copies. Only on that socket, and only from a
+# loopback peer, is the header read; it can mint a gws cookie for the Studio routes (never gwa: no tool-call approvals, no Control Centre).
+_ident = {"enabled": False, "allow": frozenset(), "host": "127.0.0.1", "port": 8096, "srv": None, "bound": False, "err": ""}
 _fails = {"n": 0, "until": 0.0}
 _once = {}       # call key -> count: calls made by the agent loop; "Allow 15 min" tool windows do not apply to them
 _once_run = {}   # call key -> (run id, step) of the agent run making that call (shown on the approval card)
@@ -86,6 +99,8 @@ def _gc(now):
         _allow.pop(k, None)
     for k in [k for k, v in _sessions.items() if v < now]:
         _sessions.pop(k, None)
+    for k in [k for k, v in _ts_sessions.items() if v[0] < now]:
+        _ts_sessions.pop(k, None)
 
 
 def request(tool, args, why):
@@ -145,27 +160,104 @@ def attach(agent=None, guard=None, state_dir=None, kill=None):
     if kill: KILL_FILE = kill
 
 
-def register_extra(table, max_body=None):
+def register_extra(table, max_body=None, ts_ok=None):
     """Hook for other lanes (Files, notifications). `table` maps "GET /approvals/<path>" or "POST /approvals/<path>" (a '*' matches anything)
     to handler(req) -> (status:int, body:bytes|str, ctype:str) with req = {"path", "query" (dict of lists), "body" (parsed JSON object,
     {} if none), "raw" (bytes), "authed" (bool)}. For POST routes this module already enforced the X-Requested-With header (403) and the
     PIN session (401) before calling the handler. GET handlers get req["authed"] and decide for themselves. Built-in routes cannot be replaced.
     req also carries "headers" (lowercase names). A handler may return ({"file": path, "ctype": ..., "download": name|None}, ) as its body to
-    stream a file with Range support (needed for video seeking on iOS). max_body={route: bytes} raises the POST body cap for those routes."""
+    stream a file with Range support (needed for video seeking on iOS). max_body={route: bytes} raises the POST body cap for those routes.
+    A handler may also return ({"stream": generator of bytes}) as its body: the response is then text/event-stream, written and flushed chunk
+    by chunk until the generator ends or the client goes away (at most STREAM_MAX at once; one more gets 429).
+    ts_ok: route keys (from `table`) that the Tailscale-identity tier may use (req["tier"] == "ts"); req["tier"] is "pin" (gwa session),
+    "ts" or None. req["authed"] stays the PIN session only, so a handler that checks it alone never admits the ts tier."""
     for k, h in dict(table).items():
         m = re.match(r"^(GET|POST) (/approvals/\S+)$", str(k))
         if not m or not callable(h):
             raise ValueError("bad extra route %r" % (k,))
         _extra[k] = h
         if max_body and k in max_body: _extra_max[k] = int(max_body[k])
+    for k in ts_ok or ():
+        if k in _extra: _extra_ts.add(k)
+
+
+def stream_count():
+    """Open event streams right now (tests and diagnostics)."""
+    return _stream_n["n"]
+
+
+def ts_login_norm(v):
+    """Tailscale-User-Login as sent by `tailscale serve` (RFC 2047 encoded when not ASCII) -> lower-case login, or "" when unusable."""
+    if not isinstance(v, str) or not v.strip() or len(v) > 1024: return ""
+    try: s = str(make_header(decode_header(v.strip())))
+    except Exception: return ""
+    s = s.strip().lower()
+    if not s or len(s) > 320 or any(c in s for c in "\r\n\0\t ;,"): return ""
+    return s
+
+
+def _parse_listen(v):
+    v = str(v or "127.0.0.1:8096").strip()
+    m = re.match(r"^\[([0-9a-fA-F:.]+)\]:(\d{1,5})$", v) or re.match(r"^([^:\[\]]+):(\d{1,5})$", v)
+    if not m: raise ValueError("listen must be host:port, e.g. 127.0.0.1:8096")
+    return m.group(1), int(m.group(2))
+
+
+def identity_configure(enabled=False, allow_logins=(), listen="127.0.0.1:8096"):
+    """Set up (or leave off) the Tailscale-identity listener. Called by studio.register from config studio.ts_identity. Starts it at once
+    when the approvals server is already running; otherwise start() does. Returns (bound, error)."""
+    allow = frozenset(x for x in (ts_login_norm(a) for a in (allow_logins or ()) if isinstance(a, str)) if x)
+    try: host, port = _parse_listen(listen)
+    except ValueError as e:
+        _ident.update(enabled=False, err=str(e)); return False, str(e)
+    _ident.update(enabled=bool(enabled) and bool(allow), allow=allow, host=host, port=port)
+    if enabled and not allow: _ident["err"] = "identity login is enabled but allow_logins is empty: left off"
+    if _started and _ident["enabled"]: identity_start()
+    return _ident["bound"], _ident["err"]
+
+
+class _Srv6(ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+
+
+def identity_start():
+    """Bind the identity listener. Refuses anything but a loopback address."""
+    if not _ident["enabled"] or _ident["srv"] is not None: return _ident["bound"]
+    host, port = _ident["host"], _ident["port"]
+    if host not in LOOPBACK:
+        _ident.update(bound=False, err="identity listener refused: %s is not a loopback address (use 127.0.0.1 or ::1)" % host)
+        sys.stderr.write("gateway: " + _ident["err"] + "\n"); return False
+    try:
+        srv = (_Srv6 if ":" in host else ThreadingHTTPServer)((host, port), _HId)
+    except OSError as e:
+        _ident.update(bound=False, err="identity listener could not start on %s:%d (%s)" % (host, port, e))
+        sys.stderr.write("gateway: " + _ident["err"] + "\n"); return False
+    if srv.server_address[0] not in LOOPBACK:              # belt and braces: never serve identity off-box
+        srv.server_close(); _ident.update(bound=False, err="identity listener refused: bound to a non-loopback address"); return False
+    _ident.update(srv=srv, bound=True, err="", port=srv.server_address[1])
+    threading.Thread(target=srv.serve_forever, name="approvals-identity", daemon=True).start()
+    return True
+
+
+def identity_stop():
+    srv = _ident["srv"]
+    if srv is not None:
+        srv.shutdown(); srv.server_close()
+    _ident.update(srv=None, bound=False)
+
+
+def _extra_match(method, r):
+    """(route key, handler) for an extra route, or (None, None)."""
+    k = method + " " + r
+    h = _extra.get(k)
+    if h: return k, h
+    for k, v in _extra.items():
+        if "*" in k and k.startswith(method + " ") and fnmatch.fnmatchcase(method + " " + r, k): return k, v
+    return None, None
 
 
 def _extra_for(method, r):
-    h = _extra.get(method + " " + r)
-    if h: return h
-    for k, v in _extra.items():
-        if "*" in k and k.startswith(method + " ") and fnmatch.fnmatchcase(method + " " + r, k): return v
-    return None
+    return _extra_match(method, r)[1]
 
 
 def audit(**rec):
@@ -489,20 +581,59 @@ load();setInterval(load,3000);
 
 
 class _H(BaseHTTPRequestHandler):
+    IDENTITY = False          # True only on the identity listener (_HId): the one place Tailscale-User-Login is ever read
+
     def log_message(self, *a): pass
 
     def _send(self, code, body, ctype="application/json", headers=()):
         b = body.encode() if isinstance(body, str) else body
         self.send_response(code); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(b)))
         self.send_header("Cache-Control", "no-store"); self.send_header("X-Frame-Options", "DENY")
-        for k, v in headers: self.send_header(k, v)
+        for k, v in list(headers) + getattr(self, "_xh", []): self.send_header(k, v)
         self.end_headers(); self.wfile.write(b)
 
-    def _authed(self):
+    def _cookie(self, name):
         c = self.headers.get("Cookie", "")
-        tok = next((p.split("=", 1)[1] for p in c.split(";") if p.strip().startswith("gwa=")), "")
+        return next((p.split("=", 1)[1].strip() for p in c.split(";") if p.strip().startswith(name + "=")), "")
+
+    def _authed(self):
+        tok = self._cookie("gwa")
         with _lock:
             return bool(tok) and _sessions.get(tok, 0) > time.time()
+
+    def _ts_login(self):
+        """The Tailscale login of this request, or "": only on the identity listener, only from a loopback peer, exactly one header."""
+        if not self.IDENTITY or not _ident["enabled"]: return ""
+        if (self.client_address or ("",))[0] not in LOOPBACK + ("::ffff:127.0.0.1",): return ""
+        vals = self.headers.get_all("Tailscale-User-Login") or []
+        if len(vals) != 1: return ""
+        login = ts_login_norm(vals[0])
+        return login if login in _ident["allow"] else ""
+
+    def _ts_session(self, method):
+        """True when this request may use the ts tier: an allowlisted login and, for a POST, a gws cookie minted for that same login.
+        A GET without a valid gws gets a fresh one (Set-Cookie on the response)."""
+        login = self._ts_login()
+        if not login: return False
+        tok, now = self._cookie("gws"), time.time()
+        with _lock:
+            s = _ts_sessions.get(tok) if tok else None
+            if s and s[0] > now and s[1] == login:
+                self._login = login; return True
+            if method != "GET": return False
+            _gc(now)
+            if len(_ts_sessions) >= 64:                     # a handful of devices at most; drop the oldest
+                for k in sorted(_ts_sessions, key=lambda k: _ts_sessions[k][0])[:len(_ts_sessions) - 63]: _ts_sessions.pop(k, None)
+            tok = secrets.token_urlsafe(32); _ts_sessions[tok] = (now + TS_TTL, login)
+        self._xh.append(("Set-Cookie", "gws=%s; Path=%s; Max-Age=%d; HttpOnly; Secure; SameSite=Strict" % (tok, TS_COOKIE_PATH, TS_TTL)))
+        self._login = login
+        audit(tool="studio.ts_login", intent="read", by="tailnet", login=login)
+        return True
+
+    def _tier(self, key, method):
+        if self._authed(): return "pin"
+        if key in _extra_ts and self._ts_session(method): return "ts"
+        return None
 
     def _route(self):
         p = self.path.split("?")[0].rstrip("/")
@@ -554,6 +685,7 @@ class _H(BaseHTTPRequestHandler):
             shutil.copyfileobj(f, self.wfile, 1 << 20)
 
     def do_GET(self):
+        self._xh, self._login = [], None
         r = self._route()
         if r.startswith("/outbox/"):
             return self._outbox(r)
@@ -577,8 +709,8 @@ class _H(BaseHTTPRequestHandler):
             if not self._authed(): return self._send(401, "{}")
             d = run_detail(m.group(1))
             return self._send(200, json.dumps(d)) if d else self._send(404, '{"error":"unknown run"}')
-        h = _extra_for("GET", r)
-        if h: return self._extra(h, r, b"")
+        k, h = _extra_match("GET", r)
+        if h: return self._extra(h, r, b"", k, self._tier(k, "GET"))
         self._send(404, "{}")
 
     def _session_exp(self):
@@ -586,18 +718,48 @@ class _H(BaseHTTPRequestHandler):
         tok = next((p.split("=", 1)[1] for p in c.split(";") if p.strip().startswith("gwa=")), "")
         with _lock: return int(_sessions.get(tok, 0))
 
-    def _extra(self, h, r, body):
+    def _extra(self, h, r, body, key=None, tier=None):
         q = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
         try: parsed = json.loads(body or b"{}")
         except ValueError: parsed = {}
+        hdrs = {k.lower(): v for k, v in self.headers.items() if self.IDENTITY or not k.lower().startswith("tailscale-")}   # never hand a spoofable identity header to a handler
         req = {"path": r, "query": q, "body": parsed if isinstance(parsed, dict) else {}, "raw": body, "authed": self._authed(),
-               "headers": {k.lower(): v for k, v in self.headers.items()}}
+               "headers": hdrs, "tier": tier, "login": self._login if tier == "ts" else None}
         try: code, out, ctype = h(req)
         except Exception as e:
             return self._send(500, json.dumps({"error": "handler failed: %s" % type(e).__name__}))
         if isinstance(out, dict) and "file" in out:
             return self._serve_file(out["file"], out.get("ctype") or ctype, out.get("download"), req["headers"].get("range", ""))
+        if isinstance(out, dict) and "stream" in out:
+            return self._stream(out["stream"])
         self._send(code, out, ctype)
+
+    def _stream(self, gen):
+        """text/event-stream: no Content-Length, every chunk written and flushed; ends when the generator ends or the client goes away."""
+        if not _streams.acquire(blocking=False):
+            try: gen.close()
+            except Exception: pass
+            return self._send(429, json.dumps({"error": "too many live streams (max %d); close another Studio tab" % STREAM_MAX}))
+        with _lock: _stream_n["n"] += 1
+        self.close_connection = True
+        try:
+            self.send_response(200)
+            for k, v in [("Content-Type", "text/event-stream; charset=utf-8"), ("Cache-Control", "no-cache"), ("X-Accel-Buffering", "no"),
+                         ("Connection", "close"), ("X-Content-Type-Options", "nosniff"), ("X-Frame-Options", "DENY")] + self._xh:
+                self.send_header(k, v)
+            self.end_headers(); self.wfile.flush()
+            for chunk in gen:
+                if not chunk: continue
+                self.wfile.write(chunk.encode() if isinstance(chunk, str) else chunk); self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass                                             # the client went away
+        except Exception as e:
+            sys.stderr.write("approvals: event stream ended: %r\n" % (e,))
+        finally:
+            try: gen.close()                                 # runs the generator's finally (unregisters the client)
+            except Exception: pass
+            with _lock: _stream_n["n"] -= 1
+            _streams.release()
 
     def _serve_file(self, path, ctype, download, rng):
         """Stream a file with single-range support (206), so <video> can seek on iOS/Safari. The route handler has already authorised the path."""
@@ -618,6 +780,7 @@ class _H(BaseHTTPRequestHandler):
             if code == 206: self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
             self.send_header("Cache-Control", "private, max-age=3600"); self.send_header("X-Content-Type-Options", "nosniff"); self.send_header("X-Frame-Options", "DENY")
             if download: self.send_header("Content-Disposition", "attachment; filename*=UTF-8''" + quote(download))
+            for k, v in getattr(self, "_xh", []): self.send_header(k, v)
             self.end_headers(); f.seek(start); left = n
             try:
                 while left > 0:
@@ -627,6 +790,7 @@ class _H(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError, OSError): pass
 
     def do_POST(self):
+        self._xh, self._login = [], None
         r = self._route()
         if self.headers.get("X-Requested-With") != "approvals":   # blocks plain cross-site form posts
             return self._send(403, "{}")
@@ -682,9 +846,13 @@ class _H(BaseHTTPRequestHandler):
         if r in ("/approvals/control", "/approvals/model", "/approvals/kill", "/approvals/agent/start"): cc = r
         elif len(parts) == 5 and parts[2] == "slots" and parts[4] == "delete": cc = "slot"
         elif len(parts) == 5 and parts[2] == "agent" and parts[4] in ("resume", "cancel"): cc = parts[4]
-        if cc or _extra_for("POST", r):
+        ek, eh = (None, None) if cc else _extra_match("POST", r)
+        if eh:
+            tier = self._tier(ek, "POST")
+            if not tier: return self._send(401, '{"error":"log in with your PIN first"}')
+            return self._extra(eh, r, body, ek, tier)
+        if cc:
             if not self._authed(): return self._send(401, '{"error":"log in with your PIN first"}')
-            if not cc: return self._extra(_extra_for("POST", r), r, body)
             try: data = json.loads(body or b"{}")
             except ValueError: data = None
             if not isinstance(data, dict): return self._send(400, '{"error":"body must be a JSON object"}')
@@ -712,6 +880,13 @@ def start():
     except OSError as e:   # port taken (another gateway instance): run without a page; changes then fail safe
         _bound["err"] = "approvals page could not start on port %d (%s); set GW_APPROVAL_PORT to a free port" % (PORT, e)
         sys.stderr.write("gateway: " + _bound["err"] + "\n")
+        identity_start()
         return
     _bound["ok"] = True
     threading.Thread(target=srv.serve_forever, daemon=True).start()
+    identity_start()
+
+
+class _HId(_H):
+    """The identity listener's handler: the same routes and rules as _H, plus the Tailscale-identity tier for Studio routes."""
+    IDENTITY = True

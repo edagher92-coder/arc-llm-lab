@@ -333,7 +333,7 @@ def build():
     _llocal.register(gw, vq, HERE, CFG)
     if vq is not None and vq.cfg.enabled:
         import studio as _studio
-        _studio.register(approvals, vq, vq.cfg, HERE)
+        _studio.register(approvals, vq, vq.cfg, HERE, cfg=CFG)
     gw.add_transform(Hide())
     gw.add_transform(search)
     gw.add_transform(Describe())

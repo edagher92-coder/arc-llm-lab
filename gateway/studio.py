@@ -20,6 +20,13 @@ security headers and the Tailscale publishing already done by tts_server (it app
   POST /approvals/studio/api/upload            raw image body (header X-Filename) -> {"name"}
   POST /approvals/studio/api/assist            {"idea", "workflow", "mode"} -> a prompt written by Qwen. mode: "single" (default), "multi" (2-4 shots
                                                with named cuts) or "continue" (only what happens next, from the start image); unknown -> "single"
+  GET  /approvals/studio/api/stream            Server-Sent Events: hello (snapshot + ring backfill), m (metric point), job, sys, ": ping" every 15 s
+                                               (?backfill=0..900 points, default 900). At most 4 streams at once (429). Contracts: docs/STUDIO-P2-CONTRACTS.md
+  GET  /approvals/studio/api/stats             both metric rings (fast 900 x 1 s, slow 1440 x 60 s) as JSON
+
+Access tiers (docs/STUDIO-P2-CONTRACTS.md): every API route needs the PIN session (cookie gwa, tier "pin") or, only when config
+studio.ts_identity.enabled is true and only on the loopback identity listener, a Tailscale-identity session (cookie gws, tier "ts"), which may
+use every Studio route except the PIN_ONLY ones (delete, and any future /api/dev route).
 
 Nothing here takes a file path from the browser: images are referred to by the name the upload returned, clips by job id + file name, and both
 are checked against the folders this module owns.
@@ -27,6 +34,7 @@ are checked against the folders this module owns.
 import ctypes, json, os, re, secrets, shutil, time
 
 import video
+import studio_metrics
 
 MAX_UPLOAD = 25 * 2 ** 20
 CLIP_TYPES = {".mp4": "video/mp4", ".webm": "video/webm", ".webp": "image/webp", ".gif": "image/gif", ".png": "image/png", ".jpg": "image/jpeg",
@@ -37,6 +45,9 @@ UI_KEYS = ("type", "label", "help", "required", "default", "min", "max", "step",
 
 PWA_FILES = {"manifest.webmanifest": "application/manifest+json", "icon-180.png": "image/png", "icon-192.png": "image/png", "icon-512.png": "image/png"}
 JOB_ID = re.compile(r"^[0-9a-f]{8}$")
+T_ROOT = "/approvals/studio"
+PIN_ONLY = re.compile(r"^POST /approvals/studio/api/(delete|dev(/.*)?)$|^(GET|POST) /approvals/studio/api/dev(/.*)?$")   # routes the ts tier may never use
+LAST_SAMPLER = None        # the sampler of the newest routes() table (diagnostics and tests)
 
 ASSIST_MODES = ("single", "multi", "continue")
 ASSIST_SYSTEM = (
@@ -199,8 +210,15 @@ def last_speed(jobs):
     return None
 
 
-def routes(q, vc, here, env=None):
-    """Build the route table for approvals.register_extra. q = video.Queue, vc = video.Cfg, here = folder holding studio/index.html."""
+def _metrics_cfg(cfg):
+    m = ((cfg or {}).get("studio") or {}).get("metrics") or {}
+    return {"gov_status": str(m.get("governor_status") or studio_metrics.GOV_STATUS), "gov_running": str(m.get("governor_running") or studio_metrics.GOV_RUNNING)}
+
+
+def routes(q, vc, here, env=None, cfg=None, sampler=None):
+    """Build the route table for approvals.register_extra. q = video.Queue, vc = video.Cfg, here = folder holding studio/index.html.
+    cfg = the whole gateway config (studio.metrics paths); sampler = a ready studio_metrics.Sampler (tests), else one is made on first use."""
+    global LAST_SAMPLER
     env = env or q.env
     index = os.path.join(here, "studio", "index.html")
     up_dir = os.path.join(q.dir, "uploads")
@@ -212,7 +230,66 @@ def routes(q, vc, here, env=None):
     T = "/approvals/studio"
 
     def need(req):
-        return None if req.get("authed") else _j(401, {"error": "log in with your PIN first"})
+        return None if (req.get("authed") or req.get("tier") in ("pin", "ts")) else _j(401, {"error": "log in with your PIN first"})
+
+    # ---------- live metrics (studio_metrics.Sampler, started on first use) ----------
+    def _gpu_owner():
+        with q.lock:
+            run = any(j["state"] in ("starting", "running") for j in q.jobs)
+        if run or os.path.exists(q.lock_path): return "video"
+        return q.mode_get()["view"]
+
+    def _queue_len():
+        with q.lock:
+            return sum(1 for j in q.jobs if j["state"] in ("queued",) + video.ACTIVE)
+
+    def _live_jobs():
+        out = q.recent(40)
+        have = {j["id"] for j in out}
+        return [_public_job(j) for j in out + [f for f in q.favourites() if f["id"] not in have]]
+
+    def _live_sys():
+        """The parts of /api/system that change on their own (no counters that tick every second, so "sys" fires only on real changes)."""
+        mg = q.mode_get(); sess = q.session_info(); proc = q.proc
+        return {"mode": "busy" if (q.busy() or sess["active"]) else mg["view"], "gov_mode": mg.get("mode"), "hold": bool(mg.get("hold")),
+                "linger_until": mg.get("linger_until"), "comfy": {"running": bool(proc is not None and proc.poll() is None), "session": bool(sess["active"]),
+                "state": sess.get("state")}, "enabled": bool(vc.enabled)}
+
+    S = {"s": sampler}
+    if sampler is not None:
+        for k, v in (("owner_fn", _gpu_owner), ("queue_fn", _queue_len), ("jobs_fn", _live_jobs), ("sys_fn", _live_sys), ("host_ram", lambda: host_ram())):
+            if getattr(sampler, k, None) is None: setattr(sampler, k, v)
+    LAST_SAMPLER = sampler
+
+    def sampler_get():
+        global LAST_SAMPLER
+        if S["s"] is None:
+            S["s"] = studio_metrics.Sampler(host_ram=lambda: host_ram(), owner_fn=_gpu_owner, queue_fn=_queue_len, jobs_fn=_live_jobs, sys_fn=_live_sys,
+                                            **_metrics_cfg(cfg))
+            LAST_SAMPLER = S["s"]
+        S["s"].start()
+        return S["s"]
+
+    def poked(h):
+        def run(req):
+            r = h(req)
+            if r[0] < 400 and S["s"] is not None and S["s"].running(): S["s"].poke()
+            return r
+        return run
+
+    def stream(req):
+        bad = need(req)
+        if bad: return bad
+        try: n = int((req["query"].get("backfill") or [studio_metrics.FAST_N])[0])
+        except (TypeError, ValueError): n = studio_metrics.FAST_N
+        s = sampler_get(); s.touch()
+        return 200, {"stream": studio_metrics.sse(s, max(0, min(studio_metrics.FAST_N, n)))}, "text/event-stream"
+
+    def stats(req):
+        bad = need(req)
+        if bad: return bad
+        s = sampler_get(); s.touch()
+        return _j(200, s.snapshot())
 
     def shell(req):
         try:
@@ -440,10 +517,10 @@ def routes(q, vc, here, env=None):
         return _j(200, {"prompt": text[:2000], "mode": mode})
 
     table = {"GET " + T: shell, "GET " + T + "/api/workflows": workflows, "GET " + T + "/api/jobs": jobs, "GET " + T + "/api/status": status,
-             "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": generate, "POST " + T + "/api/cancel": cancel,
-             "POST " + T + "/api/delete": delete, "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
-             "POST " + T + "/api/fav": fav, "POST " + T + "/api/rerun": rerun, "GET " + T + "/api/system": system, "POST " + T + "/api/mode": mode,
-             "POST " + T + "/api/comfy": comfy}
+             "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": poked(generate), "POST " + T + "/api/cancel": poked(cancel),
+             "POST " + T + "/api/delete": poked(delete), "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
+             "POST " + T + "/api/fav": poked(fav), "POST " + T + "/api/rerun": poked(rerun), "GET " + T + "/api/system": system, "POST " + T + "/api/mode": poked(mode),
+             "POST " + T + "/api/comfy": poked(comfy), "GET " + T + "/api/stream": stream, "GET " + T + "/api/stats": stats}
     table.update({"GET %s/%s" % (T, n): pwa_file(n) for n in PWA_FILES})
     return table, {"POST " + T + "/api/upload": MAX_UPLOAD + 4096}
 
@@ -463,8 +540,24 @@ def _trim_uploads(d, keep=60, protect=()):
         pass
 
 
-def register(approvals_mod, q, vc, here, env=None):
-    table, caps = routes(q, vc, here, env)
+def ts_ok_keys(table):
+    """Route keys the Tailscale-identity tier may use: every Studio route except PIN_ONLY."""
+    return [k for k in table if k.split(" ", 1)[1].startswith(T_ROOT) and not PIN_ONLY.match(k)]
+
+
+def ts_identity_cfg(cfg):
+    t = ((cfg or {}).get("studio") or {}).get("ts_identity") or {}
+    allow = t.get("allow_logins") or []
+    return {"enabled": t.get("enabled") is True, "allow_logins": [a for a in allow if isinstance(a, str)] if isinstance(allow, list) else [],
+            "listen": str(t.get("listen") or "127.0.0.1:8096")}
+
+
+def register(approvals_mod, q, vc, here, env=None, cfg=None, sampler=None):
+    table, caps = routes(q, vc, here, env, cfg=cfg, sampler=sampler)
     approvals_mod.GPU_BUSY = lambda: os.path.exists(q.lock_path)
-    approvals_mod.register_extra(table, caps)
+    try: approvals_mod.register_extra(table, caps, ts_ok=ts_ok_keys(table))
+    except TypeError: approvals_mod.register_extra(table, caps)           # an older approvals without tiers: PIN only
+    tc = ts_identity_cfg(cfg)
+    if tc["enabled"] and hasattr(approvals_mod, "identity_configure"):   # off by default: nothing is bound and no header is ever read
+        approvals_mod.identity_configure(**tc)
     return table
