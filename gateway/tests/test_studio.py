@@ -1,6 +1,9 @@
 """Studio tests: the real approvals server with the Studio routes, a mock llama-swap and a mock ComfyUI. Run: python tests/test_studio.py"""
 import hashlib, json, os, re, sys, tempfile, time, traceback, urllib.request, urllib.error
-os.environ["GW_APPROVAL_PORT"] = "18096"
+import socket
+for _m in ("gateway", "approvals", "skills", "outbox", "agent", "studio", "video", "tts_server", "cc_notify", "tools_video_mcp", "tools_local_llm", "build_workflow", "test_video"):
+    sys.modules.pop(_m, None)     # other test files in the same process may have imported these with their own port/state
+_s = socket.socket(); _s.bind(("127.0.0.1", 0)); os.environ["GW_APPROVAL_PORT"] = str(_s.getsockname()[1]); _s.close()
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, D); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import approvals, studio, video
 import test_video as tv
@@ -8,7 +11,7 @@ import test_video as tv
 approvals.PIN_FILE = os.path.join(tv.TMP, "pin.json")
 salt = b"saltsalt"
 json.dump({"salt": salt.hex(), "iterations": 1000, "hash": hashlib.pbkdf2_hmac("sha256", b"4321", salt, 1000).hex()}, open(approvals.PIN_FILE, "w"))
-B = "http://127.0.0.1:18096"
+B = "http://127.0.0.1:%d" % approvals.PORT
 PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 64
 
 
@@ -389,8 +392,54 @@ def test_mode_endpoint():
 
 
 def test_px_guard_refusal_reaches_the_browser():
-    s, b, _ = call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": "x", "width": 1280, "height": 704, "frames": 241}}, cookie)
-    e = json.loads(b)["error"]; assert s == 400 and "px-frames" in e and "Try at most" in e and "frames" in e, (s, b)
+    old = vc.max_px_frames; vc.max_px_frames = 100000                                      # nothing of >= 256x256 fits: a refusal, not an auto-fit
+    try:
+        s, b, _ = call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": "x", "width": 1280, "height": 704, "frames": 241}}, cookie)
+        e = json.loads(b)["error"]; assert s == 400 and "px-frames" in e and "frames" in e and "force" in e, (s, b)
+    finally: vc.max_px_frames = old
+
+
+def test_autofit_and_prompt_notes_are_recorded_on_the_job_from_the_browser_api():
+    s, b, _ = call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": tv.PASTED, "width": 1280, "height": 704, "frames": 241}}, cookie)
+    assert s == 200, (s, b)
+    jid1 = json.loads(b)["id"]; j = rig.q.get(jid1)
+    assert j["autofit"]["to"] == [704, 384] and j["params"]["width"] == 704 and j["fit_note"].startswith("Rendering at 704x384"), j
+    assert j["params"]["prompt"] == tv.OPT1 and j["params"]["prompt_raw"] == tv.PASTED and "Used option 1 of 3" in j["prompt_notes"], j
+    s, b, _ = call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": "x", "width": 1280, "height": 704, "frames": 241, "force": True}}, cookie)
+    jid2 = json.loads(b)["id"]; j = rig.q.get(jid2); assert s == 200 and j["params"]["width"] == 1280 and "20x slower" in j["fit_note"] and "autofit" not in j, (s, j)
+    for x in (jid1, jid2): rig.wait(x, ("done", "failed", "cancelled"), 60)                       # leave the queue idle for the tests that expect no running job
+
+
+def test_studio_autofit_and_prompt_hygiene_hooks():
+    html = _shell_html()
+    assert "function autofitSize(" in html and "function fitFor(" in html and "w.max_px_frames" in html and "Will render at " in html and "then upscale" in html      # the same rule as the server, under the size picker
+    assert 'id: "fitNote"' in html and "fitText(w0, S.vals)" in html                                                                                          # repainted with every change
+    assert "Render at exactly this size (may be very slow)" in html and "params.force = true" in html and "S.vals.force = on" in html                           # Advanced toggle -> force
+    assert "Let Lightricks enhance my prompt" in html and 'p.type === "bool"' in html and 'k === "enhance_prompt"' in html                                      # only where the workflow takes it
+    assert "j.fit_note" in html and "j.prompt_notes" in html and '"data-do": "fit-note"' in html and '"data-do": "prompt-notes"' in html                                  # the job card shows both notes
+    assert "j.autofit.from" in html and 'add("asked"' in html                                                                                                    # the job card says what was asked
+    assert "function promptNote(" in html and 'id: "promptNote"' in html and "Only option 1 will be used" in html and "const PROMPT_CAP = 2500" in html          # hint under the prompt box
+    assert "maxlength: 20000" in html and "P.prompt.max_len || 2000" not in html                                                                                  # a long paste reaches the server, which cleans and caps it
+    assert "p.prompt_raw" in html and "S.vals.prompt = p.prompt_raw" in html                                                                                      # remix starts from the original text
+
+
+def test_studio_client_autofit_rule_matches_the_server_rule():
+    import shutil, subprocess
+    node = shutil.which("node")
+    if not node: print("skip: node not installed"); return
+    m = re.search(r"function gcd\(a, b\).*?\nfunction fitFor", _shell_html(), re.S)
+    assert m, "client rule not found"
+    code = m.group(0).rsplit("function fitFor", 1)[0]
+    cases = [(w, h, n, lim, a, mn) for (w, h) in ((1280, 704), (1280, 720), (960, 544), (1024, 1024), (704, 1056), (1920, 1080), (768, 416), (640, 640), (1280, 640), (832, 480))
+             for n in (97, 193, 241, 481) for lim in (20000000, 80000000) for (a, mn) in ((64, 256), (64, 320), (192, 192))]
+    prog = code + "\nconst cs = %s; console.log(JSON.stringify(cs.map(c => autofitSize(c[0], c[1], c[2], c[3], c[4], c[5], c[5]))));" % json.dumps(cases)
+    out = subprocess.run([node, "-e", prog], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    got = json.loads(out.stdout)
+    for c, g in zip(cases, got):
+        want = tv.video.autofit_size(c[0], c[1], c[2], c[3], c[4], c[5], c[5])
+        assert (list(want) if want else None) == g, (c, want, g)
+    assert any(g for g in got) and any(g is None for g in got)
 
 
 def test_linger_in_system_and_mode_llm_ends_it():

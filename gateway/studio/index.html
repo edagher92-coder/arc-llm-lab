@@ -628,6 +628,45 @@ function secRange(w) {
 }
 function snapSecs(sr, s) { return clamp(Math.round(s / sr.step) * sr.step, sr.min, sr.max); }
 /* LTX wants 8n+1 frames: this is the clip the model will really make for a requested length */
+/* The memory guard, client side: same rule as video.autofit_size on the server (w.max_px_frames is the server's budget for this workflow, 0 = none).
+   Largest size no bigger than asked, both sides a multiple of a, within 6% of the asked shape, whose width*height*frames fits; null = nothing fits. */
+function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+function autofitSize(w, h, n, lim, a, wmin, hmin) {
+  wmin = Math.max(a, Math.ceil(wmin / a) * a); hmin = Math.max(a, Math.ceil(hmin / a) * a);
+  const ar = w / h; let best = null;
+  for (let W = Math.max(wmin, Math.floor(w / a) * a); W >= wmin; W -= a) {
+    const f = Math.floor(W / ar / a);
+    for (const H of new Set([Math.max(hmin, f * a), Math.max(hmin, (f + 1) * a)])) {
+      if (H > h || W * H * n > lim) continue;
+      const err = Math.abs(W / H - ar) / ar, key = err <= 0.06 ? [0, -(W * H), 0] : [1, err, -(W * H)];
+      if (!best || key[0] < best.key[0] || (key[0] === best.key[0] && (key[1] < best.key[1] || (key[1] === best.key[1] && key[2] < best.key[2])))) best = {key, W, H};
+    }
+  }
+  return best ? [best.W, best.H] : null;
+}
+/* what the server will do with the current settings: null = nothing (fits, no budget, or forced), else {from, to (null = cannot fit), n} */
+function fitFor(w, v) {
+  const lim = +w.max_px_frames; if (!(lim > 0) || w.params.video || v.force) return null;
+  const P = w.params, sz = w.sizes.length ? (w.sizes[v.size || 0] || w.sizes[0]) : null, sr = secRange(w);
+  let W = sz ? sz[0] : +(v.width || (P.width && P.width.default)), H = sz ? sz[1] : +(v.height || (P.height && P.height.default));
+  const n = sr ? frameInfo(w, v.seconds).frames : +(v.frames || (P.frames && P.frames.default));
+  if (!(W > 0 && H > 0 && n > 0) || W * H * n <= lim) return null;
+  const pw = P.width || {}, ph = P.height || {}, a = (64 * (+pw.multiple_of || 1) / gcd(64, +pw.multiple_of || 1)); const a2 = a * (+ph.multiple_of || 1) / gcd(a, +ph.multiple_of || 1);
+  return {from: [W, H], to: autofitSize(W, H, n, lim, a2, +pw.min || 0, +ph.min || 0), n};
+}
+function fitText(w, v) {
+  if (v.force) { const sz = w.sizes.length ? (w.sizes[v.size || 0] || w.sizes[0]) : null; return +w.max_px_frames > 0 && sz ? "Rendering at exactly " + sz[0] + "×" + sz[1] + " as asked: if that is over the memory budget it may be ~20x slower." : ""; }
+  const f = fitFor(w, v); if (!f) return "";
+  return f.to ? "Will render at " + f.to[0] + "×" + f.to[1] + " (fits GPU memory), then upscale for full resolution." : "Too big for GPU memory even at the smallest size. Shorten the video, or turn on Render at exactly this size.";
+}
+/* a quick look at pasted chatbot answers: the server keeps only the first option and caps the length at PROMPT_CAP */
+const PROMPT_CAP = 2500, OPTION_MARK = /(?:^|[\s>*#])(?:Option|Prompt|Version|Variant|Idea|Concept)\s+(\d{1,2}|[A-H])\b\s*(?:\*\*)?\s*[:.)\u2013\u2014-]/g;
+function promptNote(t) {
+  t = String(t || ""); const ids = new Set([...t.matchAll(OPTION_MARK)].map(m => m[1].toLowerCase()));
+  if (ids.size >= 2) return "This looks like a pasted list of " + ids.size + " options. Only option 1 will be used, without the chatbot's commentary.";
+  if (t.length > PROMPT_CAP) return "Over " + PROMPT_CAP + " characters: it will be shortened at a sentence end.";
+  return "";
+}
 function frameInfo(w, s) {
   const fps = +w.fps || 24, f = (w.frames_rule || "8n+1") === "8n+1" ? Math.max(9, Math.round(s * fps / 8) * 8 + 1) : Math.max(1, Math.round(s * fps) + 1);
   return {frames: f, secs: Math.round((f - 1) / fps * 10) / 10};
@@ -695,7 +734,12 @@ async function writeWithQwen(idea, mode, btn, done) {
   catch (x) { toast(x.message, "err"); } finally { btn.disabled = false; btn.textContent = was; }
 }
 let reqPre = null;
+function boolToggle(label, help, on, set) {
+  return h("label", {class: "toggle", style: "margin-top:8px"}, h("input", {type: "checkbox", role: "switch", checked: on, onchange: e => set(e.target.checked)}), h("span", {}, label, help ? h("small", {}, help) : ""));
+}
+let fitEl = null;
 function paintReq() {
+  if (fitEl) { const w0 = wfNow(), t = w0 ? fitText(w0, S.vals) : ""; fitEl.textContent = t; fitEl.hidden = !t; }
   if (!reqPre) return; const w = wfNow(); if (!w) return;
   const r = buildParams(w, S.vals, true);
   reqPre.textContent = JSON.stringify({workflow: S.wf, params: r.params || r.draft || {}}, null, 1) + (r.error ? "\n(" + r.error + ")" : "");
@@ -710,7 +754,8 @@ function renderCompose() {
   root.lastChild.style.marginBottom = "18px";
   const P = w.params;
   if (P.prompt) {
-    const ta = h("textarea", {id: "prompt", rows: 5, maxlength: P.prompt.max_len || 2000, placeholder: "Describe the shot: who or what, what happens, how the camera moves, the light.", oninput: e => { S.vals.prompt = e.target.value; paintReq(); }}); ta.value = S.vals.prompt || "";
+    const ta = h("textarea", {id: "prompt", rows: 5, maxlength: 20000, placeholder: "Describe the shot: who or what, what happens, how the camera moves, the light.", oninput: e => { S.vals.prompt = e.target.value; paintPn(); paintReq(); }}); ta.value = S.vals.prompt || "";
+    const pn = h("div", {class: "help", id: "promptNote", role: "status"}); const paintPn = () => { pn.textContent = promptNote(S.vals.prompt); pn.hidden = !pn.textContent; }; paintPn();
     const hint = h("div", {class: "help", id: "modeHelp"});
     const paintHint = () => { hint.textContent = (MODES.find(m => m[0] === S.mode) || MODES[0])[2] + ". A few words are enough; Qwen writes the full description when the GPU is not rendering."; };
     const seg = h("div", {class: "seg", role: "group", "aria-label": "Prompt style"}, MODES.map(m => h("button", {type: "button", "aria-pressed": String(S.mode === m[0]), title: m[2], onclick: e => {
@@ -718,9 +763,9 @@ function renderCompose() {
     paintHint();
     const ai = h("button", {class: "btn sm", type: "button", onclick: e => {
       if (S.mode === "continue" && !S.vals.image) return toast("Add a start image first, then say what happens next");
-      writeWithQwen(S.vals.prompt, S.mode, e.currentTarget, t => { S.vals.prompt = t; ta.value = t; paintReq(); });
+      writeWithQwen(S.vals.prompt, S.mode, e.currentTarget, t => { S.vals.prompt = t; ta.value = t; paintPn(); paintReq(); });
     }}, "Write with Qwen");
-    root.append(h("div", {class: "field"}, h("div", {class: "assist"}, h("label", {class: "lab", for: "prompt"}, "Prompt"), ai), seg, ta, hint));
+    root.append(h("div", {class: "field"}, h("div", {class: "assist"}, h("label", {class: "lab", for: "prompt"}, "Prompt"), ai), seg, ta, pn, hint));
   }
   if (P.image) root.append(imageField(P.image));
   const sr = secRange(w);
@@ -730,6 +775,7 @@ function renderCompose() {
   }
   if (w.sizes.length) root.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Frame"), h("div", {class: "chips"}, w.sizes.map((s, i) =>
     h("button", {class: "chip", type: "button", "aria-pressed": String((S.vals.size || 0) === i), onclick: () => { S.vals.size = i; renderCompose(); }}, s[2] || (s[0] + "×" + s[1]), h("small", {}, s[0] + "×" + s[1]))))));
+  fitEl = h("div", {class: "help", id: "fitNote", role: "status"}); root.append(fitEl);
   /* Advanced: every per-job parameter the chosen workflow accepts (the server rejects anything else), plus the exact request */
   const adv = h("details", {class: "adv"}, h("summary", {}, "Advanced"));
   if (!w.sizes.length) for (const k of ["width", "height"]) if (P[k]) adv.append(slider(w, k, P[k]));
@@ -738,7 +784,9 @@ function renderCompose() {
     if (["prompt", "negative", "image", "width", "height", "frames", "seed", "seconds"].includes(k)) continue;
     if (p.choices) { const s = h("select", {"aria-label": p.label || k, onchange: e => { S.vals[k] = e.target.value; paintReq(); }}, p.choices.map(c => h("option", {value: c}, c))); s.value = S.vals[k] ?? p.default ?? p.choices[0]; adv.append(h("div", {class: "field"}, h("label", {}, p.label || k), s, p.help ? h("div", {class: "help"}, p.help) : null)); }
     else if (p.type === "int" || p.type === "float") adv.append(slider(w, k, p));
+    else if (p.type === "bool") adv.append(boolToggle(k === "enhance_prompt" ? "Let Lightricks enhance my prompt" : (p.label || k.replace(/_/g, " ")), k === "enhance_prompt" ? "LTX rewrites the prompt with more detail before rendering. Off keeps your words exactly." : (p.help || ""), !!S.vals[k], on => { S.vals[k] = on; paintReq(); }));
   }
+  if ((w.sizes.length || P.width) && +w.max_px_frames > 0 && !P.video) adv.append(boolToggle("Render at exactly this size (may be very slow)", "Skips the automatic fit. A clip over the GPU memory budget can take about 20 times longer.", !!S.vals.force, on => { S.vals.force = on; paintReq(); }));
   if (P.seed) {
     const si = h("input", {type: "number", inputmode: "numeric", "aria-label": "Seed", placeholder: "Random each time", oninput: e => { S.vals.seed = e.target.value === "" ? undefined : +e.target.value; paintReq(); }}); si.value = S.vals.seed ?? "";
     const lk = h("input", {type: "checkbox", checked: CFG.seedLock, onchange: e => { CFG.seedLock = e.target.checked; saveCfg(); if (CFG.seedLock && S.vals.seed == null) { S.vals.seed = Math.floor(Math.random() * 2147483647); si.value = S.vals.seed; paintReq(); } }});
@@ -777,6 +825,7 @@ function buildParams(w, v, soft) {
   const params = {};
   for (const k of Object.keys(w.params)) if (v[k] !== undefined && v[k] !== "") params[k] = v[k];
   if (v.seconds != null && secRange(w)) params.seconds = v.seconds;
+  if (v.force && !w.params.video) params.force = true;
   if (w.sizes.length) { const s = w.sizes[v.size || 0] || w.sizes[0]; params.width = s[0]; params.height = s[1]; }
   if (w.params.prompt && !(params.prompt || "").trim()) return soft ? {error: "a prompt is needed", draft: params} : {error: "Write a prompt first."};
   if (w.params.image && w.params.image.required && !params.image) return soft ? {error: "a start image is needed", draft: params} : {error: "This workflow needs a start image."};
@@ -838,7 +887,9 @@ function renderStage(root, id) {
   const p = j.params || {}, kv = h("div", {class: "kv"});
   const add = (a, b) => b != null && b !== "" && kv.append(h("span", {}, a + " "), h("b", {}, String(b)));
   add("workflow", j.workflow); add("size", p.width && p.height ? p.width + "×" + p.height : ""); add("frames", p.frames); add("length", p.seconds ? p.seconds + " s" : ""); add("seed", p.seed); add("render", j.seconds ? mmss(j.seconds) : "");
-  st.append(h("div", {class: "meta"}, p.prompt ? h("p", {}, p.prompt) : "", kv));
+  if (j.autofit && j.autofit.from) add("asked", j.autofit.from[0] + "×" + j.autofit.from[1]);
+  st.append(h("div", {class: "meta"}, p.prompt ? h("p", {}, p.prompt) : "", kv,
+    j.fit_note ? h("div", {class: "help", "data-do": "fit-note"}, j.fit_note) : "", j.prompt_notes ? h("div", {class: "help", "data-do": "prompt-notes"}, j.prompt_notes) : ""));
   const acts = h("div", {class: "acts"});
   if (j.state === "done" && j.clips.length) {
     acts.append(h("a", {class: "btn", href: clipUrl(j, j.clips[0], true), download: j.clips[0].name}, "Download"));
@@ -901,6 +952,8 @@ function remix(j) {
   if (!wfByName(j.workflow)) return toast("That workflow is not installed any more");
   const p = j.params || {};
   S.vals = {}; for (const k of ["prompt", "negative", "seed"]) if (p[k] !== undefined) S.vals[k] = p[k];
+  if (typeof p.prompt_raw === "string" && p.prompt_raw) S.vals.prompt = p.prompt_raw;            // what was typed or pasted, not the cleaned copy
+  if (p.force) S.vals.force = true;
   S.wf = null; S.upload = null; pickWf(j.workflow); const w = wfNow();
   for (const k of Object.keys(p)) if (w.params[k] && !["image", "frames"].includes(k)) S.vals[k] = p[k];
   if (p.seconds == null && p.frames && secRange(w)) S.vals.seconds = Math.round((p.frames - 1) / (w.fps || 24) * 2) / 2;

@@ -84,6 +84,8 @@ def _public_job(j):
          "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files")), "fav": bool(j.get("fav"))}
     if isinstance(j.get("progress"), (int, float)) and not isinstance(j.get("progress"), bool): d["progress"] = max(0.0, min(100.0, float(j["progress"])))   # staged workflows report a real percentage
     if isinstance(j.get("step"), str) and re.match(r"^\d{1,4}/\d{1,4}$", j["step"]): d["step"] = j["step"]                      # live sampler step, e.g. "3/8"
+    for k in ("autofit", "fit_note", "prompt_notes"):                                                                            # auto-fit size and prompt clean-up notes
+        if j.get(k): d[k] = j[k]
     if isinstance(j.get("eta_s"), (int, float)) and not isinstance(j.get("eta_s"), bool) and 0 <= j["eta_s"] < 86400: d["eta_s"] = round(float(j["eta_s"]), 1)
     if isinstance(j.get("phase"), str) and re.match(r"^[a-z0-9_]{1,16}$", j["phase"]): d["phase"] = j["phase"]
     if j.get("drive_rel"): d["drive"] = j["drive_rel"]                 # "2026-10/<job>_<clip>.mp4": a path inside the Drive folder, never the folder itself
@@ -233,7 +235,7 @@ def routes(q, vc, here, env=None):
         bad = need(req)
         if bad: return bad
         wfs = video.load_workflows(vc.workflows_dir)
-        return _j(200, {"enabled": vc.enabled, "workflows": [_meta_for_ui(n, w) for n, w in sorted(wfs.items(), key=lambda kv: (kv[1]["meta"].get("order", 100), kv[0]))]})
+        return _j(200, {"enabled": vc.enabled, "workflows": [dict(_meta_for_ui(n, w), max_px_frames=video.px_budget(w, vc)) for n, w in sorted(wfs.items(), key=lambda kv: (kv[1]["meta"].get("order", 100), kv[0]))]})
 
     def jobs(req):
         bad = need(req)

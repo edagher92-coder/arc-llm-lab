@@ -183,11 +183,12 @@ def test_build_hook_registers_video_tools():
         cf = os.path.join(TMP, "gw.json"); json.dump({"name": "gw", "servers": {}}, open(cf, "w")); sys.argv = ["gateway.py", cf]
         os.environ.setdefault("GW_STATE_DIR", os.path.join(TMP, "state"))
     import gateway
+    import tools_video_mcp as vmod     # the module gateway.build() imports (another test file may have re-imported it)
     seen = []
-    real = tv.register
-    tv.register = lambda srv, q, base: seen.append((srv, q, base))
+    real = vmod.register
+    vmod.register = lambda srv, q, base: seen.append((srv, q, base))
     try:
         gateway.build()
     finally:
-        tv.register = real
+        vmod.register = real
     assert len(seen) == 1 and seen[0][2] == gateway.HERE

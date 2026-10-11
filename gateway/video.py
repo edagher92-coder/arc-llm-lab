@@ -106,9 +106,9 @@ class Cfg:
         except (TypeError, ValueError):
             self.linger_s = 480.0
         try:
-            self.max_px_frames = max(0, int(c.get("video_max_px_frames", 60000000)))   # width*height*frames above this spills VRAM (stage 2 ~20x slower); 0 = no guard; a workflow's meta.max_px_frames overrides
+            self.max_px_frames = max(0, int(c.get("video_max_px_frames", 80000000)))   # width*height*frames above this spills VRAM (stage 2 ~20x slower): the size is auto-fitted (or "force" renders anyway); 0 = no guard; a workflow's meta.max_px_frames overrides
         except (TypeError, ValueError):
-            self.max_px_frames = 60000000
+            self.max_px_frames = 80000000
         self.keep_raw = bool(c.get("keep_raw", False))                          # keep the un-levelled original next to the clip as <name>_raw.mp4
         self.enabled = bool(self.comfy_cmd and self.comfy_dir)
 
@@ -252,16 +252,31 @@ def snap_frames(n, rule):
 
 def resolve_params(wf, raw, cfg):
     """Validate and clamp the caller's arguments against the workflow's meta. Returns (values, files) where files are images to copy."""
+    vals, files, _info = resolve_full(wf, raw, cfg)
+    return vals, files
+
+
+def resolve_full(wf, raw, cfg):
+    """resolve_params plus the side information a job records: (values, files, info). info may hold "autofit" {from, to, reason}, "fit_note" (what the
+    user should be told about the size) and "prompt_notes" (what clean_prompt did)."""
     try:
         return _resolve(wf, raw, cfg)
     except (ValueError, TypeError, OverflowError) as ex:
         raise VideoError("invalid parameter value (%s)" % ex)
 
 
+PROMPT_CAP = 2500                                  # LTX-2.5's text encoder takes up to 1024 tokens; a workflow's own (older, smaller) max_len no longer lowers it
+_FREE_KEYS = ("seconds", "force", "prompt_raw")    # accepted for every workflow: seconds feeds frames, force lifts the memory guard, prompt_raw is a rerun's stored original
+
+
+def _truthy(v):
+    return v if isinstance(v, bool) else str(v).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _resolve(wf, raw, cfg):
     meta, spec = wf["meta"], wf["meta"].get("params") or {}
-    vals, files = {}, {}
-    unknown = [k for k in raw if raw[k] not in (None, "", 0, -1) and k not in spec and k not in ("seconds",)]
+    vals, files, info = {}, {}, {}
+    unknown = [k for k in raw if raw[k] not in (None, "", 0, -1) and k not in spec and k not in _FREE_KEYS]
     if unknown:
         raise VideoError("this workflow does not take: %s (it takes: %s)" % (", ".join(sorted(unknown)), ", ".join(sorted(spec))))
     for name, p in spec.items():
@@ -289,6 +304,16 @@ def _resolve(wf, raw, cfg):
             vals[name] = max(float(p.get("min", v)), min(float(p.get("max", v)), float(v)))
         elif t == "image":
             files[name] = str(v)
+        elif t == "bool":
+            vals[name] = _truthy(v)
+        elif name == "prompt":
+            orig = str(v)
+            if isinstance(raw.get("prompt_raw"), str) and raw["prompt_raw"].strip() and clean_prompt(raw["prompt_raw"], PROMPT_CAP)[0] == orig.strip():
+                orig = raw["prompt_raw"]                      # a rerun/remix: keep the very first text, not the already-cleaned copy
+            vals[name], notes = clean_prompt(orig, max(PROMPT_CAP, int(p.get("max_len", 0))))
+            vals["prompt_raw"] = orig
+            if notes:
+                info["prompt_notes"] = "; ".join(notes)
         else:
             s = str(v)
             vals[name] = s[: int(p.get("max_len", 2000))]
@@ -305,29 +330,68 @@ def _resolve(wf, raw, cfg):
         vals["frames"] = max(int(spec["frames"].get("min", want)), min(int(spec["frames"].get("max", want)), want))
     elif "frames" in vals and meta.get("frames_rule"):
         vals["frames"] = snap_frames(vals["frames"], meta["frames_rule"])
-    _check_px_frames(wf, vals, cfg)
-    return vals, files
+    fit = _check_px_frames(wf, vals, cfg, force=_truthy(raw.get("force")))
+    if fit:
+        info.update(fit)
+        if fit.get("autofit") is None:                    # forced past the budget: remember it so a rerun stays forced
+            vals["force"] = True
+    return vals, files, info
 
 
 def _gcd_lcm(a, b):
     return a * b // math.gcd(a, b)
 
 
-def _check_px_frames(wf, vals, cfg):
-    """Refuse a clip whose width*height*frames is over the memory guard (meta.max_px_frames, else cfg.max_px_frames; 0 = off)."""
+def px_budget(wf, cfg):
+    """The px-frames budget (width*height*frames) that applies to this workflow: meta.max_px_frames, else the config's video_max_px_frames; 0 = no guard."""
+    lim = (wf.get("meta") or {}).get("max_px_frames", getattr(cfg, "max_px_frames", 0))
+    return int(lim) if isinstance(lim, (int, float)) and not isinstance(lim, bool) and lim > 0 else 0
+
+
+def autofit_size(w, h, n, lim, a, wmin=0, hmin=0):
+    """Largest (W, H) <= (w, h), both multiples of a, with W*H*n <= lim and the same aspect ratio as w:h (within 6%; else the closest that fits).
+    Returns None when even the smallest allowed size does not fit."""
+    wmin, hmin = max(a, -(-wmin // a) * a), max(a, -(-hmin // a) * a)
+    ar = w / float(h)
+    best = None
+    for W in range(max(wmin, w // a * a), wmin - 1, -a):
+        hh = W / ar
+        for H in {max(hmin, int(hh // a) * a), max(hmin, (int(hh // a) + 1) * a)}:
+            if H > h or W * H * n > lim:
+                continue
+            err = abs(W / float(H) - ar) / ar
+            key = (0, -(W * H)) if err <= 0.06 else (1, err, -(W * H))
+            if best is None or key < best[0]:
+                best = (key, W, H)
+    return (best[1], best[2]) if best else None
+
+
+def _check_px_frames(wf, vals, cfg, force=False):
+    """Keep width*height*frames inside the memory budget (meta.max_px_frames, else cfg.max_px_frames; 0 = off). Over it: keep the length and shrink the
+    size to the largest one of the same aspect that fits (vals is updated; returns {"autofit", "fit_note"}); force=True renders as asked with a warning
+    (returns {"autofit": None, "fit_note"}); when even the smallest allowed size cannot fit, refuse. Returns None when within budget."""
     meta = wf["meta"]
     spec = meta.get("params") or {}
-    lim = meta.get("max_px_frames", getattr(cfg, "max_px_frames", 0))
-    if isinstance(lim, bool) or not isinstance(lim, (int, float)) or lim <= 0:
-        return
-    lim = int(lim)
+    lim = px_budget(wf, cfg)
+    if not lim:
+        return None
     w, h, fps = vals.get("width"), vals.get("height"), meta.get("fps")
     n = vals.get("frames")
     if n is None and fps and vals.get("seconds"):
         n = int(round(float(vals["seconds"]) * float(fps))) + 1
     if not all(isinstance(x, (int, float)) and x > 0 for x in (w, h, n)) or w * h * n <= lim:
-        return
+        return None
     w, h, n = int(w), int(h), int(n)
+    if force:
+        return {"autofit": None, "fit_note": "Rendering at exactly %dx%d as asked, but that is %.1f M px-frames, over the memory budget of %.1f M: it may be ~20x slower." % (w, h, w * h * n / 1e6, lim / 1e6)}
+    a = _gcd_lcm(64, _gcd_lcm(int((spec.get("width") or {}).get("multiple_of") or 1), int((spec.get("height") or {}).get("multiple_of") or 1)))
+    can_fit = meta.get("autofit", True) is not False and "video" not in spec          # a source-video workflow (upscale) cannot shrink its input
+    to = autofit_size(w, h, n, lim, a, int((spec.get("width") or {}).get("min") or 0), int((spec.get("height") or {}).get("min") or 0)) if can_fit else None
+    if to:
+        vals["width"], vals["height"] = to
+        reason = "%dx%d x %d frames is %.1f M px-frames, over the GPU memory budget of %.1f M; %dx%d is the largest size of the same shape that fits" % (w, h, n, w * h * n / 1e6, lim / 1e6, to[0], to[1])
+        return {"autofit": {"from": [w, h], "to": list(to), "reason": reason},
+                "fit_note": "Rendering at %dx%d to fit GPU memory; upscale afterwards for full resolution" % to}
     rule = meta.get("frames_rule")
     fmin = int((spec.get("frames") or {}).get("min", 9 if rule == "8n+1" else 1))
     nmax = lim // (w * h)
@@ -336,7 +400,6 @@ def _check_px_frames(wf, vals, cfg):
     parts = []
     if nmax >= max(fmin, 1):
         parts.append("%d frames%s at %dx%d" % (nmax, " (%.1f s)" % ((nmax - 1) / float(fps)) if fps else "", w, h))
-    a = _gcd_lcm(64, _gcd_lcm(int((spec.get("width") or {}).get("multiple_of") or 1), int((spec.get("height") or {}).get("multiple_of") or 1)))
     sc = math.sqrt(lim / float(w * h * n))
     nw, nh = max(a, int(w * sc) // a * a), max(a, int(h * sc) // a * a)
     while nw * nh * n > lim and (nw > a or nh > a):          # rounding down can still leave the area a hair over
@@ -344,8 +407,89 @@ def _check_px_frames(wf, vals, cfg):
         else: nh -= a
     if nw * nh * n <= lim:
         parts.append("%dx%d at %d frames%s" % (nw, nh, n, " (%.1f s)" % ((n - 1) / float(fps)) if fps else ""))
-    raise VideoError("%dx%d x %d frames is %.1f M px-frames, over this workflow's limit of %.1f M (video_max_px_frames / meta.max_px_frames): it would not fit in GPU memory and would render about 20x slower. %s" % (
-        w, h, n, w * h * n / 1e6, lim / 1e6, ("Try at most " + ", or ".join(parts) + ".") if parts else "Reduce the size or the length."))
+    raise VideoError("%dx%d x %d frames is %.1f M px-frames, over this workflow's limit of %.1f M (video_max_px_frames / meta.max_px_frames): it would not fit in GPU memory and would render about 20x slower. %s%s" % (
+        w, h, n, w * h * n / 1e6, lim / 1e6, ("Try at most " + ", or ".join(parts) + ".") if parts else "Reduce the size or the length.", " Or pass force to render as asked anyway."))
+
+
+# ---------- prompt hygiene ----------
+_OPT = re.compile(r"(?:(?<=[\s>*#_])|^)(?:#{1,6}[ \t]*)?(?:\*\*|__)?[ \t]*(?P<kind>[Oo]ption|[Pp]rompt|[Vv]ersion|[Vv]ariant|[Ii]dea|[Cc]oncept)[ \t]+(?P<id>\d{1,2}|[A-H](?![A-Za-z])|[Oo]ne|[Tt]wo|[Tt]hree|[Ff]our|[Ff]ive)(?:\*\*|__)?[ \t]*(?=[:.\-\u2013\u2014)\n]|$)[:.\-\u2013\u2014)]*", re.M)
+_HEAD = re.compile(r"^[ \t]*#{1,6}[ \t]*(?:\*\*)?[ \t]*(?:[A-Za-z]+[ \t]+)?(?P<id>\d{1,2})\b(?:\*\*)?[.):]?", re.M)
+_PROMPT_LABEL = re.compile(r"\bPrompt(?:[ \t]+\d{1,2})?[ \t]*(?:\*\*|__)?[ \t]*:[ \t]*(?:\*\*|__)?", re.I)
+_META_LEAD = re.compile(r"^\s*(?:(?:Sure|Certainly|Of course|Absolutely|Great|Okay)\b[!.,]*\s*)?(?:(?:Here(?:'s| is| are)|I(?:'ve| have) (?:written|created|put)|Below (?:is|are)|I hope|Feel free|Let me know)\b[^\n.!?:]*[.!?:]?\s*)*", re.I)
+_META_TAIL = re.compile(r"(?:^|\n|(?<=[.!?])\s+)(?:\W*)(?:Why (?:it|this) works|Notes?|Tips?|Feel free|Let me know|I hope|Would you like|Want me to|Do you want|Hope this helps)\b.*\Z", re.I | re.S)
+
+
+def _strip_markdown(t):
+    t = re.sub(r"(?m)^[ \t]*(?:>[ \t]*)+", "", t)                                      # quote markers at the start of a line
+    t = re.sub(r"(?<=\s)>+[ \t]+(?=[\"'\u201c\u2018A-Z])", "", t)                        # ... and the ones left inline when a paste was flattened
+    t = re.sub(r"(?m)^[ \t]*#{1,6}[ \t]*", "", t)                                       # heading marks
+    t = re.sub(r"(?m)^[ \t]*(?:[-*_]{3,}|={3,})[ \t]*$", " ", t)                        # horizontal rules
+    t = re.sub(r"(?m)^[ \t]*[*\u2022-][ \t]+", "", t)                                    # bullets
+    t = re.sub(r"(\*\*|__)(.+?)\1", r"\2", t, flags=re.S)                                  # **bold**
+    t = re.sub(r"(?<![\w*])\*(?![\s*])([^*\n]+?)(?<![\s*])\*(?![\w*])", r"\1", t)         # *italic*
+    t = t.replace("`", "")
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) > 1 and t[0] in "\"\u201c" and t[-1] in "\"\u201d" and not re.search(r"[\"\u201c\u201d]", t[1:-1]):
+        t = t[1:-1].strip()
+    return t
+
+
+def _cut_sentence(t, cap):
+    """t if it fits, else the longest run of whole sentences within cap (or, with no sentence end late enough, whole words): never mid-word."""
+    if len(t) <= cap:
+        return t
+    head = t[:cap]
+    if not t[cap].isspace():                                                              # the cap fell inside a word: back off to its start
+        head = head[: max(head.rfind(" "), 0)]
+    ends = [m.end() for m in re.finditer(r"[.!?][\"')\]\u201d]*(?=\s|$)", head)]
+    if ends and ends[-1] >= cap * 0.5:
+        return head[: ends[-1]].strip()
+    return head.rstrip(" ,;:-")
+
+
+def clean_prompt(text, cap=PROMPT_CAP):
+    """(clean, notes): a pasted chatbot answer or markdown reduced to the prompt itself.
+    With several option/variant markers ("Option 1", "Prompt 2", "Version A", numbered markdown headings) only the FIRST option's body is kept: the text after its
+    "Prompt:" label (else after its heading line), up to the next option; leading chatbot talk ("Here are...", "Sure!") and trailing commentary are dropped.
+    Otherwise only markdown/quote marks and whitespace go. Then at most cap characters, ended at a sentence boundary."""
+    notes = []
+    t = str(text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    words = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5"}
+    marks = sorted([(m.start(), m.end(), words.get(m.group("id").lower(), m.group("id").lower())) for m in _OPT.finditer(t)] + [(m.start(), m.end(), m.group("id")) for m in _HEAD.finditer(t)])
+    marks = [m for k, m in enumerate(marks) if not any(o[0] <= m[0] < o[1] for o in marks[:k])]
+    ids = []
+    for _s, _e, i in marks:
+        if i not in ids:
+            ids.append(i)
+    if len(ids) >= 2:
+        first = [m for m in marks if m[2] == ids[0]]
+        s0 = first[0][1]
+        nxt = next((m[0] for m in marks if m[2] != ids[0] and m[0] >= s0), len(t))
+        body = t[s0:nxt]
+        dropped = len([ln for ln in t[:first[0][0]].split("\n") if re.search(r"\w", ln)])
+        lab = _PROMPT_LABEL.search(body)
+        if lab:
+            body = body[lab.end():]                                                          # (the option's title line before the label is a heading, not commentary)
+        elif "\n" in body.strip():
+            head, _, rest = body.strip().partition("\n")
+            if len(head) <= 120 and not re.search(r"[.!?]\s*$", head) and re.search(r"\w", rest):
+                body = rest
+        tail = _META_TAIL.search(body)
+        if tail:
+            dropped += len([ln for ln in tail.group(0).split("\n") if re.search(r"\w", ln)]) or 1
+            body = body[:tail.start()]
+        body = body.strip()
+        lead = _META_LEAD.match(body)
+        if lead and lead.end():
+            body = body[lead.end():]
+        t = _strip_markdown(body)
+        notes.append("Used option 1 of %d from a pasted list" % len(ids) + ("; removed %d line%s of commentary" % (dropped, "" if dropped == 1 else "s") if dropped else ""))
+    else:
+        t = _strip_markdown(t)
+    cut = _cut_sentence(t, cap)
+    if cut != t:
+        notes.append("Shortened to %d characters at a sentence end (limit %d)" % (len(cut), cap))
+    return cut, notes
 
 
 def fill_graph(graph, vals):
@@ -566,13 +710,16 @@ class Queue:
             raise VideoError("unknown workflow %r. Available: %s" % (workflow, ", ".join(sorted(wfs)) or "(none installed)"))
         for st in stage_names(wfs[workflow]):                # a staged workflow must have every stage in place before it is queued
             load_stage(self.cfg.workflows_dir, st)
-        vals, files = resolve_params(wfs[workflow], raw, self.cfg)
+        vals, files, info = resolve_full(wfs[workflow], raw, self.cfg)
         for name, path in files.items():
             files[name] = self._check_image(path)
         with self.lock:
             if sum(1 for j in self.jobs if j["state"] in ("queued",) + ACTIVE) >= self.cfg.max_queue:
                 raise VideoError("the video queue is full (%d jobs); wait for one to finish" % self.cfg.max_queue)
-            j = dict(id=secrets.token_hex(4), workflow=workflow, params=vals, files=files, state="queued", created=time.time(), note="")
+            j = dict(id=secrets.token_hex(4), workflow=workflow, params=vals, files=files, state="queued", created=time.time(), note=info.get("fit_note", ""))
+            for k in ("autofit", "fit_note", "prompt_notes"):          # what the gateway changed on the way in: shown on the job card, kept after the live note moves on
+                if info.get(k):
+                    j[k] = info[k]
             self.jobs.append(j)
             self._save()
             pos = sum(1 for x in self.jobs if x["state"] in ("queued",) + ACTIVE and x["created"] <= j["created"])
@@ -601,6 +748,9 @@ class Queue:
         """Write <clip>.json (seed, workflow, params, timings) next to each clip. Once, when the job completes; never fails the job."""
         meta = {"job_id": j["id"], "workflow": j["workflow"], "params": j["params"], "seed": j["params"].get("seed"), "fav": bool((self.get(j["id"]) or j).get("fav")),
                 "created": j["created"], "started": t0, "ended": ended, "queued_s": round(t0 - j["created"], 1), "render_s": round(ended - t0, 1)}
+        for k in ("autofit", "fit_note", "prompt_notes"):
+            if j.get(k):
+                meta[k] = j[k]
         meta.update(extra or {})
         for p in files:
             try:
@@ -621,6 +771,9 @@ class Queue:
             d = {"job_id": j["id"], "state": j["state"], "workflow": j["workflow"], "elapsed_s": int((j.get("ended") or time.time()) - j["created"])}
             if j.get("note"):
                 d["note"] = j["note"]
+            for k in ("autofit", "fit_note", "prompt_notes"):
+                if j.get(k):
+                    d[k] = j[k]
             if j.get("error"):
                 d["error"] = j["error"]
             if j["state"] in ("queued",) + ACTIVE:
@@ -1568,7 +1721,7 @@ def est_minutes_num(v):
 def brief(j):
     """Compact job summary for the model (small, no secrets)."""
     d = {"id": j["id"], "state": j["state"], "workflow": j["workflow"]}
-    for k in ("note", "error", "seconds"):
+    for k in ("note", "error", "seconds", "fit_note", "prompt_notes"):
         if j.get(k):
             d[k] = j[k]
     if j.get("links"):

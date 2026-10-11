@@ -990,15 +990,15 @@ def guard_wf(**meta):
     w["meta"].update(meta); return w
 
 def test_px_guard_refuses_over_limit_with_both_suggestions():
-    cfg = video.Cfg({}); assert cfg.max_px_frames == 60000000 and cfg.linger_s == 480
-    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "frames": 193}, cfg); raise AssertionError("over-limit clip accepted")
+    cfg = video.Cfg({"video_max_px_frames": 60000000}); assert video.Cfg({}).max_px_frames == 80000000 and cfg.linger_s == 480
+    try: video.resolve_params(guard_wf(autofit=False), {"prompt": "x", "width": 960, "height": 544, "frames": 193}, cfg); raise AssertionError("over-limit clip accepted")
     except video.VideoError as e:
         m = str(e); assert "60.0 M" in m and "100.8 M" in m, m
         assert "113 frames (4.7 s) at 960x544" in m, m                       # 60e6 // 522240 = 114 -> 8n+1 = 113
         assert "704x384 at 193 frames (8.0 s)" in m, m                       # largest 64-aligned size at 193 frames
     assert 704 * 384 * 193 <= 60000000 and 113 * 960 * 544 <= 60000000
-    vals, _ = video.resolve_params(guard_wf(), {"prompt": "x", "width": 704, "height": 384, "frames": 193}, cfg); assert vals["frames"] == 193
-    vals, _ = video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "frames": 113}, cfg); assert vals["frames"] == 113
+    vals, _ = video.resolve_params(guard_wf(autofit=False), {"prompt": "x", "width": 704, "height": 384, "frames": 193}, cfg); assert vals["frames"] == 193
+    vals, _ = video.resolve_params(guard_wf(autofit=False), {"prompt": "x", "width": 960, "height": 544, "frames": 113}, cfg); assert vals["frames"] == 113
 
 def test_px_guard_allows_exactly_the_limit_and_refuses_one_over():
     cfg = video.Cfg({"video_max_px_frames": 64 * 64 * 97})
@@ -1008,24 +1008,168 @@ def test_px_guard_allows_exactly_the_limit_and_refuses_one_over():
     video.resolve_params(guard_wf(), {"prompt": "x", "width": 256, "height": 256, "frames": 97}, video.Cfg({"video_max_px_frames": 256 * 256 * 97}))
 
 def test_px_guard_per_workflow_override_and_off_and_seconds():
-    cfg = video.Cfg({})
+    cfg = video.Cfg({"video_max_px_frames": 60000000})
     big = {"prompt": "x", "width": 960, "height": 544, "frames": 193}
     video.resolve_params(guard_wf(max_px_frames=120000000), big, cfg)                  # a workflow that is known to fit raises the limit
     video.resolve_params(guard_wf(max_px_frames=0), big, cfg)                          # 0 disables for this workflow
     video.resolve_params(guard_wf(), big, video.Cfg({"video_max_px_frames": 0}))       # ... or globally
-    try: video.resolve_params(guard_wf(max_px_frames=10000000), {"prompt": "x", "width": 768, "height": 512, "frames": 97}, cfg); raise AssertionError("workflow limit ignored")
+    try: video.resolve_params(guard_wf(max_px_frames=10000000, autofit=False), {"prompt": "x", "width": 768, "height": 512, "frames": 97}, cfg); raise AssertionError("workflow limit ignored")
     except video.VideoError as e: assert "10.0 M" in str(e)
-    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "seconds": 8}, cfg); raise AssertionError("seconds path unguarded")      # 8 s * 24 + 1 = 193
+    try: video.resolve_params(guard_wf(autofit=False), {"prompt": "x", "width": 960, "height": 544, "seconds": 8}, cfg); raise AssertionError("seconds path unguarded")      # 8 s * 24 + 1 = 193
     except video.VideoError as e: assert "193 frames" in str(e)
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "seconds": 8}, cfg)       # ... and with auto-fit the seconds path keeps its length
+    assert v["frames"] == 193 and info["autofit"]["from"] == [960, 544] and v["width"] * v["height"] * 193 <= 60000000
 
 def test_px_guard_message_reaches_submit_and_studio_shape():
     r = Rig()
     try:
+        r.q.cfg.max_px_frames = 100000                                                                   # nothing of >= 256x256 fits this: refused, not auto-fitted
         try: r.q.submit("t2v", {"prompt": "x", "width": 1280, "height": 704, "frames": 241}); raise AssertionError("not refused at submit")
-        except video.VideoError as e: assert "px-frames" in str(e) and "Try at most" in str(e), e
+        except video.VideoError as e: assert "px-frames" in str(e) and "Try at most" not in str(e) and "force" in str(e), e
         assert not r.q.jobs, "a refused clip must not be queued"
+        r.q.cfg.max_px_frames = 80000000
         jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",))          # presets' defaults are untouched
     finally: r.close()
+
+
+# ---------- auto-fit, force, prompt hygiene ----------
+def _fit(w, h, frames=241, lim=80000000, **meta):
+    return video.resolve_full(guard_wf(**meta), {"prompt": "x", "width": w, "height": h, "frames": frames}, video.Cfg({"video_max_px_frames": lim}))
+
+def test_default_budget_80m_lets_768x416_10s_through_untouched():
+    cfg = video.Cfg({}); assert cfg.max_px_frames == 80000000 and 768 * 416 * 241 == 76996608
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 768, "height": 416, "seconds": 10}, cfg)
+    assert (v["width"], v["height"], v["frames"]) == (768, 416, 241) and "autofit" not in info and "fit_note" not in info and "force" not in v
+
+def test_autofit_keeps_length_picks_largest_same_shape_aligned_size():
+    v, _, info = _fit(1280, 704)                                                  # 217 M -> shrink, keep 241 frames
+    assert v["frames"] == 241 and (v["width"], v["height"]) == (704, 384), v
+    af = info["autofit"]; assert af["from"] == [1280, 704] and af["to"] == [704, 384] and "80.0 M" in af["reason"], af
+    assert info["fit_note"] == "Rendering at 704x384 to fit GPU memory; upscale afterwards for full resolution"
+    for (w, h) in ((1280, 704), (1280, 720), (960, 544), (1024, 1024), (720, 1080), (1280, 640), (960, 960)):
+        v, _, info = _fit(w, h); W, H = v["width"], v["height"]
+        w, h = info["autofit"]["from"]                                              # the size after the workflow's own clamping (multiple_of 32)
+        assert W % 64 == 0 and H % 64 == 0 and W * H * 241 <= 80000000 and W <= w and H <= h, (w, h, W, H)
+        assert abs(W / float(H) - w / float(h)) / (w / float(h)) <= 0.06, (w, h, W, H)                     # same shape
+        bigger = [(a, b) for a in range(64, w + 1, 64) for b in range(64, h + 1, 64) if a * b > W * H and a * b * 241 <= 80000000 and abs(a / float(b) - w / float(h)) / (w / float(h)) <= 0.06]
+        assert not bigger, ((w, h), (W, H), bigger[:3])                                                  # and nothing larger of that shape would have fit
+    wf = guard_wf(); wf["meta"]["params"]["width"] = dict(wf["meta"]["params"]["width"], multiple_of=96); wf["meta"]["params"]["height"] = dict(wf["meta"]["params"]["height"], multiple_of=96)
+    v, _, info = video.resolve_full(wf, {"prompt": "x", "width": 1280, "height": 704, "frames": 241}, video.Cfg({}))      # lcm(64, 96) = 192
+    assert v["width"] % 192 == 0 and v["height"] % 192 == 0 and v["width"] * v["height"] * 241 <= 80000000, v
+
+def test_autofit_via_seconds_and_workflow_budget_and_unfitable_refused():
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 1280, "height": 704, "seconds": 10}, video.Cfg({}))
+    assert v["frames"] == 241 and info["autofit"]["to"] == [704, 384]
+    v, _, info = video.resolve_full(guard_wf(max_px_frames=20000000), {"prompt": "x", "width": 768, "height": 416, "frames": 97}, video.Cfg({}))   # a workflow's own budget wins
+    assert info["autofit"]["from"] == [768, 416] and v["width"] * v["height"] * 97 <= 20000000
+    try: _fit(1280, 704, lim=256 * 256 * 241 - 1); raise AssertionError("below the smallest allowed size must refuse")
+    except video.VideoError as e: assert "px-frames" in str(e) and "force" in str(e), e
+    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 1280, "height": 704, "frames": 241, "force": False}, video.Cfg({"video_max_px_frames": 1000})); raise AssertionError("refuse")
+    except video.VideoError as e: assert "over this workflow's limit of 0.0 M" in str(e) or "limit" in str(e)
+
+def test_force_renders_as_asked_with_warning_and_is_remembered():
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 1280, "height": 704, "frames": 241, "force": True}, video.Cfg({}))
+    assert (v["width"], v["height"]) == (1280, 704) and v["force"] is True and info["autofit"] is None
+    assert "over the memory budget" in info["fit_note"] and "20x slower" in info["fit_note"], info
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 1280, "height": 704, "frames": 241, "force": "true"}, video.Cfg({"video_max_px_frames": 1000}))     # even past the unfitable case
+    assert (v["width"], v["height"]) == (1280, 704) and "20x" in info["fit_note"]
+    v, _, info = video.resolve_full(guard_wf(), {"prompt": "x", "width": 768, "height": 416, "frames": 241, "force": True}, video.Cfg({}))
+    assert "fit_note" not in info and "force" not in v                            # within budget: force is a no-op
+
+def test_autofit_and_force_reach_the_job_and_status():
+    r = Rig()
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "width": 1280, "height": 704, "frames": 241})
+        j = r.q.get(jid); assert j["autofit"]["to"] == [704, 384] and j["params"]["width"] == 704 and j["fit_note"].startswith("Rendering at 704x384"), j
+        st = r.q.status(jid); assert st["autofit"] == j["autofit"] and st["fit_note"] == j["fit_note"]
+        r.wait(jid, ("done", "failed"))
+        j = r.q.get(jid); assert j["autofit"]["to"] == [704, 384] and j["fit_note"], "the note must outlive the live progress note"
+        jid2, _, _ = r.q.submit("t2v", {"prompt": "x", "width": 1280, "height": 704, "frames": 241, "force": True})
+        assert r.q.get(jid2)["fit_note"].find("20x slower") > 0 and r.q.get(jid2)["params"]["width"] == 1280 and "autofit" not in r.q.get(jid2)
+    finally: r.close()
+
+PASTED = (
+    "Create a time-lapse of a porch through a single day, from dawn to dusk.\n\n"
+    "Here are a few beautifully detailed prompt options for your time-lapse:\n\n"
+    "### **Option 1: The Porch at Golden Hour**\n"
+    "> **Prompt:**\n"
+    "> Cinematic continuous shot of a weathered wooden porch at golden hour, warm *amber light* sliding slowly across the boards while dust motes drift. "
+    "The camera holds a low, locked-off angle as the shadows lengthen and the sky deepens to rose and violet.\n\n"
+    "### **Option 2: Storm Rolling In**\n"
+    "> **Prompt:**\n"
+    "> A time-lapse of the same porch as a dark storm front rolls in, rain sweeping across the steps.\n\n"
+    "### **Option 3: Midnight Calm**\n"
+    "Prompt: Moonlit porch, fireflies, silence.\n\n"
+    "Would you like me to adjust the mood of any of these?")
+OPT1 = ("Cinematic continuous shot of a weathered wooden porch at golden hour, warm amber light sliding slowly across the boards while dust motes drift. "
+        "The camera holds a low, locked-off angle as the shadows lengthen and the sky deepens to rose and violet.")
+
+def test_clean_prompt_real_pasted_chatbot_answer_keeps_only_option_1():
+    c, notes = video.clean_prompt(PASTED)
+    assert c == OPT1, c
+    assert "Option" not in c and "Here are" not in c and "storm" not in c and ">" not in c and "*" not in c and "#" not in c
+    assert len(notes) == 1 and notes[0].startswith("Used option 1 of 3 from a pasted list") and "removed 2 lines of commentary" in notes[0], notes
+    c2, n2 = video.clean_prompt(" ".join(PASTED.split("\n")))                    # the same paste with its line breaks lost
+    assert c2 == OPT1 and n2[0].startswith("Used option 1 of 3"), (c2, n2)
+    assert video.clean_prompt(video.clean_prompt(PASTED)[0])[0] == OPT1            # idempotent
+    assert video.clean_prompt("Here are two ideas.\nOption 1\nA fox runs.\nOption 2\nA owl flies.")[0] == "A fox runs."
+    assert video.clean_prompt("## 1. The Porch\nA wide shot of a porch.\n## 2. Storm\nDark sky.")[0] == "A wide shot of a porch."
+    assert video.clean_prompt("Version A: A calm lake at dawn.\nVersion B: A rough sea.")[0] == "A calm lake at dawn."
+    assert video.clean_prompt("Prompt 1: A fox.\nPrompt 2: An owl.")[0] == "A fox."
+
+def test_clean_prompt_plain_and_markdown_and_not_fooled():
+    p = "A slow dolly toward a red fox in snow at dawn, soft light, the fox turns its head."
+    assert video.clean_prompt(p) == (p, [])
+    assert video.clean_prompt("  A slow dolly\n\n toward   a fox.  ")[0] == "A slow dolly toward a fox."                      # whitespace only
+    md = "> A **red** fox\n> runs through *deep* snow.\n- then stops"
+    assert video.clean_prompt(md)[0] == "A red fox runs through deep snow. then stops"
+    assert video.clean_prompt("\"A lone fox in the snow.\"")[0] == "A lone fox in the snow."
+    t = "The second option was rejected. A fox runs in a version of the forest. Prompt engineering is fun."
+    assert video.clean_prompt(t) == (t, [])                                                                                     # words alone are not markers
+    assert video.clean_prompt("A fox. Option 1 only is mentioned here.")[0] == "A fox. Option 1 only is mentioned here."      # a single marker is not a list
+    assert video.clean_prompt("") == ("", []) and video.clean_prompt(None) == ("", [])
+
+def test_clean_prompt_truncates_at_a_sentence_not_mid_word():
+    s = "A fox runs across the snow. " * 120                                      # 3360 chars
+    c, notes = video.clean_prompt(s)
+    assert len(c) <= 2500 and c.endswith("snow.") and c == ("A fox runs across the snow. " * 120)[:len(c)].rstrip() and len(c) > 2400, len(c)
+    assert notes and "sentence" in notes[0] and "2500" in notes[0], notes
+    w = "word" * 700                                                           # no sentence end and no space at all: the cap is all we have
+    assert len(video.clean_prompt(w, 100)[0]) <= 100
+    t = ("alpha beta gamma " * 40) + "tail"                                      # no sentence end: break on a space
+    c, _ = video.clean_prompt(t, 100); assert len(c) <= 100 and c.split()[-1] in ("alpha", "beta", "gamma") and t.startswith(c), c
+    assert video.clean_prompt("x" * 2500)[1] == [] and len(video.clean_prompt("a " * 1300)[0]) <= 2500
+    m, _ = video.clean_prompt("Short one. " + "Medium sentence here. " * 130)
+    assert m.endswith(".") and len(m) <= 2500
+
+def test_prompt_cleaning_in_resolve_job_and_rerun():
+    v, _, info = video.resolve_full(WF, {"prompt": PASTED}, video.Cfg({}))
+    assert v["prompt"] == OPT1 and v["prompt_raw"] == PASTED and "Used option 1 of 3" in info["prompt_notes"], (v, info)
+    v, _, info = video.resolve_full(WF, {"prompt": "plain prompt"}, video.Cfg({})); assert v["prompt"] == "plain prompt" and "prompt_notes" not in info
+    v2, _, info2 = video.resolve_full(WF, {"prompt": OPT1, "prompt_raw": PASTED}, video.Cfg({}))            # a rerun posts the stored cleaned prompt + original
+    assert v2["prompt"] == OPT1 and v2["prompt_raw"] == PASTED
+    v3, _, _ = video.resolve_full(WF, {"prompt": "edited by hand", "prompt_raw": PASTED}, video.Cfg({})); assert v3["prompt_raw"] == "edited by hand"
+    big = "A fox runs across the snow. " * 120
+    wf = json.loads(json.dumps(WF)); wf["meta"]["params"]["prompt"]["max_len"] = 1500                    # a workflow's old 1500 cap no longer wins
+    assert len(video.resolve_full(wf, {"prompt": big}, video.Cfg({}))[0]["prompt"]) > 2400
+    r = Rig()
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": PASTED}); j = r.q.get(jid)
+        assert j["params"]["prompt"] == OPT1 and j["params"]["prompt_raw"] == PASTED and "Used option 1 of 3" in j["prompt_notes"] and r.q.status(jid)["prompt_notes"] == j["prompt_notes"]
+        assert video.brief(j)["prompt_notes"] == j["prompt_notes"]
+        r.wait(jid, ("done",)); assert OPT1[:40] in " ".join(r.prompts()) or r.prompts(), "the cleaned prompt is what ComfyUI gets"
+        jid2, _, _ = r.q.submit("t2v", dict(j["params"])); assert r.q.get(jid2)["params"]["prompt_raw"] == PASTED          # exactly what the Studio rerun does
+    finally: r.close()
+
+def test_bool_param_enhance_prompt_flows_into_the_graph():
+    wf = json.loads(json.dumps(WF)); wf["meta"]["params"]["enhance_prompt"] = {"type": "bool", "default": False}
+    wf["prompt"]["2"] = {"class_type": "ElzLTXAPITextEncode", "inputs": {"prompt": "{{prompt}}", "enhance_prompt": "{{enhance_prompt}}"}}
+    for raw, want in (({"prompt": "x"}, False), ({"prompt": "x", "enhance_prompt": True}, True), ({"prompt": "x", "enhance_prompt": "false"}, False), ({"prompt": "x", "enhance_prompt": "true"}, True)):
+        v, _ = video.resolve_params(wf, raw, video.Cfg({}))
+        assert v["enhance_prompt"] is want, (raw, v)
+        assert video.fill_graph(wf["prompt"], dict(v, seed=1))["2"]["inputs"]["enhance_prompt"] is want
+    try: video.resolve_params(WF, {"prompt": "x", "enhance_prompt": True}, video.Cfg({})); raise AssertionError("a workflow without the param must refuse it")
+    except video.VideoError as e: assert "enhance_prompt" in str(e)
 
 
 if __name__ == "__main__":

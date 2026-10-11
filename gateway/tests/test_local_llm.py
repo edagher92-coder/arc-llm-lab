@@ -140,10 +140,11 @@ def test_build_hook_registers_ask_local():
         cf = os.path.join(TMP, "gw.json"); json.dump({"name": "gw", "servers": {}}, open(cf, "w")); sys.argv = ["gateway.py", cf]
         os.environ.setdefault("GW_STATE_DIR", os.path.join(TMP, "state"))
     import gateway
-    seen = []; real = tl.register
-    tl.register = lambda srv, q, base, cfg=None: seen.append((srv, q, base, cfg))
+    import tools_local_llm as lmod     # the module gateway.build() imports (another test file may have re-imported it)
+    seen = []; real = lmod.register
+    lmod.register = lambda srv, q, base, cfg=None: seen.append((srv, q, base, cfg))
     try:
         gateway.build()
     finally:
-        tl.register = real
+        lmod.register = real
     assert len(seen) == 1 and seen[0][2] == gateway.HERE and seen[0][3] is gateway.CFG

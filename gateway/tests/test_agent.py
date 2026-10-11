@@ -65,7 +65,12 @@ json.dump({
     "agent": {"base_url": MOCK.url, "api_key_file": KEYF, "max_steps_cap": 30, "timeout_s": 30}}, open(CFGF, "w"))
 sys.argv = ["gateway.py", CFGF]
 sys.path.insert(0, D)
-os.environ["GW_APPROVAL_PORT"] = "18096"
+import socket
+def _free_port():
+    s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
+for _m in ("gateway", "approvals", "skills", "outbox", "agent", "studio", "video", "tts_server", "cc_notify", "tools_video_mcp", "tools_local_llm", "build_workflow"):
+    sys.modules.pop(_m, None)     # other test files in the same process may have imported these with their own port/state
+os.environ["GW_APPROVAL_PORT"] = str(_free_port())
 os.environ["GW_STATE_DIR"] = os.path.join(TMP, "state")
 import gateway, approvals, agent
 from fastmcp import Client
