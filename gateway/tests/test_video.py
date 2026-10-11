@@ -401,6 +401,8 @@ def test_staged_two_processes_one_lease():
         kinds = [x[0] for x in spy]; assert kinds[:3] == ["popen", "kill", "popen"], spy                                    # killed between the stages, not before
         assert spy[0][1] == spy[2][1] == "OFF", spy                                                                      # the LLM never got the GPU back in between
         assert spy[0][2] == spy[2][2] == r.cond_dir(jid) and spy[2][3] == [True], spy                                    # same hand-over folder; process 1 was already dead
+        end = time.time() + 5                                                                                            # the worker restores the mode after the job's terminal state
+        while time.time() < end and (r.mode() != "MAX" or os.path.exists(r.q.lock_path)): time.sleep(0.05)
         assert r.swap.unloads == 1 and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)                          # one lease, handed back at the end
         time.sleep(0.5); assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)), "cond file must be deleted on success"
         assert len([x for x in r.q.jobs if x["workflow"] == "staged"]) == 1 and open(j["files_out"][0], "rb").read() == b"FAKEMP4DATA"
