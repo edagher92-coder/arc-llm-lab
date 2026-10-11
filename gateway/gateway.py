@@ -309,6 +309,23 @@ def build():
     guard = Guard()
     search = Search(max_results=CFG.get("max_results", 4), always_visible=CFG.get("pin", []), search_result_serializer=compact)
     search.guard, guard.search = guard, search
+    # Server-side agent loop (agent.py), opt-in via the "agent" config block. Policy: list `agent` under "read": the tool itself
+    # changes nothing and every inner call goes back through this gateway's Guard (approvals, deny rules, trim, audit).
+    import agent as _agent
+    _agent.register(gw, CFG, guard, STATE, HERE, KILL)
+    # Local video generation (video.py) and its browser front end (studio.py), opt-in via the "video" config block.
+    # Policy: video_workflows, video_status, video_result and video_queue are "read"; video_generate and video_cancel stay "write" (PIN approval).
+    import video as _video
+    def _share_clip(path):
+        try:
+            import outbox
+            return outbox.share(path, False, CFG)["url"]
+        except Exception:
+            return ""
+    vq = _video.register(gw, CFG, STATE, HERE, KILL, share_fn=_share_clip)
+    if vq is not None and vq.cfg.enabled:
+        import studio as _studio
+        _studio.register(approvals, vq, vq.cfg, HERE)
     gw.add_transform(Hide())
     gw.add_transform(search)
     gw.add_transform(Describe())

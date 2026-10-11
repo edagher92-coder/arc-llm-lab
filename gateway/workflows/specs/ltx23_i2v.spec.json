@@ -1,0 +1,117 @@
+{
+ "meta": {
+  "title": "Image to video",
+  "description": "LTX-2.3 22B with sound. Brings a still picture to life.",
+  "kind": "i2v",
+  "fps": 25,
+  "audio": true,
+  "est_minutes": 12,
+  "order": 20,
+  "sizes": [
+   [
+    768,
+    512,
+    "Draft"
+   ],
+   [
+    1280,
+    720,
+    "720p wide"
+   ],
+   [
+    720,
+    1280,
+    "Vertical"
+   ],
+   [
+    1024,
+    1024,
+    "Square"
+   ]
+  ],
+  "seconds": {
+   "min": 2,
+   "max": 10,
+   "default": 4,
+   "step": 1
+  },
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "negative": {
+    "type": "str",
+    "default": "pc game, console game, video game, cartoon, childish, ugly",
+    "max_len": 500,
+    "label": "Avoid"
+   },
+   "width": {
+    "type": "int",
+    "default": 768,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "height": {
+    "type": "int",
+    "default": 512,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "seconds": {
+    "type": "int",
+    "default": 4,
+    "min": 2,
+    "max": 10,
+    "label": "Length"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   },
+   "image": {
+    "type": "image",
+    "required": true,
+    "label": "Start image"
+   }
+  }
+ },
+ "set": {
+  "320:303.text": [
+   "320:319",
+   0
+  ],
+  "75.filename_prefix": "video/gw_ltx23_i2v"
+ },
+ "bind": {
+  "prompt": [
+   "320:319.value"
+  ],
+  "negative": [
+   "320:313.text"
+  ],
+  "width": [
+   "320:312.value"
+  ],
+  "height": [
+   "320:299.value"
+  ],
+  "seconds": [
+   "320:301.value"
+  ],
+  "seed": [
+   "320:276.noise_seed",
+   "320:277.noise_seed"
+  ],
+  "image": [
+   "269.image"
+  ]
+ },
+ "drop": [
+  "320:326"
+ ]
+}

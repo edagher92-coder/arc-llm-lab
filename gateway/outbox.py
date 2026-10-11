@@ -30,6 +30,7 @@ DEFAULT_DENY = (r"C:\AI\gateway",)
 _lock = threading.RLock()
 _DIR = os.environ.get("GW_OUTBOX_DIR", "")      # active outbox dir; set by register(), read by the HTTP route
 _now = time.time                                 # tests replace this to simulate time
+_blist = list                                    # the builtin: this module also defines list(d) below
 
 
 class ShareError(Exception):
@@ -118,7 +119,7 @@ def _walk_files(top, max_bytes):
     total = 0
     for cur, dirs, files in os.walk(top, followlinks=False):
         dirs.sort(); files.sort()
-        for n in list(dirs) + list(files):
+        for n in _blist(dirs) + _blist(files):
             full = os.path.join(cur, n)
             if os.path.islink(full) or _real(full) != os.path.join(_real(cur), os.path.normcase(n)):
                 raise ShareError("refusing %r: contains a link (symlink/junction) that could point outside" % os.path.relpath(full, top))
@@ -222,7 +223,7 @@ def share(path, zip_it, cfg):
             if is_dir and not zip_it and not site:
                 zip_it = True                       # not a website: ship as one zip
             if site:
-                files = list(_walk_files(rp, max_bytes))        # validates links/secrets/size first
+                files = _blist(_walk_files(rp, max_bytes))        # validates links/secrets/size first
                 for a, r, _ in files:
                     t = os.path.join(tmp, name, *r.split("/"))
                     os.makedirs(os.path.dirname(t), exist_ok=True)
@@ -245,10 +246,116 @@ def share(path, zip_it, cfg):
             raise
         expires = _now() + ttl_h * 3600
         idx = _load(d)
-        idx[token] = {"name": name, "expires": expires, "bytes": size, "kind": kind, "entry": entry}
+        idx[token] = {"name": name, "expires": expires, "bytes": size, "kind": kind, "entry": entry, "created": _now()}
         _save(d, idx)
     url = oc["public_base"].rstrip("/") + "/" + token + "/" + "/".join(quote(p) for p in entry.split("/"))
     return {"url": url, "name": name, "bytes": size, "expires": expires, "token": token, "kind": kind}
+
+
+# ---------------- list / revoke (Control Centre Files tab) ----------------
+def _count_files(base):
+    try:
+        return sum(len(fs) for _, _, fs in os.walk(base))
+    except OSError:
+        return 0
+
+
+def list(d, public_base=None):      # noqa: A001  (deliberate: outbox.list(d) is the contract name)
+    """Entries of index.json, newest first, as plain dicts: token, name, kind, size, created, expires, ttl_s (seconds left,
+    negative when expired), expired, files (site only) and url (when public_base is given). Pure read: nothing is purged, so
+    the result always mirrors index.json (expired entries stay listed until the next purge)."""
+    if not d or not os.path.isdir(d):
+        return []
+    with _lock:
+        idx = _load(d)
+    now = _now(); out = []
+    for tok, v in idx.items():
+        if not isinstance(v, dict) or not TOKEN_RE.match(tok):
+            continue
+        exp = float(v.get("expires", 0))
+        base = os.path.join(d, tok)
+        try:
+            created = float(v.get("created") or os.path.getmtime(base))
+        except (OSError, ValueError, TypeError):
+            created = 0.0
+        e = {"token": tok, "name": str(v.get("name", "")), "kind": v.get("kind", "file"), "size": int(v.get("bytes", 0)),
+             "created": created, "expires": exp, "ttl_s": int(exp - now), "expired": exp <= now}
+        if e["kind"] == "site":
+            e["files"] = _count_files(base)
+        if public_base:
+            e["url"] = public_base.rstrip("/") + "/" + tok + "/" + "/".join(quote(p) for p in str(v.get("entry") or v.get("name", "")).split("/"))
+        out.append(e)
+    out.sort(key=lambda e: e["created"], reverse=True)
+    return out
+
+
+def revoke(d, token):
+    """Delete the token's files and its index entry now. True if it existed, False if unknown or malformed."""
+    if not d or not isinstance(token, str) or not TOKEN_RE.match(token) or not os.path.isdir(d):
+        return False
+    with _lock:
+        idx = _load(d)
+        had = token in idx
+        base = os.path.join(d, token)
+        if os.path.isdir(base) and not os.path.islink(base):
+            shutil.rmtree(base, ignore_errors=True); had = True
+        if token in idx:
+            idx.pop(token, None); _save(d, idx)
+    return had
+
+
+def _qs(req, key):
+    q = req.get("query") or ""
+    if isinstance(q, dict):
+        v = q.get(key)
+        return v[0] if isinstance(v, (list, tuple)) and v else (v or "")
+    from urllib.parse import parse_qs
+    return (parse_qs(str(q).lstrip("?")).get(key) or [""])[0]
+
+
+def _json_body(req):
+    b = req.get("body")
+    if isinstance(b, dict):
+        return b
+    try:
+        if isinstance(b, (bytes, bytearray)):
+            b = b.decode("utf-8", "replace")
+        j = json.loads(b or "{}")
+        return j if isinstance(j, dict) else {}
+    except Exception:
+        return {}
+
+
+def register_routes(register_extra, cfg):
+    """Hook the Files tab endpoints into approvals.py. register_extra(table) takes {"GET /approvals/outbox/list": handler, ...}
+    with handler(req) -> (status, body, ctype), req = {"path", "query", "body", "authed"}. The list exposes live tokens, so it
+    is session-only (401 without it); Lane B's dispatcher already enforces the header and session for POSTs, and revoke checks
+    req["authed"] again anyway."""
+    oc = cfg.get("outbox") or {}
+    jt = "application/json"
+
+    def _dir():
+        return oc.get("dir") or _DIR
+
+    def h_list(req):
+        if not req.get("authed"):
+            return 401, json.dumps({"error": "log in with your PIN first"}), jt
+        d = _dir()
+        pb = oc.get("public_base")
+        try:
+            return 200, json.dumps(list(d, pb)), jt
+        except OSError as e:
+            return 500, json.dumps({"error": str(e.strerror or e)}), jt
+
+    def h_revoke(req):
+        if not req.get("authed"):
+            return 401, json.dumps({"error": "log in with your PIN first"}), jt
+        tok = _qs(req, "token") or str(_json_body(req).get("token", ""))
+        if not TOKEN_RE.match(tok):
+            return 400, json.dumps({"error": "bad token"}), jt
+        return (200, json.dumps({"revoked": True}), jt) if revoke(_dir(), tok) else (404, json.dumps({"error": "unknown token"}), jt)
+
+    register_extra({"GET /approvals/outbox/list": h_list, "POST /approvals/outbox/revoke": h_revoke})
 
 
 # ---------------- lookup for the HTTP route ----------------

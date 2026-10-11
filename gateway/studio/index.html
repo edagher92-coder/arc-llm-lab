@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#121316">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23121316'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23ff5a36'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#121316; --panel:#1a1c20; --raised:#23262b; --line:#2e3238; --ink:#e9e6df; --muted:#8b9099; --faint:#5d626b;
+  --tally:#ff5a36; --go:#5fd38d; --wait:#e8b64a; --stop:#e5677b;
+  --display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn:focus-visible,.chip:focus-visible,.wf:focus-visible,.pick:focus-visible,.drop:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* frame */
+.app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
+.bar{display:flex;align-items:center;gap:16px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{font:600 20px/1 var(--display);letter-spacing:.02em}
+.gpu{display:flex;align-items:center;gap:9px;margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--bg);min-width:0}
+.lamp{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none}
+.gpu .k{font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);flex:none}
+.gpu[data-own="video"] .lamp{background:var(--tally);box-shadow:0 0 0 3px #ff5a3633;animation:tally 1.6s ease-in-out infinite}
+.gpu[data-own="llm"] .lamp{background:var(--go)}
+.gpu[data-own="handoff"] .lamp{background:var(--wait);box-shadow:0 0 0 3px #e8b64a33}
+@keyframes tally{50%{box-shadow:0 0 0 6px #ff5a3600}}
+.gpu span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--muted)}
+.gpu b{font-weight:600;color:var(--ink)}
+
+.cols{display:grid;grid-template-columns:minmax(330px,390px) minmax(0,1fr) minmax(280px,340px);min-height:0}
+.pane{min-height:0;overflow:auto;padding:18px;border-right:1px solid var(--line)}
+.pane:last-child{border-right:0}
+.pane h2{margin:0 0 12px;font:600 17px/1.2 var(--display);letter-spacing:.02em}
+.nav{display:none}
+
+/* compose */
+.wfs{display:grid;gap:8px;margin-bottom:18px}
+.wf{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.wf[aria-pressed="true"]{border-color:var(--ink);background:var(--raised)}
+.wf .t{font:600 15px/1.25 var(--display);letter-spacing:.02em}
+.wf .m{font-size:12.5px;color:var(--muted);grid-column:1/-1}
+.wf .e{font:12.5px var(--mono);color:var(--muted);align-self:center}
+.field{margin:0 0 16px}
+.field>label,.lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:13.5px;color:var(--muted)}
+.field>label output{font:13px var(--mono);color:var(--ink)}
+.help{font-size:12.5px;color:var(--faint);margin-top:4px}
+textarea,input[type=text],input[type=number],input[type=password],select{width:100%;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+textarea{resize:vertical;min-height:112px;line-height:1.45}
+textarea:focus-visible,input:focus-visible,select:focus-visible{border-color:var(--ink);outline:2px solid var(--ink);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:stretch}
+.row>input{min-width:0}
+.btn{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--raised);cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.go{background:var(--ink);color:var(--bg);border-color:var(--ink);font:600 16px var(--display);letter-spacing:.03em;padding:13px 16px;width:100%}
+.btn.quiet{background:transparent}
+.btn.warn{color:var(--stop)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-size:13.5px}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--raised)}
+.chip small{color:var(--muted);margin-left:4px}
+input[type=range]{width:100%;accent-color:var(--ink);margin:2px 0}
+.drop{display:grid;place-items:center;gap:4px;min-height:120px;padding:14px;border:1.5px dashed var(--line);border-radius:10px;background:var(--panel);text-align:center;color:var(--muted);cursor:pointer;overflow:hidden}
+.drop.over{border-color:var(--ink)}
+.drop img{max-width:100%;max-height:180px;border-radius:6px;display:block}
+details.more{margin:0 0 16px}
+details.more summary{cursor:pointer;color:var(--muted);font-size:13.5px;padding:2px 0;margin-bottom:8px}
+.fine{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-align:center}
+.dock{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:12px 18px 18px;background:var(--bg);border-top:1px solid var(--line)}
+a.btn{color:inherit;display:inline-block;text-decoration:none}
+.err{margin:10px 0 0;padding:9px 12px;border:1px solid #e5677b66;border-radius:9px;background:#e5677b14;color:#f2a5b1;font-size:13.5px}
+
+/* stage */
+.stage{display:grid;gap:14px;align-content:start}
+.screen{position:relative;background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:grid;place-items:center;min-height:240px;max-height:68vh}
+.screen video,.screen img{display:block;max-width:100%;max-height:68vh;margin:auto;background:#000}
+.screen audio{width:90%;margin:30px 0}
+.empty{padding:40px 24px;text-align:center;color:var(--muted);max-width:42ch}
+.empty b{display:block;color:var(--ink);font:600 18px var(--display);margin-bottom:6px;letter-spacing:.02em}
+.live{display:grid;gap:10px;justify-items:center;padding:36px 20px;text-align:center}
+.clock{font:300 54px/1 var(--mono);letter-spacing:.02em}
+.track{width:min(420px,80vw);height:6px;border-radius:3px;background:var(--raised);overflow:hidden}
+.track i{display:block;height:100%;background:var(--tally);width:0;transition:width .8s linear}
+.live .note{color:var(--muted);font-size:14px}
+.meta{display:grid;gap:10px}
+.meta p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.kv b{color:var(--ink);font-weight:500;font-family:var(--mono);font-size:12.5px}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+
+/* reel */
+.reel{display:grid;gap:8px}
+.slate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:0 8px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;width:100%}
+.slate[aria-current="true"]{border-color:var(--ink);background:var(--raised)}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;text-align:left;padding:10px 0 10px 12px;background:none;border:0;cursor:pointer;min-width:0}
+.slate .dot{width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--faint)}
+.slate[data-s="done"] .dot{background:var(--go)}
+.slate[data-s="queued"] .dot,.slate[data-s="waiting"] .dot{background:var(--wait)}
+.slate[data-s="starting"] .dot,.slate[data-s="running"] .dot{background:var(--tally);animation:tally 1.6s infinite}
+.slate[data-s="failed"] .dot{background:var(--stop)}
+.slate .p{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:14px}
+.slate .s{grid-column:2;font-size:12.5px;color:var(--muted);display:flex;gap:4px 12px;flex-wrap:wrap}
+.slate .s .t{font-family:var(--mono)}
+
+
+/* presets + assist modes */
+.presets{display:flex;gap:8px;overflow-x:auto;margin:0 -18px 16px;padding:2px 18px 6px;scroll-snap-type:x proximity;scroll-padding-inline:18px}
+.preset{flex:none;scroll-snap-align:start;display:grid;gap:1px;text-align:left;padding:8px 12px;min-width:92px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.preset b{font:600 14.5px/1.2 var(--display);letter-spacing:.02em}
+.preset small{font:11.5px var(--mono);color:var(--muted);white-space:nowrap}
+.preset[aria-pressed="true"]{border-color:var(--tally);background:var(--raised)}
+.seg{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+.seg button{padding:6px 10px;background:none;border:0;border-right:1px solid var(--line);color:var(--muted);font-size:13px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink)}
+.seg button:focus-visible{outline-offset:-2px}
+.assist{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.assist .lab{margin:0}
+.seg{display:flex;width:100%;margin-bottom:8px}
+.seg button{flex:1}
+.btn.alt{background:transparent}
+
+/* storyboard */
+.strip{border-top:1px solid var(--line);background:var(--panel);min-width:0}
+.strip-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px}
+.strip-h h2{margin:0;font:600 16px/1 var(--display);letter-spacing:.02em}
+.strip-h .n{font:12.5px var(--mono);color:var(--muted)}
+.strip-h .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.strip-b{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x proximity}
+.strip[data-open="false"] .strip-b{display:none}
+.strip-empty{color:var(--muted);font-size:13.5px;padding:6px 0 10px}
+.shot{flex:none;width:292px;scroll-snap-align:start;display:grid;gap:8px;align-content:start;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
+.shot[data-s="done"]{border-color:#5fd38d55}
+.shot[data-s="running"],.shot[data-s="starting"]{border-color:#ff5a3688}
+.shot[data-s="failed"]{border-color:#e5677b88}
+.shot-h{display:flex;align-items:center;gap:8px}
+.shot-h b{font:600 14px var(--display);letter-spacing:.04em}
+.pill{font:12px var(--mono);color:var(--muted);margin-left:auto;white-space:nowrap}
+.pill.over{color:var(--wait)}
+.shot textarea{min-height:76px;font-size:14px}
+.shot-img{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.shot-img img{width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:none}
+.shot-img span{flex:1;min-width:0}
+.shot-side{display:grid;gap:8px}
+.shot-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.stepper{display:inline-flex;align-items:center;gap:2px}
+.stepper output{font:13px var(--mono);color:var(--ink);min-width:9ch;text-align:center}
+.stepper button{width:36px;padding:6px 0;text-align:center}
+.lock{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.lock input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px;margin:0}
+.lock-seed{width:14ch!important;padding:5px 8px!important;font:12.5px var(--mono)}
+.shot .acts .btn{flex:1 1 auto;text-align:center;padding:8px 10px}
+.shot .acts .go{flex:2 1 40%}
+.shot .acts .go{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.over{color:var(--wait)}
+.eta{font:13px var(--mono);color:var(--muted)}
+
+@media (min-width:981px){
+  .presets{flex-wrap:wrap;overflow:visible;margin:0 0 16px;padding:0}
+  .strip{max-height:40vh;display:flex;flex-direction:column}
+  .strip-b{align-items:start;overflow-y:auto;min-height:0}
+  .shot{width:540px;grid-template-columns:minmax(0,1fr) 210px;grid-template-areas:"head head" "prompt side" "acts acts";gap:8px 12px}
+  .shot-h{grid-area:head}
+  .shot>textarea{grid-area:prompt;height:100%;min-height:96px;resize:none}
+  .shot-side{grid-area:side;display:grid;gap:8px;align-content:start}
+  .shot>.acts{grid-area:acts}
+}
+/* sign in + toast */
+.gate{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:10;padding:20px}
+.gate form{display:grid;gap:12px;width:min(340px,100%)}
+.gate h1{margin:0;font:600 28px var(--display)}
+.gate p{margin:0;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;z-index:20;max-width:90vw}
+
+@media (max-width:980px){
+  .cols{grid-template-columns:1fr;padding-bottom:64px}
+  .pane{border-right:0;padding:14px;display:none}
+  .presets{margin:0 -14px 16px;padding:2px 14px 6px}
+  .strip{display:none;overflow:auto;padding-bottom:64px;border-top:0}
+  .app[data-tab="shots"] .cols{display:none}
+  .app[data-tab="shots"] .strip{display:block}
+  .strip .strip-b{display:flex!important;padding:4px 14px 14px}
+  .strip-h{padding:12px 14px 4px}
+  .strip .tog{display:none}
+  .shot{width:min(86vw,320px)}
+  .dock{bottom:-14px;margin:0 -14px -14px;padding:10px 14px 14px}
+  .app[data-tab="create"] .pane.c,.app[data-tab="stage"] .pane.s,.app[data-tab="reel"] .pane.r{display:block}
+  .nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+  .nav button{padding:14px 4px;background:none;border:0;color:var(--muted);font:600 15px var(--display);letter-spacing:.02em;cursor:pointer}
+  .nav button[aria-current="true"]{color:var(--ink);box-shadow:inset 0 2px 0 var(--ink)}
+  .gpu span.long{display:none}
+  .clock{font-size:44px}
+}
+@media (max-width:980px),(pointer:coarse){
+  .btn,.btn.sm,.chip,.wf,.preset,.nav button,.pick,.seg button,.stepper button{min-height:44px}
+  .seg button{padding:6px 12px}
+  input[type=text],input[type=number],input[type=password],select{min-height:44px}
+  input[type=range]{height:44px}
+  .lock{min-height:44px}.lock input[type=checkbox]{width:24px;height:24px}
+  .drop{min-height:132px}
+}
+@media (max-width:400px){
+  .bar{gap:10px;padding-left:12px;padding-right:12px}
+  .gpu{padding:6px 10px;gap:7px}
+  .pane{padding:12px}
+  .dock{margin:0 -12px -14px;padding:10px 12px 14px}
+  .presets{margin:0 -12px 16px;padding:2px 12px 6px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <form id="gateForm">
+    <h1>Studio</h1>
+    <p>Enter your gateway PIN to make video on this PC.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN">
+    <button class="btn go" type="submit">Open Studio</button>
+    <div class="err" id="gateErr" hidden></div>
+  </form>
+</div>
+
+<div class="app" id="app" data-tab="create">
+  <header class="bar">
+    <div class="brand">Studio</div>
+    <div class="gpu" id="gpu" data-own="" role="status" aria-live="polite" title="Green: Qwen has the GPU. Amber: handing over. Orange: video is rendering and Qwen is paused."><i class="lamp"></i><span class="k">GPU</span><span id="gpuText">Connecting</span></div>
+  </header>
+  <main class="cols">
+    <section class="pane c" id="compose" aria-label="Create"></section>
+    <section class="pane s" id="stage" aria-label="Preview"></section>
+    <section class="pane r" id="reelPane" aria-label="Queue and library"><h2>Reel</h2><div class="reel" id="reel"></div></section>
+  </main>
+  <section class="strip" id="strip" aria-label="Storyboard" data-open="false"></section>
+  <nav class="nav" id="nav">
+    <button data-tab="create" aria-current="true">Create</button>
+    <button data-tab="stage">Preview</button>
+    <button data-tab="shots">Shots</button>
+    <button data-tab="reel">Reel</button>
+  </nav>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+const B = location.pathname.replace(/studio\/?$/, "");          // "/approvals/" here, "/tts/approvals/" on the tailnet
+const $ = s => document.querySelector(s);
+const ACTIVE = ["queued", "waiting", "starting", "running"];
+const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, status: null, upload: null, busy: false, seen: {}, enabled: true,
+           mode: "single", shots: [], stripOpen: null};
+
+/* per-viewer convenience only: every access is guarded, and the app works without it */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window or blocked storage */ } }
+};
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, ""); else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+}
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500); }
+function mmss(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+function ago(t) { const s = Date.now() / 1000 - t; return s < 90 ? "just now" : s < 5400 ? Math.round(s / 60) + " min ago" : s < 129600 ? Math.round(s / 3600) + " h ago" : Math.round(s / 86400) + " d ago"; }
+function lock() { const g = $("#gate"); g.hidden = false; $("#pin").focus(); }
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const wfByName = n => S.wfs.find(w => w.name === n);
+function estSec(w) { const n = String((w && w.est_minutes) || "").match(/[\d.]+/g); return n ? parseFloat(n[n.length - 1]) * 60 : 0; }
+function estText(w) { const e = estSec(w); return e ? " / ~" + Math.round(e / 60) + " min" : ""; }
+
+async function api(path, o) {
+  o = o || {};
+  const r = await fetch(B + "studio/api/" + path, {method: o.method || "GET", credentials: "same-origin",
+    headers: Object.assign({"X-Requested-With": "approvals"}, o.json ? {"Content-Type": "application/json"} : {}, o.headers || {}),
+    body: o.json ? JSON.stringify(o.json) : o.body});
+  if (r.status === 401) { lock(); throw new Error("signed out"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.result || ("request failed (" + r.status + ")"));
+  return d;
+}
+
+/* ---------- sign in ---------- */
+$("#gateForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const r = await fetch(B + "login", {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-Requested-With": "approvals"}, body: JSON.stringify({pin: $("#pin").value})});
+  if (r.ok) { $("#gate").hidden = true; $("#pin").value = ""; $("#gateErr").hidden = true; boot(); }
+  else { const m = $("#gateErr"); m.textContent = r.status === 429 ? "Too many wrong PINs. Wait a few minutes." : "That PIN is not right."; m.hidden = false; }
+});
+$("#nav").addEventListener("click", e => { const b = e.target.closest("button"); if (b) tab(b.dataset.tab); });
+function tab(t) { $("#app").dataset.tab = t; document.querySelectorAll("#nav button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); }
+
+/* ---------- compose ---------- */
+function wfNow() { return wfByName(S.wf); }
+function pickWf(name) {
+  S.wf = name; const w = wfNow(); const keep = {prompt: S.vals.prompt || "", negative: S.vals.negative || "", seed: S.vals.seed, image: S.vals.image};
+  S.vals = Object.assign({}, keep);
+  if (!w.params.image) delete S.vals.image;
+  for (const [k, p] of Object.entries(w.params)) if (!(k in S.vals) && "default" in p && !["prompt", "negative", "seed", "image"].includes(k)) S.vals[k] = p.default;
+  const sr = secRange(w); if (sr && S.vals.seconds == null) S.vals.seconds = sr.def;
+  if (w.sizes.length && S.vals.size == null) S.vals.size = 0;
+  renderCompose();
+}
+function secRange(w) {
+  if (w.seconds) return {min: +w.seconds.min, max: +w.seconds.max, def: +(w.seconds.default || w.seconds.min), step: +(w.seconds.step || 0.5)};
+  const sp = w.params.seconds; if (sp) return {min: +sp.min, max: +sp.max, def: +(sp.default || sp.min), step: +(sp.step || 1)};
+  const f = w.params.frames; if (!f) return null; const fps = +w.fps || 24;
+  return {min: Math.max(1, Math.round((f.min - 1) / fps * 2) / 2), max: Math.floor((f.max - 1) / fps * 2) / 2, def: Math.round(((+f.default || f.min) - 1) / fps * 2) / 2, step: 0.5};
+}
+function snapSecs(sr, s) { return clamp(Math.round(s / sr.step) * sr.step, sr.min, sr.max); }
+/* LTX wants 8n+1 frames: this is the clip the model will really make for a requested length */
+function frameInfo(w, s) {
+  const fps = +w.fps || 24, f = (w.frames_rule || "8n+1") === "8n+1" ? Math.max(9, Math.round(s * fps / 8) * 8 + 1) : Math.max(1, Math.round(s * fps) + 1);
+  return {frames: f, secs: Math.round((f - 1) / fps * 10) / 10};
+}
+function lenText(w, s) { const i = frameInfo(w, s); return i.secs + " s · " + i.frames + " f"; }
+function slider(w, k, p) {
+  const out = h("output", {}, S.vals[k]);
+  const inp = h("input", {type: "range", min: p.min, max: p.max, step: p.step || (p.type === "float" ? 0.1 : p.multiple_of || 1), value: S.vals[k], oninput: e => { S.vals[k] = +e.target.value; out.textContent = e.target.value; }});
+  return h("div", {class: "field"}, h("label", {}, p.label || k.replace(/_/g, " "), out), inp, p.help ? h("div", {class: "help"}, p.help) : null);
+}
+
+/* presets: [{name,label,hint?,params:{size,seconds,workflow?,<any workflow param>}}] from the workflow meta */
+const PRESET_SKIP = ["prompt", "image", "seed", "frames", "size", "seconds", "width", "height", "workflow"];
+function sizeIndex(w, v) {
+  if (v == null) return -1;
+  if (Number.isInteger(v)) return v >= 0 && v < w.sizes.length ? v : -1;
+  if (Array.isArray(v)) return w.sizes.findIndex(s => s[0] === +v[0] && s[1] === +v[1]);
+  const t = String(v).trim().toLowerCase(), m = t.match(/^(\d+)\s*[x×]\s*(\d+)$/);
+  if (m) return w.sizes.findIndex(s => s[0] === +m[1] && s[1] === +m[2]);
+  return w.sizes.findIndex(s => String(s[2] || "").toLowerCase() === t);
+}
+function presetView(p) {
+  const pr = p.params || {}, w = (pr.workflow && wfByName(pr.workflow)) || wfNow(), o = {w, opts: {}};
+  if (!w) return o;
+  if (w.sizes.length) { let i = sizeIndex(w, pr.size); if (i < 0 && pr.width && pr.height) i = sizeIndex(w, [+pr.width, +pr.height]); if (i >= 0) o.size = i; }
+  else for (const k of ["width", "height"]) if (pr[k] != null && w.params[k]) o[k] = clamp(+pr[k], w.params[k].min ?? 0, w.params[k].max ?? 1e9);
+  const sr = secRange(w); if (pr.seconds != null && sr) o.seconds = snapSecs(sr, +pr.seconds);
+  for (const k of Object.keys(pr)) if (w.params[k] && !PRESET_SKIP.includes(k)) o.opts[k] = pr[k];
+  return o;
+}
+function presetActive(p) {
+  const o = presetView(p); if (!o.w || o.w.name !== S.wf) return false;
+  if (o.size != null && (S.vals.size || 0) !== o.size) return false;
+  if (o.seconds != null && +S.vals.seconds !== o.seconds) return false;
+  for (const k of ["width", "height"]) if (o[k] != null && +S.vals[k] !== o[k]) return false;
+  return Object.entries(o.opts).every(([k, v]) => String(S.vals[k] ?? o.w.params[k].default) === String(v));
+}
+function presetSummary(p) {
+  const o = presetView(p), w = o.w, bits = [];
+  if (!w) return "";
+  if (o.size != null) bits.push(w.sizes[o.size][0] + "×" + w.sizes[o.size][1]); else if (o.width && o.height) bits.push(o.width + "×" + o.height);
+  if (o.seconds != null) bits.push(o.seconds + " s");
+  return p.hint || bits.join(" · ");
+}
+function applyPreset(p) {
+  const o = presetView(p); if (!o.w) return;
+  if (o.w.name !== S.wf) pickWf(o.w.name);
+  if (o.size != null) S.vals.size = o.size;
+  for (const k of ["width", "height"]) if (o[k] != null) S.vals[k] = o[k];
+  if (o.seconds != null) S.vals.seconds = o.seconds;
+  Object.assign(S.vals, o.opts);
+  renderCompose(); toast("Preset: " + p.label);
+}
+function presetRow(w) {
+  if (!w.presets || !w.presets.length) return null;
+  return h("div", {class: "presets", role: "group", "aria-label": "Presets"}, w.presets.map(p =>
+    h("button", {class: "preset", type: "button", "aria-pressed": String(presetActive(p)), onclick: () => applyPreset(p)}, h("b", {}, p.label), h("small", {}, presetSummary(p)))));
+}
+
+const MODES = [["single", "Single", "One flowing shot"], ["multi", "Multi-shot", "2 to 4 shots with named cuts"], ["continue", "What next", "Only what happens next from the start image"]];
+async function writeWithQwen(idea, mode, btn, done) {
+  idea = (idea || "").trim(); if (!idea) return toast("Write a few words first");
+  const was = btn.textContent; btn.disabled = true; btn.textContent = "Writing";
+  try { const d = await api("assist", {method: "POST", json: {idea, workflow: S.wf, mode}}); done(d.prompt); }
+  catch (x) { toast(x.message); } finally { btn.disabled = false; btn.textContent = was; }
+}
+function renderCompose() {
+  const w = wfNow(), root = $("#compose"); root.replaceChildren();
+  root.append(h("h2", {}, "Create"));
+  if (!w) return;
+  const pr = presetRow(w); if (pr) root.append(pr);
+  root.append(h("div", {class: "wfs"}, S.wfs.map(x => h("button", {class: "wf", "aria-pressed": String(x.name === S.wf), onclick: () => pickWf(x.name)},
+    h("span", {class: "t"}, x.title), h("span", {class: "e"}, x.est_minutes ? "~" + x.est_minutes + " min" : ""), h("span", {class: "m"}, x.description)))));
+  const P = w.params;
+  if (P.prompt) {
+    const ta = h("textarea", {id: "prompt", rows: 5, maxlength: P.prompt.max_len || 2000, placeholder: "Describe the shot: who or what, what happens, how the camera moves, the light.", oninput: e => S.vals.prompt = e.target.value}); ta.value = S.vals.prompt || "";
+    const hint = h("div", {class: "help", id: "modeHelp"});
+    const paintHint = () => { hint.textContent = (MODES.find(m => m[0] === S.mode) || MODES[0])[2] + ". A few words are enough; Qwen writes the full description when the GPU is not rendering."; };
+    const seg = h("div", {class: "seg", role: "group", "aria-label": "Prompt style"}, MODES.map(m => h("button", {type: "button", "aria-pressed": String(S.mode === m[0]), title: m[2], onclick: e => {
+      S.mode = m[0]; seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === e.currentTarget))); paintHint(); store.set("studio.ui.v1", {mode: S.mode, open: S.stripOpen}); }}, m[1])));
+    paintHint();
+    const ai = h("button", {class: "btn sm", type: "button", onclick: e => {
+      if (S.mode === "continue" && !S.vals.image) return toast("Add a start image first, then say what happens next");
+      writeWithQwen(S.vals.prompt, S.mode, e.currentTarget, t => { S.vals.prompt = t; ta.value = t; });
+    }}, "Write with Qwen");
+    root.append(h("div", {class: "field"}, h("div", {class: "assist"}, h("label", {class: "lab", for: "prompt"}, "Prompt"), ai), seg, ta, hint));
+  }
+  if (P.image) root.append(imageField(P.image));
+  const sr = secRange(w);
+  if (sr) {
+    const out = h("output", {}, lenText(w, S.vals.seconds));
+    root.append(h("div", {class: "field"}, h("label", {}, "Length", out), h("input", {type: "range", min: sr.min, max: sr.max, step: sr.step, value: S.vals.seconds, "aria-label": "Length in seconds", oninput: e => { S.vals.seconds = +e.target.value; out.textContent = lenText(w, S.vals.seconds); }})));
+  }
+  if (w.sizes.length) root.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Frame"), h("div", {class: "chips"}, w.sizes.map((s, i) =>
+    h("button", {class: "chip", type: "button", "aria-pressed": String((S.vals.size || 0) === i), onclick: () => { S.vals.size = i; renderCompose(); }}, s[2] || (s[0] + "×" + s[1]), h("small", {}, s[0] + "×" + s[1]))))));
+  else for (const k of ["width", "height"]) if (P[k]) root.append(slider(w, k, P[k]));
+  const more = h("details", {class: "more"}, h("summary", {}, "More controls"));
+  if (P.negative) { const nt = h("textarea", {rows: 2, style: "min-height:64px", maxlength: P.negative.max_len || 2000, placeholder: "What to keep out of the shot", oninput: e => S.vals.negative = e.target.value}); nt.value = S.vals.negative || ""; more.append(h("div", {class: "field"}, h("label", {}, "Avoid"), nt)); }
+  for (const [k, p] of Object.entries(P)) {
+    if (["prompt", "negative", "image", "width", "height", "frames", "seed", "seconds"].includes(k)) continue;
+    if (p.choices) { const s = h("select", {onchange: e => S.vals[k] = e.target.value}, p.choices.map(c => h("option", {value: c}, c))); s.value = S.vals[k] ?? p.default ?? p.choices[0]; more.append(h("div", {class: "field"}, h("label", {}, p.label || k), s)); }
+    else if (p.type === "int" || p.type === "float") more.append(slider(w, k, p));
+  }
+  if (P.seed) {
+    const si = h("input", {type: "number", inputmode: "numeric", "aria-label": "Seed", placeholder: "Random each time", oninput: e => S.vals.seed = e.target.value === "" ? undefined : +e.target.value}); si.value = S.vals.seed ?? "";
+    more.append(h("div", {class: "field"}, h("label", {}, "Seed"), h("div", {class: "row"}, si, h("button", {class: "btn", type: "button", onclick: () => { S.vals.seed = Math.floor(Math.random() * 2147483647); si.value = S.vals.seed; }}, "Pick one"))));
+  }
+  root.append(more);
+  const go = h("button", {class: "btn go", id: "goBtn", type: "button", onclick: generate}, "Make video");
+  go.disabled = !S.enabled;
+  root.append(h("div", {class: "dock"}, go, h("div", {class: "acts", style: "margin-top:8px"}, h("button", {class: "btn sm alt", type: "button", onclick: addFromCreate}, "Add to storyboard")), h("div", {class: "err", id: "genErr", hidden: true}),
+    h("p", {class: "fine"}, "Qwen pauses while a clip renders and returns when it is done.")));
+}
+function imageField(p) {
+  const box = h("div", {class: "drop", tabindex: 0, role: "button", "aria-label": "Choose a start image"});
+  const file = h("input", {type: "file", accept: "image/png,image/jpeg,image/webp", hidden: true});
+  const paint = () => { box.replaceChildren(); if (S.upload) { box.append(h("img", {src: S.upload.url, alt: "Start image"}), h("span", {}, "Click to replace")); } else { box.append(h("b", {}, "Start image"), h("span", {}, "Drop a picture here or choose one")); } };
+  const send = async f => {
+    if (!f) return; box.replaceChildren(h("span", {}, "Uploading"));
+    try { const d = await api("upload", {method: "POST", body: f, headers: {"X-Filename": f.name || "image"}}); S.upload = {name: d.name, url: URL.createObjectURL(f), thumb: await thumbOf(f)}; S.vals.image = d.name; }
+    catch (x) { toast(x.message); } paint();
+  };
+  box.onclick = () => file.click(); box.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } };
+  file.onchange = () => send(file.files[0]);
+  box.ondragover = e => { e.preventDefault(); box.classList.add("over"); }; box.ondragleave = () => box.classList.remove("over");
+  box.ondrop = e => { e.preventDefault(); box.classList.remove("over"); send(e.dataTransfer.files[0]); };
+  paint();
+  return h("div", {class: "field"}, h("div", {class: "lab"}, p.label || "Start image", S.upload ? h("button", {class: "btn sm quiet", type: "button", onclick: () => { S.upload = null; delete S.vals.image; renderCompose(); }}, "Remove") : ""), box, file);
+}
+/* the request a workflow gets from the Create settings plus per-call overrides; null + message when it cannot be made */
+function buildParams(w, v) {
+  const params = {};
+  for (const k of Object.keys(w.params)) if (v[k] !== undefined && v[k] !== "") params[k] = v[k];
+  if (v.seconds != null && secRange(w)) params.seconds = v.seconds;
+  if (w.sizes.length) { const s = w.sizes[v.size || 0] || w.sizes[0]; params.width = s[0]; params.height = s[1]; }
+  if (w.params.prompt && !(params.prompt || "").trim()) return {error: "Write a prompt first."};
+  if (w.params.image && w.params.image.required && !params.image) return {error: "This workflow needs a start image."};
+  return {params};
+}
+async function generate() {
+  const w = wfNow(), err = $("#genErr"); err.hidden = true;
+  const r = buildParams(w, S.vals); if (r.error) { err.textContent = r.error; err.hidden = false; return; }
+  const b = $("#goBtn"); b.disabled = true;
+  try {
+    const d = await api("generate", {method: "POST", json: {workflow: S.wf, params: r.params}});
+    toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); S.sel = d.id;
+    await refresh(); tab("stage");
+  } catch (x) { err.textContent = x.message; err.hidden = false; } finally { b.disabled = !S.enabled; }
+}
+
+/* ---------- stage ---------- */
+function clipUrl(j, c, dl) { return B + "studio/api/clip/" + j.id + "/" + encodeURIComponent(c.name) + (dl ? "?dl=1" : ""); }
+function title(j) { return (j.params && j.params.prompt) || (wfByName(j.workflow) || {}).title || j.workflow; }
+function renderStage() {
+  const root = $("#stage"), j = S.jobs.find(x => x.id === S.sel);
+  const keepKey = j ? j.id + ":" + j.state : "";
+  if (root.dataset.key === keepKey && j && j.state === "done") return;          // do not restart playback on every poll
+  root.dataset.key = keepKey; root.replaceChildren(); S.tick = null;
+  const st = h("div", {class: "stage"}); root.append(h("h2", {}, "Preview"), st);
+  if (!j) { st.append(h("div", {class: "screen"}, h("div", {class: "empty"}, h("b", {}, "Nothing on screen yet"), "Describe a shot on the left and press Make video. Finished clips play here and stay in the reel."))); return; }
+  const scr = h("div", {class: "screen"}); st.append(scr);
+  if (j.state === "done" && j.clips.length) {
+    const c = j.clips[0], u = clipUrl(j, c);
+    if (c.type.startsWith("video")) scr.append(h("video", {src: u, controls: true, playsinline: true, loop: true, autoplay: true, muted: false, preload: "auto"}));
+    else if (c.type.startsWith("audio")) scr.append(h("audio", {src: u, controls: true}));
+    else scr.append(h("img", {src: u, alt: "Result"}));
+  } else if (j.state === "failed" || j.state === "cancelled") {
+    scr.append(h("div", {class: "empty"}, h("b", {}, j.state === "failed" ? "This clip did not finish" : "Cancelled"), j.error || "Nothing was saved."));
+  } else {
+    const w = wfByName(j.workflow), est = estSec(w);
+    const t0 = j.started || j.created, clock = h("div", {class: "clock", id: "clock"}, mmss(Date.now() / 1000 - t0)), bar = h("i", {id: "bar"});
+    const eta = h("div", {class: "eta", id: "eta"});
+    scr.append(h("div", {class: "live"}, clock, h("div", {class: "track", role: "progressbar", "aria-label": "Rendering progress"}, bar), eta, h("div", {class: "note"}, noteFor(j)), h("button", {class: "btn warn sm", onclick: () => act("cancel", j.id)}, "Cancel")));
+    S.tick = () => {
+      const s = Date.now() / 1000 - t0; clock.textContent = mmss(s);
+      if (est && j.started) bar.style.width = Math.min(96, s / est * 100) + "%";
+      const label = j.started ? "Rendering " : "Waiting ";
+      eta.textContent = label + mmss(s) + (est && j.started ? " of about " + Math.round(est / 60) + " min" : "") + (est && j.started && s > est ? " · longer than usual" : "");
+      eta.classList.toggle("over", !!est && !!j.started && s > est);
+    }; S.tick();
+  }
+  const p = j.params || {}, kv = h("div", {class: "kv"});
+  const add = (a, b) => b != null && b !== "" && kv.append(h("span", {}, a + " "), h("b", {}, String(b)));
+  add("workflow", j.workflow); add("size", p.width && p.height ? p.width + "×" + p.height : ""); add("frames", p.frames); add("length", p.seconds ? p.seconds + " s" : ""); add("seed", p.seed); add("render", j.seconds ? mmss(j.seconds) : "");
+  st.append(h("div", {class: "meta"}, p.prompt ? h("p", {}, p.prompt) : "", kv));
+  const acts = h("div", {class: "acts"});
+  if (j.state === "done" && j.clips.length) {
+    acts.append(h("a", {class: "btn", href: clipUrl(j, j.clips[0], true), download: j.clips[0].name}, "Download"));
+    if (j.clips[0].type.startsWith("video")) acts.append(h("button", {class: "btn", onclick: e => continueFrom(j, e.currentTarget)}, "Continue from last frame"));
+  }
+  acts.append(h("button", {class: "btn", onclick: () => remix(j)}, "Remix"));
+  if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn warn", onclick: () => act("delete", j.id)}, "Delete"));
+  st.append(acts);
+}
+function noteFor(j) {
+  return {queued: "In line", waiting: "Waiting for Qwen to finish what it is doing", starting: "Handing the GPU over from Qwen, then loading the video model", running: "Rendering"}[j.state] || j.note || j.state;
+}
+async function act(what, id) {
+  try { await api(what, {method: "POST", json: {id}}); if (what === "delete") S.sel = null; toast(what === "cancel" ? "Stopping" : "Deleted"); await refresh(); } catch (x) { toast(x.message); }
+}
+/* Remix: put a finished (or failed) job's prompt and settings back into Create */
+function remix(j) {
+  if (!wfByName(j.workflow)) return toast("That workflow is not installed any more");
+  const p = j.params || {};
+  S.vals = {}; for (const k of ["prompt", "negative", "seed"]) if (p[k] !== undefined) S.vals[k] = p[k];
+  S.wf = null; S.upload = null; pickWf(j.workflow); const w = wfNow();
+  for (const k of Object.keys(p)) if (w.params[k] && !["image", "frames"].includes(k)) S.vals[k] = p[k];
+  if (p.seconds == null && p.frames && secRange(w)) S.vals.seconds = Math.round((p.frames - 1) / (w.fps || 24) * 2) / 2;
+  if (w.sizes.length && p.width) { const i = w.sizes.findIndex(s => s[0] === p.width && s[1] === p.height); if (i >= 0) S.vals.size = i; }
+  delete S.vals.image; renderCompose(); tab("create");
+  toast(j.has_image && w.params.image ? "Remixed. Add the start image again." : "Remixed. Change anything and press Make video.");
+}
+
+/* last frame of a finished clip, as a png blob. Loads its own hidden video so the preview does not have to be open. */
+function grabLastFrame(j) {
+  return new Promise((res, rej) => {
+    const c = j.clips[0], v = document.createElement("video"); let done = false;
+    const fin = (f, a) => { if (done) return; done = true; clearTimeout(to); v.removeAttribute("src"); v.load(); f(a); };
+    const to = setTimeout(() => fin(rej, new Error("The clip took too long to load")), 20000);
+    v.muted = true; v.playsInline = true; v.preload = "auto";
+    v.onerror = () => fin(rej, new Error("The clip could not be read"));
+    v.onloadedmetadata = () => { v.currentTime = isFinite(v.duration) ? Math.max(0, v.duration - 0.05) : 1e6; };
+    v.onseeked = () => {
+      const cv = document.createElement("canvas"); cv.width = v.videoWidth; cv.height = v.videoHeight;
+      try { cv.getContext("2d").drawImage(v, 0, 0); } catch (e) { return fin(rej, e); }
+      cv.toBlob(b => b ? fin(res, b) : fin(rej, new Error("Could not capture the frame")), "image/png");
+    };
+    v.src = clipUrl(j, c);
+  });
+}
+async function thumbOf(blob) {
+  try {
+    const url = URL.createObjectURL(blob);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = 96 / Math.max(img.naturalWidth, 1), cv = document.createElement("canvas"); cv.width = 96; cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); return cv.toDataURL("image/jpeg", .7);
+  } catch (e) { return ""; }
+}
+async function uploadFrame(j) {
+  const blob = await grabLastFrame(j), d = await api("upload", {method: "POST", body: blob, headers: {"X-Filename": "frame.png"}});
+  return {name: d.name, url: URL.createObjectURL(blob), thumb: await thumbOf(blob)};
+}
+async function continueFrom(j, btn) {
+  const w = S.wfs.find(x => x.params.image); if (!w) return toast("No image-to-video workflow is installed");
+  const was = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = "Grabbing frame"; }
+  try {
+    S.upload = await uploadFrame(j); S.vals.image = S.upload.name; S.vals.prompt = ""; S.mode = "continue"; pickWf(w.name); tab("create"); toast("Last frame is ready. Say what happens next.");
+  } catch (x) { toast(x.message); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
+}
+
+/* ---------- storyboard ---------- */
+const newId = () => "s" + Math.random().toString(36).slice(2, 9);
+function saveUi() { store.set("studio.ui.v1", {mode: S.mode, open: S.stripOpen}); store.set("studio.shots.v1", S.shots.map(s => ({id: s.id, prompt: s.prompt, image: s.image ? {name: s.image.name, thumb: s.image.thumb || ""} : null, seconds: s.seconds, lock: !!s.lock, seed: s.seed, job: s.job || null}))); }
+function loadUi() {
+  const ui = store.get("studio.ui.v1"); if (ui && typeof ui === "object") { if (["single", "multi", "continue"].includes(ui.mode)) S.mode = ui.mode; if (typeof ui.open === "boolean") S.stripOpen = ui.open; }
+  const sh = store.get("studio.shots.v1");
+  if (Array.isArray(sh)) S.shots = sh.slice(0, 24).filter(x => x && typeof x === "object").map(x => ({id: typeof x.id === "string" ? x.id : newId(), prompt: String(x.prompt || "").slice(0, 2000),
+    image: x.image && typeof x.image.name === "string" && /^up_[0-9a-f]{12}\.(png|jpg|webp)$/.test(x.image.name) ? {name: x.image.name, thumb: typeof x.image.thumb === "string" && x.image.thumb.startsWith("data:image/") ? x.image.thumb : ""} : null,
+    seconds: +x.seconds || 4, lock: !!x.lock, seed: Number.isFinite(+x.seed) && x.seed != null ? +x.seed : null, job: typeof x.job === "string" ? x.job : null}));
+}
+function shotWf(s) {
+  const cur = wfNow(); if (!cur) return null;
+  if (s.image) return cur.params.image ? cur : S.wfs.find(w => w.params.image) || null;
+  return !(cur.params.image && cur.params.image.required) ? cur : S.wfs.find(w => !(w.params.image && w.params.image.required)) || null;
+}
+function sizeFor(w) {
+  const cur = wfNow(); if (!w.sizes.length) return 0;
+  const sz = cur && cur.sizes[S.vals.size || 0]; const i = sz ? w.sizes.findIndex(x => x[0] === sz[0] && x[1] === sz[1]) : -1; return i >= 0 ? i : 0;
+}
+function shotSecs(s) { const w = shotWf(s) || wfNow(), sr = w && secRange(w); return sr ? snapSecs(sr, s.seconds) : s.seconds; }
+function addShot(init) {
+  const w = wfNow(), sr = w && secRange(w);
+  const s = Object.assign({id: newId(), prompt: "", image: null, seconds: sr ? sr.def : 4, lock: false, seed: null, job: null}, init || {});
+  S.shots.push(s); S.stripOpen = true; saveUi(); renderStrip(); return s;
+}
+function addFromCreate() {
+  const w = wfNow(), up = S.upload;
+  addShot({prompt: S.vals.prompt || "", seconds: S.vals.seconds != null ? S.vals.seconds : undefined, image: S.vals.image && up ? {name: up.name, thumb: up.thumb || ""} : null,
+    lock: S.vals.seed != null, seed: S.vals.seed != null ? S.vals.seed : null});
+  toast("Added to the storyboard"); if (matchMedia("(min-width:981px)").matches) { const b = $("#stripBody"); if (b) b.scrollLeft = b.scrollWidth; }
+}
+function shotJob(s) { return s.job ? S.jobs.find(j => j.id === s.job) : null; }
+async function makeShot(s, quiet) {
+  const w = shotWf(s); if (!w) { toast("No workflow can make this shot"); return false; }
+  const v = Object.assign({}, S.vals, {prompt: s.prompt, seconds: shotSecs(s), image: s.image ? s.image.name : undefined, seed: s.lock && s.seed != null ? s.seed : undefined, size: sizeFor(w)});
+  if (!w.params.image) delete v.image;
+  const r = buildParams(w, v); if (r.error) { toast("Shot " + (S.shots.indexOf(s) + 1) + ": " + r.error); return false; }
+  try { const d = await api("generate", {method: "POST", json: {workflow: w.name, params: r.params}}); s.job = d.id; saveUi(); if (!quiet) { toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); await refresh(); } return true; }
+  catch (x) { toast(x.message); return false; }
+}
+async function makeAll(btn) {
+  const todo = S.shots.filter(s => (s.prompt || "").trim()); if (!todo.length) return toast("Write a prompt in at least one shot");
+  btn.disabled = true; let n = 0;
+  try { for (const s of todo) { if (await makeShot(s, true)) n++; else break; } }
+  finally { btn.disabled = false; saveUi(); await refresh(); }
+  if (n) toast(n + (n === 1 ? " shot" : " shots") + " queued, in order");
+}
+async function continueShot(s, btn) {
+  const j = shotJob(s); if (!j || j.state !== "done" || !j.clips.length) return toast("Make this shot first");
+  const was = btn.textContent; btn.disabled = true; btn.textContent = "Grabbing frame";
+  try {
+    const img = await uploadFrame(j), i = S.shots.indexOf(s);
+    S.shots.splice(i + 1, 0, {id: newId(), prompt: "", image: {name: img.name, thumb: img.thumb}, seconds: s.seconds, lock: s.lock, seed: s.seed, job: null});
+    saveUi(); renderStrip(); toast("Next shot starts from the last frame. Say what happens next.");
+    const ta = document.querySelector('[data-shot="' + S.shots[i + 1].id + '"] textarea'); if (ta) { ta.scrollIntoView({inline: "center", block: "nearest"}); ta.focus(); }
+  } catch (x) { toast(x.message); btn.disabled = false; btn.textContent = was; }
+}
+async function shotImage(s, f) {
+  if (!f) return;
+  try { const d = await api("upload", {method: "POST", body: f, headers: {"X-Filename": f.name || "image"}}); s.image = {name: d.name, thumb: await thumbOf(f)}; saveUi(); renderStrip(); }
+  catch (x) { toast(x.message); }
+}
+function renderStrip() {
+  const root = $("#strip");
+  if (S.stripOpen == null) S.stripOpen = S.shots.length > 0;
+  root.dataset.open = String(S.stripOpen); root.replaceChildren();
+  const mk = h("button", {class: "btn sm", type: "button", disabled: !S.shots.length || !S.enabled, onclick: e => makeAll(e.currentTarget)}, "Make all");
+  root.append(h("div", {class: "strip-h"}, h("h2", {}, "Storyboard"), h("span", {class: "n"}, S.shots.length ? S.shots.length + (S.shots.length === 1 ? " shot" : " shots") : "no shots yet"),
+    h("div", {class: "sp"}, h("button", {class: "btn sm", type: "button", onclick: () => addShot()}, "Add shot"), mk,
+      h("button", {class: "btn sm quiet tog", type: "button", "aria-expanded": String(S.stripOpen), onclick: () => { S.stripOpen = !S.stripOpen; saveUi(); renderStrip(); }}, S.stripOpen ? "Hide" : "Show"))));
+  const body = h("div", {class: "strip-b", id: "stripBody"});
+  if (!S.shots.length) body.append(h("p", {class: "strip-empty"}, "Plan a sequence: add a shot per scene, set each length, then Make all. Use Continue from last frame to chain one shot into the next."));
+  S.shots.forEach((s, i) => body.append(shotCard(s, i)));
+  root.append(body); syncShots();
+}
+function shotCard(s, i) {
+  const w = shotWf(s) || wfNow();
+  const ta = h("textarea", {rows: 3, maxlength: 2000, "aria-label": "Shot " + (i + 1) + " prompt", placeholder: s.image ? "What happens next" : "Describe this shot", oninput: e => { s.prompt = e.target.value; saveUi(); }}); ta.value = s.prompt;
+  const file = h("input", {type: "file", accept: "image/png,image/jpeg,image/webp", hidden: true, onchange: e => shotImage(s, e.target.files[0])});
+  const secOut = h("output", {"aria-live": "polite"}, w ? lenText(w, shotSecs(s)) : s.seconds + " s");
+  const step = d => { const sr = w && secRange(w); if (!sr) return; s.seconds = clamp(shotSecs(s) + d * sr.step, sr.min, sr.max); secOut.textContent = lenText(w, s.seconds); saveUi(); };
+  const seed = h("input", {type: "number", class: "lock-seed", inputmode: "numeric", "aria-label": "Shot " + (i + 1) + " seed", hidden: !s.lock, oninput: e => { s.seed = e.target.value === "" ? null : +e.target.value; saveUi(); }}); seed.value = s.seed ?? "";
+  const lockBox = h("input", {type: "checkbox", checked: s.lock, onchange: e => { s.lock = e.target.checked; if (s.lock && s.seed == null) { s.seed = Math.floor(Math.random() * 2147483647); seed.value = s.seed; } seed.hidden = !s.lock; saveUi(); }});
+  const qw = h("button", {class: "btn sm alt", type: "button", onclick: e => writeWithQwen(s.prompt, s.image ? "continue" : "single", e.currentTarget, t => { s.prompt = t; ta.value = t; saveUi(); })}, "Write");
+  return h("article", {class: "shot", "data-shot": s.id, "data-s": ""},
+    h("div", {class: "shot-h"}, h("b", {}, "SHOT " + (i + 1)), h("span", {class: "pill"}, ""),
+      h("button", {class: "btn sm quiet", type: "button", "aria-label": "Remove shot " + (i + 1), onclick: () => { S.shots.splice(S.shots.indexOf(s), 1); saveUi(); renderStrip(); }}, "Remove")),
+    ta,
+    h("div", {class: "shot-side"}, h("div", {class: "shot-img"}, s.image && s.image.thumb ? h("img", {src: s.image.thumb, alt: "Start image for shot " + (i + 1)}) : "", h("span", {}, s.image ? "Starts from an image" : "Text only"), file,
+      h("button", {class: "btn sm", type: "button", onclick: () => file.click()}, s.image ? "Replace" : "Add image"),
+      s.image ? h("button", {class: "btn sm quiet", type: "button", onclick: () => { s.image = null; saveUi(); renderStrip(); }}, "Clear") : ""),
+    h("div", {class: "shot-r"}, h("span", {}, "Length"), h("span", {class: "stepper"}, h("button", {class: "btn sm", type: "button", "aria-label": "Shorter", onclick: () => step(-1)}, "−"), secOut,
+      h("button", {class: "btn sm", type: "button", "aria-label": "Longer", onclick: () => step(1)}, "+")),
+      h("label", {class: "lock"}, lockBox, "Lock seed"), seed)),
+    h("div", {class: "acts"}, h("button", {class: "btn go", type: "button", "data-do": "make", onclick: () => makeShot(s)}, "Make this shot"), qw,
+      h("button", {class: "btn", type: "button", "data-do": "next", hidden: true, onclick: e => continueShot(s, e.currentTarget)}, "Continue from last frame"),
+      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; renderReel(); renderStage(); tab("stage"); }}, "View")));
+}
+/* in-place status for each card (pill, state colour, continue/view buttons) so typing is never interrupted */
+function syncShots() {
+  for (const s of S.shots) {
+    const c = document.querySelector('[data-shot="' + s.id + '"]'); if (!c) continue;
+    const j = shotJob(s), pill = c.querySelector(".pill"), st = j ? j.state : "";
+    c.dataset.s = st; c.querySelector('[data-do="next"]').hidden = !(j && st === "done" && j.clips.length && j.clips[0].type.startsWith("video"));
+    c.querySelector('[data-do="view"]').hidden = !j;
+    if (j && ACTIVE.includes(st)) {
+      pill.dataset.t0 = String(st === "running" ? (j.started || j.created) : j.created); pill.dataset.est = String(st === "running" ? estSec(wfByName(j.workflow)) : 0);
+      pill.dataset.pre = {queued: "In line ", waiting: "Waiting ", starting: "Starting ", running: "Rendering "}[st];
+    } else { delete pill.dataset.t0; pill.classList.remove("over"); pill.textContent = j ? {done: "Ready", failed: "Failed", cancelled: "Cancelled"}[st] || st : ""; }
+  }
+  tickAll();
+}
+
+/* ---------- reel ---------- */
+function renderReel() {
+  const r = $("#reel"); r.replaceChildren();
+  if (!S.jobs.length) { r.append(h("p", {class: "help"}, "Your clips will collect here.")); return; }
+  for (const j of S.jobs) {
+    const label = {queued: "In line", waiting: "Waiting", starting: "Starting", running: "Rendering", done: "Ready", failed: "Failed", cancelled: "Cancelled"}[j.state] || j.state;
+    const live = ACTIVE.includes(j.state), w = wfByName(j.workflow);
+    const tm = live ? h("span", {class: "t", "data-t0": String(j.state === "running" ? (j.started || j.created) : j.created), "data-est": String(j.state === "running" ? estSec(w) : 0)}, "")
+      : j.seconds ? h("span", {class: "t"}, "took " + mmss(j.seconds)) : "";
+    r.append(h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
+      h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderReel(); renderStage(); tab("stage"); }},
+        h("i", {class: "dot"}), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, label), h("span", {}, ago(j.created)), tm)),
+      h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix")));
+  }
+  tickAll();
+}
+function tickAll() {
+  if (S.tick) S.tick();
+  document.querySelectorAll("[data-t0]").forEach(el => {
+    const s = Date.now() / 1000 - (+el.dataset.t0), est = +el.dataset.est || 0;
+    el.textContent = (el.dataset.pre || "") + mmss(s) + (est ? " / ~" + Math.round(est / 60) + " min" : "") + (est && s > est ? " · long" : "");
+    el.classList.toggle("over", !!est && s > est);
+  });
+}
+
+/* ---------- polling ---------- */
+function renderGpu() {
+  const s = S.status, g = $("#gpu"), t = $("#gpuText"); if (!s) return;
+  g.dataset.own = s.gpu; t.replaceChildren();
+  const q = s.queued ? " · " + s.queued + " in line" : "", a = s.active && s.active.state;
+  if (!s.enabled) { g.dataset.own = ""; t.append("Video is not set up on this PC"); return; }
+  if (s.gpu === "video" && a === "starting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Switching to Video"), h("span", {class: "long"}, " · Qwen is unloading" + q)); }
+  else if (s.gpu === "video") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · rendering, Qwen is paused" + q));
+  else if (a === "waiting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, " · finishing up, then your clip starts" + q)); }
+  else t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, (s.active ? " · your clip is next" : " · idle, ready for a clip") + q));
+}
+async function refresh() {
+  try {
+    const [jobs, st] = await Promise.all([api("jobs"), api("status")]);
+    S.jobs = jobs; S.status = st; S.enabled = st.enabled;
+    for (const j of jobs) { if (S.seen[j.id] && S.seen[j.id] !== j.state && j.state === "done") { toast("Clip ready"); if (!S.sel || S.sel === j.id) { S.sel = j.id; } } S.seen[j.id] = j.state; }
+    if (!S.sel && jobs.length) S.sel = (jobs.find(j => j.state === "done") || jobs[0]).id;
+    renderGpu(); renderReel(); renderStage(); syncShots();
+    const busy = jobs.some(j => ACTIVE.includes(j.state));
+    document.title = busy ? "Rendering · Studio" : "Studio";
+    return busy;
+  } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; return false; }
+}
+let timer;
+async function loop() { clearTimeout(timer); const busy = await refresh(); timer = setTimeout(loop, busy ? 3000 : 9000); }
+setInterval(tickAll, 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) loop(); });
+
+async function boot() {
+  try {
+    loadUi();
+    const d = await api("workflows"); S.wfs = d.workflows; S.enabled = d.enabled;
+    if (!S.wfs.length) { $("#compose").replaceChildren(h("h2", {}, "Create"), h("div", {class: "empty"}, h("b", {}, "No workflows installed"), "Put workflow files in the gateway's video workflows folder.")); }
+    else { if (!S.wf || !S.wfs.some(w => w.name === S.wf)) pickWf(S.wfs[0].name); else renderCompose(); }
+    renderStrip(); loop();
+  } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; }
+}
+boot();
+</script>
+</body>
+</html>

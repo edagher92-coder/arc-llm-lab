@@ -1,0 +1,110 @@
+{
+ "meta": {
+  "title": "Text to video",
+  "description": "LTX-2.3 22B with sound. Describe a shot; it films it.",
+  "kind": "t2v",
+  "fps": 25,
+  "audio": true,
+  "est_minutes": 10,
+  "order": 10,
+  "sizes": [
+   [
+    768,
+    512,
+    "Draft"
+   ],
+   [
+    1280,
+    720,
+    "720p wide"
+   ],
+   [
+    720,
+    1280,
+    "Vertical"
+   ],
+   [
+    1024,
+    1024,
+    "Square"
+   ]
+  ],
+  "seconds": {
+   "min": 2,
+   "max": 10,
+   "default": 4,
+   "step": 1
+  },
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "negative": {
+    "type": "str",
+    "default": "pc game, console game, video game, cartoon, childish, ugly",
+    "max_len": 500,
+    "label": "Avoid"
+   },
+   "width": {
+    "type": "int",
+    "default": 768,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "height": {
+    "type": "int",
+    "default": 512,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "seconds": {
+    "type": "int",
+    "default": 4,
+    "min": 2,
+    "max": 10,
+    "label": "Length"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   }
+  }
+ },
+ "set": {
+  "267:240.text": [
+   "267:266",
+   0
+  ],
+  "267:266.value": "x",
+  "75.filename_prefix": "video/gw_ltx23_t2v"
+ },
+ "bind": {
+  "prompt": [
+   "267:266.value"
+  ],
+  "negative": [
+   "267:247.text"
+  ],
+  "width": [
+   "267:257.value"
+  ],
+  "height": [
+   "267:258.value"
+  ],
+  "seconds": [
+   "267:225.value"
+  ],
+  "seed": [
+   "267:216.noise_seed",
+   "267:237.noise_seed"
+  ]
+ },
+ "drop": [
+  "267:328"
+ ]
+}
