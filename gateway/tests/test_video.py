@@ -37,7 +37,7 @@ ENC = {"meta": {"label": "encoding"}, "prompt": {"1": {"class_type": "ENC_CLASS"
 SMP = {"meta": {"label": "sampling"}, "prompt": {"1": {"class_type": "ElzLoadConditioning", "inputs": {"prompt": "{{prompt}}", "name": "cond", "w": "{{width}}", "n": "{{frames}}", "seed": "{{seed}}"}}}}
 
 class Rig:
-    def __init__(self, mode="ok", loaded=True, busy=False, quiet_s=0, timeout=60, killfile=True, staged=False, ntfy=None, enc_class="ElzSaveConditioning"):
+    def __init__(self, mode="ok", loaded=True, busy=False, quiet_s=0, timeout=60, killfile=True, staged=False, ntfy=None, enc_class="ElzSaveConditioning", linger=0):
         self.t = tempfile.mkdtemp(dir=TMP); self.swap = Swap(loaded, busy); self.port = free_port()
         os.makedirs(os.path.join(self.t, "wf")); json.dump(WF, open(os.path.join(self.t, "wf", "t2v.json"), "w"))
         if staged:
@@ -51,6 +51,7 @@ class Rig:
                "workflows_dir": os.path.join(self.t, "wf"), "input_dir": os.path.join(self.t, "input"), "allowed_roots": [self.img_root], "job_timeout_s": timeout,
                "start_timeout_s": 20, "comfy_settle_s": 0.05, "poll_s": 0.1, "tick_s": 0.1, "llm": {"swap_url": "http://127.0.0.1:%d" % self.swap.port, "model_id": "m", "quiet_s": quiet_s,
                "governor_mode_file": self.mode_file, "unload_timeout_s": 10}}
+        cfg["video_linger_min"] = linger                       # keep-warm linger is off unless a test asks for it (the lifecycle tests expect ComfyUI gone after a job)
         cfg.update(ntfy or {})
         self.kill = os.path.join(self.t, "KILL"); self.shared = []; self.cfgd = cfg
         self.q = video.Queue(video.Cfg(cfg, self.t), self.t, self.kill, share=lambda p: "https://x/%s" % os.path.basename(p))
@@ -865,6 +866,167 @@ def test_wait_ignores_log_written_before_submit():
         j = r.q.get(jid); assert j.get("phase") in (None, "starting") and (j.get("progress") or 0) < 12, j
         assert r.wait(jid, ("done", "failed"))["state"] == "done"
     finally: r.close()
+
+# ---------- keep-warm linger ----------
+def linger_rig(**kw):
+    kw.setdefault("linger", 5)
+    return Rig(**kw)
+
+def test_linger_second_job_reuses_comfy_without_unload_or_spawn():
+    r = linger_rig()
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); assert r.wait(j1, ("done", "failed"))["state"] == "done"
+        wait_for(lambda: r.q.linger_until() is not None, 5)
+        assert r.comfy_up() and r.mode() == "OFF" and os.path.exists(r.q.lock_path), "ComfyUI and video mode must stay up after the job"
+        assert not r.q.session_info()["active"], "a linger is not a user session"
+        assert r.q.mode_get()["linger_until"] and r.q.mode_get()["linger_until"] > time.time() + 200
+        assert not r.q.busy(), "an idle linger is not busy"
+        r.swap.loaded = True; u0 = r.swap.unloads; t_end = r.q.linger_until()
+        j2, _, _ = r.q.submit("t2v", {"prompt": "b", "seconds": 2}); assert r.wait(j2, ("done", "failed"))["state"] == "done"
+        assert len(r.starts()) == 1 and r.swap.unloads == u0 and len(r.prompts()) == 2, "second job must not spawn ComfyUI or unload the LLM"
+        assert r.q.linger_until() >= t_end, "a job restarts the keep-warm clock"
+    finally: r.close()
+
+def test_linger_expiry_stops_comfy_and_restores_mode():
+    r = linger_rig(linger=0.05)                                          # 3 s
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",))
+        wait_for(lambda: r.q.linger_until() is not None, 5); assert r.mode() == "OFF"
+        wait_for(lambda: r.q.linger_until() is None and r.q.session is None, 15)
+        assert r.mode() == "MAX" and not os.path.exists(r.q.lock_path) and r.q.proc is None
+        wait_for(lambda: not r.comfy_up(), 10)
+        j2, _, _ = r.q.submit("t2v", {"prompt": "b", "seconds": 2}); r.wait(j2, ("done",))      # after expiry the old path runs again: a second spawn
+        assert len(r.starts()) == 2
+    finally: r.close()
+
+def test_linger_does_not_expire_under_a_queued_job():
+    r = linger_rig(linger=0.03, mode="slow")                             # ~2 s linger, jobs take 2 s
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",))
+        j2, _, _ = r.q.submit("t2v", {"prompt": "b", "seconds": 2}); j3, _, _ = r.q.submit("t2v", {"prompt": "c", "seconds": 2})
+        assert r.wait(j2, ("done", "failed"))["state"] == "done" and r.wait(j3, ("done", "failed"))["state"] == "done"
+        assert len(r.starts()) == 1, r.starts()
+    finally: r.close()
+
+def test_linger_ended_by_mode_set_llm():
+    r = linger_rig()
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",)); wait_for(lambda: r.q.linger_until() is not None, 5)
+        m = r.q.mode_set("llm", warm=False)
+        assert m["view"] == "llm" and m["linger_until"] is None and r.mode() == "MAX" and not os.path.exists(r.q.lock_path) and r.q.session is None
+        wait_for(lambda: not r.comfy_up(), 10)
+    finally: r.close()
+
+def test_linger_mode_set_llm_still_refused_with_queued_job_and_user_session_unchanged():
+    r = linger_rig()
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",)); wait_for(lambda: r.q.linger_until() is not None, 5)
+        r.q._stop.set()                           # park the worker so a queued job stays queued
+        r.q.thread.join(5)
+        j2, _, _ = r.q.submit("t2v", {"prompt": "b", "seconds": 2})
+        try: r.q.mode_set("llm"); raise AssertionError("switched with a queued job")
+        except video.VideoBusy: pass
+        assert r.q.linger_until() is not None and r.comfy_up(), "a refused switch must not end the linger"
+    finally: r.close()
+    r = linger_rig(linger=0)
+    try:
+        session_up(r)
+        try: r.q.mode_set("llm"); raise AssertionError("explicit session accepted a mode switch")
+        except video.VideoBusy as e: assert "session is active" in str(e)
+        assert r.q.session_info()["active"] and r.q.session_info()["linger_until"] is None
+    finally: r.close()
+
+def test_linger_promoted_to_user_session_and_stoppable():
+    r = linger_rig()
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",)); wait_for(lambda: r.q.linger_until() is not None, 5)
+        info = r.q.session_start()                                       # ComfyUI is already up in video mode: no spawn, the linger becomes the session
+        assert info["active"] and info["state"] == "ready" and r.q.linger_until() is None and len(r.starts()) == 1
+        time.sleep(2.5); assert r.q.session_info()["active"] and r.comfy_up()
+        r.q.session_stop(); assert r.mode() == "MAX" and r.q.session is None
+    finally: r.close()
+
+def test_linger_off_is_the_old_behaviour():
+    r = Rig(linger=0)
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",))
+        wait_for(lambda: r.mode() == "MAX", 10)
+        assert r.q.session is None and r.q.linger_until() is None and not os.path.exists(r.q.lock_path) and r.q.proc is None
+        wait_for(lambda: not r.comfy_up(), 10)
+    finally: r.close()
+
+def test_linger_not_started_when_comfy_died_mid_job():
+    r = linger_rig(mode="crash")                                         # ComfyUI dies mid-job: nothing to keep warm
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); assert r.wait(j1, ("done", "failed"))["state"] == "failed"
+        wait_for(lambda: r.mode() == "MAX", 10); assert r.q.session is None
+    finally: r.close()
+
+def test_linger_comfy_crash_clears_state_and_restores_mode():
+    r = linger_rig()
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",)); wait_for(lambda: r.q.linger_until() is not None, 5)
+        r.q.proc.kill()                                                  # ComfyUI dies while idle in the linger
+        wait_for(lambda: r.q.session is None, 15)
+        assert r.q.linger_until() is None and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)
+        j2, _, _ = r.q.submit("t2v", {"prompt": "b", "seconds": 2}); assert r.wait(j2, ("done", "failed"))["state"] == "done"      # the queue recovers on the normal path
+    finally: r.close()
+
+def test_linger_staged_job_restarts_comfy_and_shutdown_cleans_up():
+    r = linger_rig(staged=True)
+    try:
+        j1, _, _ = r.q.submit("t2v", {"prompt": "a", "seconds": 2}); r.wait(j1, ("done",)); wait_for(lambda: r.q.linger_until() is not None, 5)
+        j2, _, _ = r.q.submit("staged", {"prompt": "b", "seconds": 2}); assert r.wait(j2, ("done", "failed"), 60)["state"] == "done"
+        assert len(r.starts()) == 1 + 2, "the staged job restarts ComfyUI for each stage, as it does outside a linger"
+        wait_for(lambda: r.q.linger_until() is not None, 5); assert not os.path.exists(r.cond_dir(j2))
+    finally: pass
+    r.q.stop()                                                           # gateway shutdown while lingering
+    assert r.q.session is None and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)
+    wait_for(lambda: not r.comfy_up(), 10); r.swap.close()
+
+# ---------- memory guard ----------
+def guard_wf(**meta):
+    w = json.loads(json.dumps(WF)); w["meta"]["params"]["width"]["max"] = 1920; w["meta"]["params"]["height"]["max"] = 1080; w["meta"]["params"]["frames"]["max"] = 481
+    w["meta"].update(meta); return w
+
+def test_px_guard_refuses_over_limit_with_both_suggestions():
+    cfg = video.Cfg({}); assert cfg.max_px_frames == 60000000 and cfg.linger_s == 480
+    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "frames": 193}, cfg); raise AssertionError("over-limit clip accepted")
+    except video.VideoError as e:
+        m = str(e); assert "60.0 M" in m and "100.8 M" in m, m
+        assert "113 frames (4.7 s) at 960x544" in m, m                       # 60e6 // 522240 = 114 -> 8n+1 = 113
+        assert "704x384 at 193 frames (8.0 s)" in m, m                       # largest 64-aligned size at 193 frames
+    assert 704 * 384 * 193 <= 60000000 and 113 * 960 * 544 <= 60000000
+    vals, _ = video.resolve_params(guard_wf(), {"prompt": "x", "width": 704, "height": 384, "frames": 193}, cfg); assert vals["frames"] == 193
+    vals, _ = video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "frames": 113}, cfg); assert vals["frames"] == 113
+
+def test_px_guard_allows_exactly_the_limit_and_refuses_one_over():
+    cfg = video.Cfg({"video_max_px_frames": 64 * 64 * 97})
+    video.resolve_params(guard_wf(params=dict(WF["meta"]["params"], width={"type": "int", "default": 64, "min": 64, "max": 1920, "multiple_of": 32}, height={"type": "int", "default": 64, "min": 64, "max": 1080, "multiple_of": 32})), {"prompt": "x", "width": 64, "height": 64, "frames": 97}, cfg)
+    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 256, "height": 256, "frames": 97}, video.Cfg({"video_max_px_frames": 256 * 256 * 97 - 1})); raise AssertionError("one over accepted")
+    except video.VideoError as e: assert "frames" in str(e)
+    video.resolve_params(guard_wf(), {"prompt": "x", "width": 256, "height": 256, "frames": 97}, video.Cfg({"video_max_px_frames": 256 * 256 * 97}))
+
+def test_px_guard_per_workflow_override_and_off_and_seconds():
+    cfg = video.Cfg({})
+    big = {"prompt": "x", "width": 960, "height": 544, "frames": 193}
+    video.resolve_params(guard_wf(max_px_frames=120000000), big, cfg)                  # a workflow that is known to fit raises the limit
+    video.resolve_params(guard_wf(max_px_frames=0), big, cfg)                          # 0 disables for this workflow
+    video.resolve_params(guard_wf(), big, video.Cfg({"video_max_px_frames": 0}))       # ... or globally
+    try: video.resolve_params(guard_wf(max_px_frames=10000000), {"prompt": "x", "width": 768, "height": 512, "frames": 97}, cfg); raise AssertionError("workflow limit ignored")
+    except video.VideoError as e: assert "10.0 M" in str(e)
+    try: video.resolve_params(guard_wf(), {"prompt": "x", "width": 960, "height": 544, "seconds": 8}, cfg); raise AssertionError("seconds path unguarded")      # 8 s * 24 + 1 = 193
+    except video.VideoError as e: assert "193 frames" in str(e)
+
+def test_px_guard_message_reaches_submit_and_studio_shape():
+    r = Rig()
+    try:
+        try: r.q.submit("t2v", {"prompt": "x", "width": 1280, "height": 704, "frames": 241}); raise AssertionError("not refused at submit")
+        except video.VideoError as e: assert "px-frames" in str(e) and "Try at most" in str(e), e
+        assert not r.q.jobs, "a refused clip must not be queued"
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",))          # presets' defaults are untouched
+    finally: r.close()
+
 
 if __name__ == "__main__":
     fails = 0

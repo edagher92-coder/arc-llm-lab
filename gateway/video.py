@@ -101,6 +101,14 @@ class Cfg:
             self.session_watch_s = max(0.05, float(c.get("comfy_session_watch_s", 5)))      # how often a session looks at ComfyUI's /history for renders made in its own UI
         except (TypeError, ValueError):
             self.session_watch_s = 5.0
+        try:
+            self.linger_s = max(0.0, float(c.get("video_linger_min", 8)) * 60)       # keep ComfyUI + video mode up this long after a job (0 = off): the next clip skips the LLM unload, spawn and cold model load
+        except (TypeError, ValueError):
+            self.linger_s = 480.0
+        try:
+            self.max_px_frames = max(0, int(c.get("video_max_px_frames", 60000000)))   # width*height*frames above this spills VRAM (stage 2 ~20x slower); 0 = no guard; a workflow's meta.max_px_frames overrides
+        except (TypeError, ValueError):
+            self.max_px_frames = 60000000
         self.keep_raw = bool(c.get("keep_raw", False))                          # keep the un-levelled original next to the clip as <name>_raw.mp4
         self.enabled = bool(self.comfy_cmd and self.comfy_dir)
 
@@ -297,7 +305,47 @@ def _resolve(wf, raw, cfg):
         vals["frames"] = max(int(spec["frames"].get("min", want)), min(int(spec["frames"].get("max", want)), want))
     elif "frames" in vals and meta.get("frames_rule"):
         vals["frames"] = snap_frames(vals["frames"], meta["frames_rule"])
+    _check_px_frames(wf, vals, cfg)
     return vals, files
+
+
+def _gcd_lcm(a, b):
+    return a * b // math.gcd(a, b)
+
+
+def _check_px_frames(wf, vals, cfg):
+    """Refuse a clip whose width*height*frames is over the memory guard (meta.max_px_frames, else cfg.max_px_frames; 0 = off)."""
+    meta = wf["meta"]
+    spec = meta.get("params") or {}
+    lim = meta.get("max_px_frames", getattr(cfg, "max_px_frames", 0))
+    if isinstance(lim, bool) or not isinstance(lim, (int, float)) or lim <= 0:
+        return
+    lim = int(lim)
+    w, h, fps = vals.get("width"), vals.get("height"), meta.get("fps")
+    n = vals.get("frames")
+    if n is None and fps and vals.get("seconds"):
+        n = int(round(float(vals["seconds"]) * float(fps))) + 1
+    if not all(isinstance(x, (int, float)) and x > 0 for x in (w, h, n)) or w * h * n <= lim:
+        return
+    w, h, n = int(w), int(h), int(n)
+    rule = meta.get("frames_rule")
+    fmin = int((spec.get("frames") or {}).get("min", 9 if rule == "8n+1" else 1))
+    nmax = lim // (w * h)
+    if rule == "8n+1":
+        nmax = (nmax - 1) // 8 * 8 + 1 if nmax >= 1 else 0
+    parts = []
+    if nmax >= max(fmin, 1):
+        parts.append("%d frames%s at %dx%d" % (nmax, " (%.1f s)" % ((nmax - 1) / float(fps)) if fps else "", w, h))
+    a = _gcd_lcm(64, _gcd_lcm(int((spec.get("width") or {}).get("multiple_of") or 1), int((spec.get("height") or {}).get("multiple_of") or 1)))
+    sc = math.sqrt(lim / float(w * h * n))
+    nw, nh = max(a, int(w * sc) // a * a), max(a, int(h * sc) // a * a)
+    while nw * nh * n > lim and (nw > a or nh > a):          # rounding down can still leave the area a hair over
+        if nw >= nh and nw > a: nw -= a
+        else: nh -= a
+    if nw * nh * n <= lim:
+        parts.append("%dx%d at %d frames%s" % (nw, nh, n, " (%.1f s)" % ((n - 1) / float(fps)) if fps else ""))
+    raise VideoError("%dx%d x %d frames is %.1f M px-frames, over this workflow's limit of %.1f M (video_max_px_frames / meta.max_px_frames): it would not fit in GPU memory and would render about 20x slower. %s" % (
+        w, h, n, w * h * n / 1e6, lim / 1e6, ("Try at most " + ", or ".join(parts) + ".") if parts else "Reduce the size or the length."))
 
 
 def fill_graph(graph, vals):
@@ -438,7 +486,9 @@ class Queue:
     def busy(self):
         """True while any job is queued or active, or ComfyUI holds the GPU lease."""
         with self.lock:
-            return os.path.exists(self.lock_path) or any(j["state"] in ("queued",) + ACTIVE for j in self.jobs)
+            if any(j["state"] in ("queued",) + ACTIVE for j in self.jobs):
+                return True
+            return os.path.exists(self.lock_path) and not self._lingering()          # an idle keep-warm linger is not "busy": mode_set may end it
 
     def mode_get(self):
         """{"mode": raw governor mode or None, "view": "video" | "llm", "hold": bool}: what the governor file says right now."""
@@ -448,7 +498,7 @@ class Queue:
                 os.remove(self.hold_path)                          # the owner changed the governor by hand: Video mode is over
             except OSError:
                 pass
-        return {"mode": m, "view": "video" if (m or "").upper() == VIDEO_MODE or os.path.exists(self.lock_path) else "llm", "hold": bool(self._hold())}
+        return {"mode": m, "view": "video" if (m or "").upper() == VIDEO_MODE or os.path.exists(self.lock_path) else "llm", "hold": bool(self._hold()), "linger_until": self.linger_until()}
 
     def mode_set(self, target, warm=True):
         """Switch the GPU between Video and the LLM. Returns the new mode_get(); raises VideoError when it cannot be done.
@@ -458,6 +508,12 @@ class Queue:
             raise VideoError("mode must be video or llm")
         if not self.cfg.mode_file:
             raise VideoError("the governor mode file is not configured (llm.governor_mode_file), so the GPU cannot be switched from here")
+        ls = None
+        with self.lock:
+            if self._lingering() and not any(j["state"] in ("queued",) + ACTIVE for j in self.jobs):
+                ls = self.session                                   # the keep-warm linger is not a user session: it ends here, so the switch goes through
+        if ls is not None:
+            self.session_stop(force=True)
         with self.lock:
             if self.session:
                 raise VideoBusy("a ComfyUI session is active; stop it first")
@@ -796,6 +852,11 @@ class Queue:
             if sess:                                              # the session owns ComfyUI and the GPU lease: leave both running
                 with self.lock:
                     sess["last_active"] = time.time()
+                    if sess.get("linger"):
+                        sess["until"] = time.time() + c.linger_s             # every job on a linger restarts the keep-warm clock
+                self._drop_cond(jid)
+                self._notify(jid)
+            elif self._linger_begin():                            # keep-warm: ComfyUI stays up and the GPU stays in video mode for linger_s
                 self._drop_cond(jid)
                 self._notify(jid)
             else:
@@ -813,12 +874,63 @@ class Queue:
 
     # -- interactive ComfyUI session (the owner uses ComfyUI's own UI; queue jobs may run on it meanwhile)
     def session_info(self):
-        """{"active": bool, "state": "starting"|"ready"|"stopping"|None, "idle_s": int|None, "error": str}"""
+        """{"active": bool, "state": "starting"|"ready"|"stopping"|None, "idle_s": int|None, "error": str, "linger_until": epoch|None}.
+        A keep-warm linger is not a user session: active is False while it lasts (see linger_until)."""
         with self.lock:
             s = self.session
-            if not s:
-                return {"active": False, "state": None, "idle_s": None, "error": ""}
-            return {"active": True, "state": s["state"], "idle_s": int(time.time() - s["last_active"]) if s["state"] == "ready" else None, "error": s.get("error", "")}
+            if not s or s.get("linger"):
+                return {"active": False, "state": None, "idle_s": None, "error": "", "linger_until": self.linger_until()}
+            return {"active": True, "state": s["state"], "idle_s": int(time.time() - s["last_active"]) if s["state"] == "ready" else None, "error": s.get("error", ""), "linger_until": None}
+
+    # -- keep-warm linger: after a job that ran without a session, ComfyUI and video mode stay up for video_linger_min. It is a session with a
+    # fixed expiry, so job reuse, stage restarts, crash handling and shutdown all go through the session machinery (no parallel lifecycle).
+    def _lingering(self):
+        s = self.session
+        return bool(s and s.get("linger") and s["state"] == "ready")
+
+    def linger_until(self):
+        """Epoch seconds when the keep-warm linger ends, or None."""
+        with self.lock:
+            return self.session["until"] if self._lingering() else None
+
+    def _linger_begin(self):
+        """Called as a job that owned the GPU ends. True when ComfyUI is alive and was handed over to a linger session."""
+        c = self.cfg
+        if c.linger_s <= 0 or self._stop.is_set() or self._killed() or self.proc is None or self.proc.poll() is not None:
+            return False
+        with self.lock:
+            if self.session is not None:
+                return False
+            now = time.time()
+            sess = {"state": "ready", "started": now, "last_active": now, "hist_n": None, "ev": threading.Event(), "seen": set(), "last_watch": 0.0, "linger": True, "until": now + c.linger_s}
+            self.session = sess
+            self._sess_thread = threading.Thread(target=self._linger_main, args=(sess,), name="comfy-linger", daemon=True)
+        self._sess_thread.start()
+        return True
+
+    def _linger_main(self, sess):
+        c = self.cfg
+        while not sess["ev"].wait(min(c.poll_s, 2.0)):
+            try:
+                with self.lock:
+                    if not sess.get("linger"):
+                        return                                             # promoted to a user session: its own loop is not running, so take over
+                    active = any(j["state"] in ACTIVE for j in self.jobs)
+                    pending = active or any(j["state"] in ("queued", "waiting") for j in self.jobs)
+                    if pending:
+                        sess["until"] = max(sess["until"], time.time() + 1.0)      # a job is queued or running: never expire under it
+                    elif time.time() >= sess["until"]:
+                        sess["state"] = "stopping"                          # decided under the lock, so tick() sees a non-ready session and waits
+                        break
+                if not active and (self.proc is None or self.proc.poll() is not None):
+                    sess["error"] = "ComfyUI exited"          # a crashed ComfyUI must not strand the GPU or the queue: end, restore the mode
+                    break
+            except Exception as ex:
+                sys.stderr.write("video: linger watcher error: %r\n" % (ex,))
+        else:
+            return
+        if not sess["ev"].is_set():
+            self._session_end(sess)
 
     def session_start(self):
         """Take the GPU like a job (the LLM is unloaded), start ComfyUI and keep it up until session_stop or comfy_session_idle_min without
@@ -826,6 +938,16 @@ class Queue:
         c = self.cfg
         if not c.enabled:
             raise VideoError("video generation is not set up on this PC")
+        promoted = None
+        with self.lock:
+            if self._lingering() and not any(j["state"] in ACTIVE for j in self.jobs):
+                promoted = self.session                            # ComfyUI is already up in video mode: the linger simply becomes the user's session
+                promoted["linger"], promoted["until"] = False, None
+                promoted["last_active"] = time.time()
+        if promoted is not None:
+            self._sess_thread = threading.Thread(target=self._session_loop, args=(promoted,), name="comfy-session", daemon=True)
+            self._sess_thread.start()
+            return self.session_info()
         with self.lock:
             if self.session:
                 raise VideoBusy("a ComfyUI session is already active")
@@ -892,6 +1014,10 @@ class Queue:
             if sess["ev"].is_set():
                 return                                             # session_stop is finishing the clean-up
             sess["state"], sess["last_active"] = "ready", time.time()
+        self._session_loop(sess)
+
+    def _session_loop(self, sess):
+        c = self.cfg
         while not sess["ev"].wait(min(c.poll_s, 2.0)):
             try:
                 with self.lock:

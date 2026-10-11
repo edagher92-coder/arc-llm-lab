@@ -203,3 +203,11 @@ try:
     NODE_DISPLAY_NAME_MAPPINGS.update(_P_NAMES)
 except Exception as _ex:   # noqa: BLE001
     print("ELZ_PRODUCTION_UNAVAILABLE %s: %s" % (type(_ex).__name__, _ex), flush=True)
+
+# Hosted LTX-2.5 text encoding (api_encode.py): replaces the local 12B Gemma encoder. Same rule: an import failure must not take the rest down.
+try:
+    from .api_encode import ElzLTXAPITextEncode as _ApiEnc
+    NODE_CLASS_MAPPINGS["ElzLTXAPITextEncode"] = _ApiEnc
+    NODE_DISPLAY_NAME_MAPPINGS["ElzLTXAPITextEncode"] = "LTX API text encode (Elz)"
+except Exception as _ex:   # noqa: BLE001
+    print("elz_nodes: api_encode not loaded: %s" % type(_ex).__name__, flush=True)

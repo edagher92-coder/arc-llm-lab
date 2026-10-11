@@ -291,7 +291,7 @@ def routes(q, vc, here, env=None):
         except Exception:
             pass
         return {"mode": "busy" if (q.busy() or sess["active"]) else mg["view"], "llm_loaded": llm,
-                "comfy": {"running": bool(proc is not None and proc.poll() is None), "session": sess["active"], "idle_s": sess["idle_s"], "port": vc.tailnet_port},
+                "comfy": {"running": bool(proc is not None and proc.poll() is None), "session": sess["active"], "idle_s": sess["idle_s"], "linger_until": mg.get("linger_until"), "port": vc.tailnet_port},
                 "queue": {"len": len(queued) + len([j for j in recent if j["state"] in ("starting", "running")]), "running_id": running["id"] if running else None,
                           "stage": stage, "progress": prog},
                 "ram": {"total_mb": int(tot // 2 ** 20) if tot else 0, "avail_mb": int(avail // 2 ** 20) if avail else 0},

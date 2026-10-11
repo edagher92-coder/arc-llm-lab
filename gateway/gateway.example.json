@@ -438,6 +438,8 @@
   "ffmpeg_path": "",
   "loudnorm": false,
   "comfy_session_idle_min": 20,
+ "video_linger_min": 8,
+ "video_max_px_frames": 60000000,
   "comfy_tailnet_port": 8448,
   "keep_raw": false,
   "llm": {

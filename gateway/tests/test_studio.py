@@ -388,6 +388,24 @@ def test_mode_endpoint():
     finally: rig.q._warm_llm = orig
 
 
+def test_px_guard_refusal_reaches_the_browser():
+    s, b, _ = call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": "x", "width": 1280, "height": 704, "frames": 241}}, cookie)
+    e = json.loads(b)["error"]; assert s == 400 and "px-frames" in e and "Try at most" in e and "frames" in e, (s, b)
+
+
+def test_linger_in_system_and_mode_llm_ends_it():
+    vc.linger_s = 300
+    orig = rig.q._warm_llm; rig.q._warm_llm = lambda: None
+    try:
+        jid, _, _ = rig.q.submit("t2v", {"prompt": "warm", "seconds": 2}); rig.wait(jid, ("done",))
+        tv.wait_for(lambda: rig.q.linger_until() is not None, 5)
+        time.sleep(2.1); s = js(call("GET", T + "/api/system", cookie=cookie))
+        assert s["mode"] == "video" and s["comfy"]["running"] is True and s["comfy"]["session"] is False and s["comfy"]["linger_until"] > time.time() + 200, s
+        r_ = call("POST", T + "/api/mode", {"mode": "llm"}, cookie); assert r_[0] == 200 and rig.mode() == "MAX" and rig.q.session is None, r_
+        time.sleep(2.1); s = js(call("GET", T + "/api/system", cookie=cookie)); assert s["comfy"]["linger_until"] is None and s["comfy"]["running"] is False, s
+    finally: vc.linger_s = 0; rig.q._warm_llm = orig
+
+
 def test_comfy_session_endpoint():
     c = lambda body, **kw: call("POST", T + "/api/comfy", body, cookie, **kw)
     assert call("POST", T + "/api/comfy", {"action": "start"})[0] == 401 and c({"action": "start"}, xrw=False)[0] == 403
