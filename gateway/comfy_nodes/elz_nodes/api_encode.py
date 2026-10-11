@@ -61,13 +61,73 @@ _DTYPES = {"float32", "float16", "bfloat16", "float64", "int64", "int32", "int16
 class SafeUnpickler(pickle.Unpickler):
     """Only what a pickled list of [tensor, {str: tensor|number|...}] needs. Anything else (os, subprocess, eval, getattr...) is refused."""
     def find_class(self, module, name):
+        if (module, name) == ("torch.storage", "_load_from_bytes"):
+            return _load_storage_cpu                    # the API pickles CUDA storages; map them to the CPU, with torch's safe loader
         if (module, name) in _ALLOWED or (module == "torch" and (name in _STORAGES or name in _DTYPES)):
             return super().find_class(module, name)
         raise pickle.UnpicklingError("refused global %s.%s in the LTX API response" % (module, name))
 
 
+def _load_storage_cpu(b):
+    import torch
+    return torch.load(io.BytesIO(b), map_location="cpu", weights_only=True)
+
+
 def safe_loads(data):
     return SafeUnpickler(io.BytesIO(data)).load()
+
+
+DISK_CACHE_MAX = 200
+
+
+def cache_dir():
+    """$ELZ_COND_CACHE, else C:\\AI\\video\\cond_cache. Entries are safetensors (tensors only) + a JSON sidecar; no pickle on disk."""
+    return os.environ.get("ELZ_COND_CACHE") or r"C:\AI\video\cond_cache"
+
+
+def _disk_get(ck):
+    st, js = os.path.join(cache_dir(), ck + ".safetensors"), os.path.join(cache_dir(), ck + ".json")
+    if not (os.path.isfile(st) and os.path.isfile(js)):
+        return None
+    try:
+        from safetensors.torch import load_file
+        t = load_file(st, device="cpu"); meta = json.load(open(js, encoding="utf-8"))
+        out = []
+        for i, e in enumerate(meta["entries"]):
+            extras = {k: (t["%d.%s" % (i, k)] if v == "tensor" else v) for k, v in e["extras"].items()}
+            out.append([t["%d.cond" % i], extras])
+        os.utime(st, None)
+        return out
+    except Exception:                                   # a damaged entry is ignored and rewritten on the next call
+        return None
+
+
+def _disk_put(ck, cond):
+    try:
+        from safetensors.torch import save_file
+        import torch
+        d = cache_dir(); os.makedirs(d, exist_ok=True)
+        tensors, entries = {}, []
+        for i, (c, extras) in enumerate(cond):
+            tensors["%d.cond" % i] = c.contiguous()
+            ex = {}
+            for k, v in (extras or {}).items():
+                if isinstance(v, torch.Tensor):
+                    tensors["%d.%s" % (i, k)] = v.contiguous(); ex[k] = "tensor"
+                elif v is None or isinstance(v, (bool, int, float, str)):
+                    ex[k] = v
+                else:
+                    return                              # unknown extra type: do not cache rather than cache wrongly
+            entries.append({"extras": ex})
+        save_file(tensors, os.path.join(d, ck + ".safetensors"))
+        json.dump({"entries": entries}, open(os.path.join(d, ck + ".json"), "w", encoding="utf-8"))
+        files = sorted((f for f in os.listdir(d) if f.endswith(".safetensors")), key=lambda f: os.path.getmtime(os.path.join(d, f)))
+        for f in files[:-DISK_CACHE_MAX]:
+            for ext in (".safetensors", ".json"):
+                try: os.remove(os.path.join(d, f[:-12] + ext))
+                except OSError: pass
+    except Exception:
+        pass
 
 
 def encode(prompt, enhance_prompt=False, ltx_version="2.5.0", gemma_version="gemma4-12b-ltx-v1", key=None, opener=None, timeout=60):
@@ -79,6 +139,10 @@ def encode(prompt, enhance_prompt=False, ltx_version="2.5.0", gemma_version="gem
     if ck in _cache:
         _cache.move_to_end(ck)
         return _cache[ck], True
+    hit = _disk_get(ck)
+    if hit is not None:
+        _cache[ck] = hit
+        return hit, True
     k = key or read_key()
     req = urllib.request.Request(API_URL, data=json.dumps(body).encode(), method="POST",
                                  headers={"Authorization": "Bearer " + k, "Content-Type": "application/json"})
@@ -99,6 +163,7 @@ def encode(prompt, enhance_prompt=False, ltx_version="2.5.0", gemma_version="gem
     if not isinstance(cond, list) or not cond:
         raise LTXAPIError("LTX API returned an unexpected conditioning shape")
     _cache[ck] = cond
+    _disk_put(ck, cond)
     while len(_cache) > CACHE_MAX:
         _cache.popitem(last=False)
     return cond, False

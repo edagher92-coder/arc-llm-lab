@@ -28,6 +28,7 @@ def opener_returning(data, seen):
 
 def setup_function():
     A._cache.clear()
+    os.environ["ELZ_COND_CACHE"] = tempfile.mkdtemp(prefix="elz_cond_cache_")
 
 
 def test_real_tensor_conditioning_round_trips():
@@ -92,3 +93,14 @@ def test_node_interface():
     t = A.ElzLTXAPITextEncode.INPUT_TYPES()["required"]
     assert set(t) == {"prompt", "enhance_prompt", "ltx_version", "gemma_version"} and "api_key" not in t       # the key is never a graph input
     assert A.ElzLTXAPITextEncode.RETURN_TYPES == ("CONDITIONING",)
+
+
+def test_disk_cache_survives_a_restart_and_skips_the_network():
+    seen = []; c = cond()
+    A.encode("disk cached prompt", key=KEY, opener=opener_returning(pickle.dumps(c), seen))
+    A._cache.clear()                                                                    # new ComfyUI process: memory cache gone
+    out, cached = A.encode("disk cached prompt", key=KEY, opener=opener_returning(b"", seen))
+    assert cached and len(seen) == 1, "second call must come from disk"
+    assert torch.equal(out[0][0], c[0][0]) and out[0][0].dtype == torch.bfloat16 and out[0][1]["pooled_output"] is None
+    assert torch.equal(out[0][1]["attention_mask"], c[0][1]["attention_mask"])
+    assert not [f for f in os.listdir(A.cache_dir()) if f.endswith(".pkl")], "no pickle on disk"
