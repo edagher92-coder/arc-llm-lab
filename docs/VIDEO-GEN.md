@@ -257,3 +257,12 @@ The Tailscale app must be running on the phone (VERIFIED, [PLATFORM.md](https://
 
 - **iOS (Safari):** open the Studio address, tap Share, then **Add to Home Screen**, then **Add**. Use Safari; Chrome on iOS does not offer this.
 - **Android (Chrome):** open the Studio address, tap the menu (three dots), then **Add to Home screen** or **Install app** (Chrome install is VERIFIED in PLATFORM.md).
+
+## MiniMax H3 trial (11 Oct 2026) — not adopted yet
+
+Evaluated on the B60 (VERIFIED, measured on the PC) with stable-diffusion.cpp `master-956-1b0ba10` Vulkan build (SHA-256 matches the release digest). Files: unsloth `minimax_h3_fl2va_pruned-Q4_K.gguf` (10.64 GiB), `qwen3vl_32b_minimax_h3-Q2_K_M.gguf` (12.2 GiB, run on CPU with `--backend te=cpu`), Comfy-Org video/audio VAEs; hashes checked against the HF LFS oids.
+
+- ComfyUI-GGUF (pinned `6ea2651`) has no MiniMax architecture; the unsloth GGUFs target stable-diffusion.cpp. ComfyUI 0.39 supports H3 natively only with the Comfy-Org safetensors (14.9 GiB w6a8 and up).
+- Speed: 640x384, 25 frames, 4 steps, 79.6 s; 768x512, 49 frames, 206.7 s (LTX-2.5 Q4_K_M: about 185 s). Minimum free RAM 4.4 GB while the CPU encoder was loaded.
+- Output bug: clips of 21 frames or fewer decode correctly (a real fox, 320x192 to 640x384). From 25 frames the picture is black (Vulkan VAE) or blown out (CPU VAE) and the audio is clipped, so the fault is in sampling, not the VAE. Flash attention on/off and `--attn-scale 1` did not change it. The cause is not found.
+- Decision: LTX-2.5 stays the default. Retest when stable-diffusion.cpp or ComfyUI-GGUF gains a fix. Files stay in `C:\AI\minimax` (run.cmd, watch.ps1, sdcpp\).
