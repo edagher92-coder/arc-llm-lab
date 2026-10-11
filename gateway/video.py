@@ -245,8 +245,13 @@ class Queue:
     def _save(self):
         tmp = self.jobs_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self.jobs[-self.cfg.keep_jobs:], f)
+            json.dump(self._retained(), f)
         os.replace(tmp, self.jobs_path)
+
+    def _retained(self):
+        """What jobs.json keeps: the newest keep_jobs jobs plus every favourite, however old. Call with self.lock held."""
+        newest = {id(j) for j in self.jobs[-self.cfg.keep_jobs:]}
+        return [j for j in self.jobs if id(j) in newest or j.get("fav")]
 
     def _recover(self):
         """A crash must never leave the LLM unloaded or the governor stuck on OFF."""
@@ -348,7 +353,7 @@ class Queue:
 
     def _sidecars(self, j, files, t0, ended):
         """Write <clip>.json (seed, workflow, params, timings) next to each clip. Once, when the job completes; never fails the job."""
-        meta = {"job_id": j["id"], "workflow": j["workflow"], "params": j["params"], "seed": j["params"].get("seed"),
+        meta = {"job_id": j["id"], "workflow": j["workflow"], "params": j["params"], "seed": j["params"].get("seed"), "fav": bool((self.get(j["id"]) or j).get("fav")),
                 "created": j["created"], "started": t0, "ended": ended, "queued_s": round(t0 - j["created"], 1), "render_s": round(ended - t0, 1)}
         for p in files:
             try:
@@ -401,6 +406,32 @@ class Queue:
     def recent(self, n=10):
         with self.lock:
             return [dict(j) for j in self.jobs[-n:]][::-1]
+
+    def favourites(self):
+        """Every starred job (newest first), however old: the recent list alone would lose them once 40 newer jobs exist."""
+        with self.lock:
+            return [dict(j) for j in self.jobs if j.get("fav")][::-1]
+
+    def set_fav(self, jid, fav):
+        """Star or unstar a job. Starred jobs are kept by the jobs.json retention, and their start images by the Studio upload trim.
+        The flag is also written into each clip's sidecar JSON. Returns False for an unknown job."""
+        with self.lock:
+            j = next((x for x in self.jobs if x["id"] == jid), None)
+            if not j:
+                return False
+            j["fav"] = bool(fav)
+            self._save()
+            clips = list(j.get("files_out") or [])
+        for p in clips:                                          # best effort, like the sidecar itself
+            try:
+                with open(p + ".json", encoding="utf-8") as f:
+                    meta = json.load(f)
+                meta["fav"] = bool(fav)
+                with open(p + ".json", "w", encoding="utf-8") as f:
+                    json.dump(meta, f, indent=1)
+            except (OSError, ValueError):
+                pass
+        return True
 
     def cancel_job(self, jid):
         with self.lock:

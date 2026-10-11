@@ -287,6 +287,27 @@ def test_restore_even_if_kill_fails():
         assert r.mode() == "MAX" and not os.path.exists(r.q.lock_path); r.q.proc and r.q.proc.kill()
     finally: r.close()
 
+def test_fav_persists_survives_retention_and_sidecar():
+    r = Rig()
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "keep me", "seconds": 2}); j = r.wait(jid, ("done",))
+        assert not j.get("fav") and r.q.set_fav("zzzzzzzz", True) is False
+        assert r.q.set_fav(jid, True) is True and r.q.get(jid)["fav"] is True
+        side = json.load(open(j["files_out"][0] + ".json")); assert side["fav"] is True and side["job_id"] == jid       # the sidecar carries it too
+        r.q.stop(); r.q.cfg.keep_jobs = 10
+        with r.q.lock:
+            for i in range(14): r.q.jobs.append(dict(id="%08x" % (i + 1), workflow="t2v", params={}, files={}, state="done", created=time.time() + i + 1))
+            r.q._save()
+        saved = [x["id"] for x in json.load(open(r.q.jobs_path))]
+        assert jid in saved and len(saved) == 11, saved                                  # the 10 newest plus the favourite, which is older than all of them
+        assert [x["id"] for x in r.q.favourites()] == [jid]
+        assert r.q.set_fav(jid, False) and not r.q.get(jid)["fav"] and json.load(open(j["files_out"][0] + ".json"))["fav"] is False
+        with r.q.lock: r.q._save()
+        assert jid not in [x["id"] for x in json.load(open(r.q.jobs_path))]            # once unstarred it ages out like any other job
+        r.q.set_fav(jid, True)
+        assert video.Queue(r.q.cfg, r.t, r.kill).get(jid)["fav"] is True                 # survives a restart
+    finally: r.close()
+
 if __name__ == "__main__":
     fails = 0
     for n, f in sorted(globals().items()):

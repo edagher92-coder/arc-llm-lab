@@ -1,5 +1,5 @@
 """Studio tests: the real approvals server with the Studio routes, a mock llama-swap and a mock ComfyUI. Run: python tests/test_studio.py"""
-import hashlib, json, os, sys, tempfile, time, traceback, urllib.request, urllib.error
+import hashlib, json, os, re, sys, tempfile, time, traceback, urllib.request, urllib.error
 os.environ["GW_APPROVAL_PORT"] = "18096"
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, D); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import approvals, studio, video
@@ -58,7 +58,7 @@ def test_shell_public_api_private():
     assert call("GET", T + "/")[0] == 200
     for p in ("/api/workflows", "/api/jobs", "/api/status", "/api/clip/abcdef12/x.mp4"):
         assert call("GET", T + p)[0] == 401, p
-    for p in ("generate", "cancel", "delete", "upload", "assist"):
+    for p in ("generate", "cancel", "delete", "upload", "assist", "fav", "rerun"):
         assert call("POST", T + "/api/" + p, {})[0] == 401, p
         assert call("POST", T + "/api/" + p, {}, cookie, xrw=False)[0] == 403, p       # the CSRF header is still required
 
@@ -219,6 +219,109 @@ def test_presets_exposed():
     finally: os.remove(path)
     assert studio.clean_presets("x", {}) == [] and studio.clean_presets(None, {}) == []
     assert len(studio.clean_presets([{"label": str(i), "params": {"size": 0}} for i in range(20)], {})) == 8
+
+
+def _png_size(b):
+    assert b[:8] == b"\x89PNG\r\n\x1a\n" and b[12:16] == b"IHDR", b[:16]
+    return int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big")
+
+
+def test_pwa_manifest_and_icons_public_and_data_free():
+    s, body, h = call("GET", T + "/manifest.webmanifest")                                  # no cookie: the browser fetches it before sign-in
+    assert s == 200 and h["Content-Type"].startswith("application/manifest+json"), (s, h["Content-Type"])
+    m = json.loads(body.decode())
+    assert m["name"] == "Studio" and m["short_name"] == "Studio" and m["start_url"] == T and m["scope"] == T and m["display"] == "standalone", m
+    assert m["background_color"] == "#121316" and m["theme_color"] == "#121316", m
+    assert sorted((i["sizes"], i["type"]) for i in m["icons"]) == [("192x192", "image/png"), ("512x512", "image/png")], m["icons"]
+    assert set(m) <= {"name", "short_name", "start_url", "scope", "display", "background_color", "theme_color", "icons", "description", "id"}, set(m)
+    jid, _, _ = rig.q.submit("t2v", {"prompt": "private prompt xyz"})
+    rig.wait(jid, ("done", "failed"))
+    blobs = [body]
+    for name, px in (("icon-180.png", 180), ("icon-192.png", 192), ("icon-512.png", 512)):
+        s, b, h = call("GET", T + "/" + name)
+        assert s == 200 and h["Content-Type"] == "image/png" and _png_size(b) == (px, px), (name, s, h["Content-Type"])
+        blobs.append(b)
+    for b in blobs:
+        assert jid.encode() not in b and b"private prompt" not in b and rig.t.encode() not in b      # static: no job data, no server paths
+    assert call("GET", T + "/icon-999.png")[0] == 404 and call("GET", T + "/manifest.webmanifest/../x")[0] in (400, 404)
+
+
+def test_shell_csp_adds_only_manifest_src():
+    import re
+    s, body, h = call("GET", T)
+    csp = re.search(r'http-equiv="Content-Security-Policy" content="([^"]*)"', body.decode()).group(1)
+    got = {d.strip() for d in csp.split(";") if d.strip()}
+    assert got == {"default-src 'none'", "script-src 'unsafe-inline'", "style-src 'unsafe-inline'", "img-src 'self' data: blob:", "media-src 'self' blob:",
+                   "connect-src 'self'", "base-uri 'none'", "form-action 'none'", "manifest-src 'self'"}, got
+    assert "'unsafe-eval'" not in csp and "script-src 'unsafe-inline'" in csp
+    html = body.decode()
+    assert 'rel="manifest"' in html and 'rel="apple-touch-icon"' in html and 'name="apple-mobile-web-app-title"' in html
+    assert "serviceWorker" not in html
+
+
+def test_fav_roundtrip_and_validation():
+    jid, _, _ = rig.q.submit("t2v", {"prompt": "star me", "seconds": 2}); rig.wait(jid, ("done",))
+    f = lambda body, **kw: call("POST", T + "/api/fav", body, cookie, **kw)
+    pj = lambda: next(x for x in js(call("GET", T + "/api/jobs", cookie=cookie)) if x["id"] == jid)
+    assert pj()["fav"] is False
+    s, b, _ = f({"id": jid, "fav": True}); assert s == 200 and json.loads(b) == {"id": jid, "fav": True}, b
+    assert pj()["fav"] is True and rig.q.get(jid)["fav"] is True
+    for bad in ({"id": jid, "fav": "yes"}, {"id": jid, "fav": 1}, {"id": jid}, {"id": "../x", "fav": True}, {"id": "ABCDEF12", "fav": True}, {"fav": True}):
+        assert f(bad)[0] == 400, bad
+    assert f({"id": "deadbeef", "fav": True})[0] == 404
+    assert call("POST", T + "/api/fav", {"id": jid, "fav": False})[0] == 401                       # no session
+    assert f({"id": jid, "fav": False}, xrw=False)[0] == 403                                       # no CSRF header
+    assert f({"id": jid, "fav": False})[0] == 200 and pj()["fav"] is False
+
+
+def test_jobs_list_keeps_old_favourites():
+    with rig.q.lock:
+        rig.q.jobs.insert(0, dict(id="0a1df400", workflow="t2v", params={"prompt": "old"}, files={}, state="done", created=1.0, fav=True))
+        for i in range(45): rig.q.jobs.append(dict(id="%08x" % (0xa0000 + i), workflow="t2v", params={}, files={}, state="done", created=time.time() + i))
+    try:
+        ids = [x["id"] for x in js(call("GET", T + "/api/jobs", cookie=cookie))]
+        assert "0a1df400" in ids and len(ids) == 41, len(ids)                                         # newest 40 plus the starred one that fell out of them
+    finally:
+        with rig.q.lock: rig.q.jobs[:] = [x for x in rig.q.jobs if x["id"] != "0a1df400" and not (0xa0000 <= int(x["id"], 16) < 0xa0000 + 45)]
+
+
+def test_rerun_creates_new_validated_job():
+    up = js(call("POST", T + "/api/upload", cookie=cookie, raw=PNG))["name"]
+    d = js(call("POST", T + "/api/generate", {"workflow": "t2v", "params": {"prompt": "again", "seconds": 2, "seed": 77, "image": up}}, cookie))
+    old = rig.wait(d["id"], ("done",))
+    r = lambda body, **kw: call("POST", T + "/api/rerun", body, cookie, **kw)
+    s, b, _ = r({"id": old["id"]}); assert s == 200, b
+    new = json.loads(b); assert new["id"] != old["id"] and re.match(r"^[0-9a-f]{8}$", new["id"]) and new["position"] >= 1, new
+    nj = rig.wait(new["id"], ("done",))
+    assert nj["workflow"] == "t2v" and nj["params"] == old["params"] and nj["params"]["seed"] == 77 and nj["files"] == old["files"], (nj["params"], old["params"])
+    assert not nj.get("fav")                                                                      # a re-run is a new clip, not a copy of the star
+    # it goes through resolve_params again (jobs are dicts held in q.jobs, so edit the stored original in place): a value the workflow no longer allows is clamped, an unknown key is refused
+    with rig.q.lock: next(x for x in rig.q.jobs if x["id"] == old["id"])["params"]["width"] = 99999
+    s, b, _ = r({"id": old["id"]}); assert s == 200, b
+    assert rig.wait(json.loads(b)["id"], ("done",))["params"]["width"] == 1280
+    with rig.q.lock: next(x for x in rig.q.jobs if x["id"] == old["id"])["params"]["bogus"] = 1
+    s, b, _ = r({"id": old["id"]}); assert s == 400 and b"does not take" in b, (s, b)
+    for bad in ({}, {"id": 5}, {"id": "../etc"}, {"id": "ABCDEF12"}, {"id": ""}):
+        assert r(bad)[0] == 400, bad
+    assert r({"id": "deadbeef"})[0] == 404
+    assert call("POST", T + "/api/rerun", {"id": old["id"]})[0] == 401 and r({"id": old["id"]}, xrw=False)[0] == 403
+    os.remove(os.path.join(rig.q.dir, "uploads", up))                                              # start image deleted since: a clear refusal, no new job
+    with rig.q.lock: next(x for x in rig.q.jobs if x["id"] == old["id"])["params"].pop("bogus")
+    n = len(rig.q.jobs); s, b, _ = r({"id": old["id"]}); assert s == 400 and len(rig.q.jobs) == n, (s, b)
+
+
+def test_trim_uploads_skips_favourite_images():
+    up_dir = os.path.join(rig.q.dir, "uploads")
+    a = js(call("POST", T + "/api/upload", cookie=cookie, raw=PNG))["name"]; b = js(call("POST", T + "/api/upload", cookie=cookie, raw=PNG))["name"]
+    ja = rig.wait(rig.q.submit("t2v", {"prompt": "fa", "seconds": 2, "image": os.path.join(up_dir, a)})[0], ("done",))
+    rig.wait(rig.q.submit("t2v", {"prompt": "fb", "seconds": 2, "image": os.path.join(up_dir, b)})[0], ("done",))
+    assert call("POST", T + "/api/fav", {"id": ja["id"], "fav": True}, cookie)[0] == 200
+    for n, age in ((a, 500), (b, 400)): os.utime(os.path.join(up_dir, n), (time.time() - age, time.time() - age))        # the two oldest uploads
+    for _ in range(61): assert call("POST", T + "/api/upload", cookie=cookie, raw=PNG)[0] == 200
+    assert os.path.exists(os.path.join(up_dir, a)), "the favourite's start image was trimmed"
+    assert not os.path.exists(os.path.join(up_dir, b)), "ordinary old uploads should still be trimmed"
+    assert len([f for f in os.listdir(up_dir) if studio.UP_OK.match(f)]) <= 61                    # keep=60 plus the one protected image
+    assert call("POST", T + "/api/rerun", {"id": ja["id"]}, cookie)[0] == 200                      # so the favourite can still be run again
 
 
 def test_status_while_rendering():

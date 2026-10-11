@@ -198,3 +198,62 @@ Nothing here has been measured on this PC yet. Do not quote these as results.
 - Whether 64 GB makes a warm-ComfyUI design worth building: **TBD**.
 - Whether `POST /free` before the kill makes any visible difference: **TBD**.
 - Whether `/history` on this ComfyUI build carries per-node timings: **TBD** (the benchmark records them if so).
+
+## Phone access (Tailscale Serve) and ComfyUI Mobile Frontend
+
+Status: the Studio route is in the repo (VERIFIED). The Mobile Frontend and ntfy alerts are a plan, not yet set up on this PC. VERIFIED means checked in the repo or on the project's public page; INFERRED means from the plan or general behaviour and not yet tested here.
+
+### Studio over Tailscale Serve
+
+Studio is served at `/approvals/studio` on the approvals server, port 8093, behind the approvals PIN login (VERIFIED, `gateway/studio.py`). The page holds no data; its API needs the PIN session.
+
+Publish it on its own tailnet-only HTTPS port, from an elevated PowerShell (Serve changes need UAC, VERIFIED in the harness plan):
+
+```powershell
+tailscale serve --bg --https=8447 http://127.0.0.1:8093
+```
+
+Open `https://<your-machine>.<your-tailnet>.ts.net:8447/approvals/studio` from a device on the same tailnet (INFERRED from the path mapping; confirm in a browser).
+
+- **Never `tailscale funnel`** (VERIFIED, [PLATFORM.md](https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html)). Check with `tailscale serve status`, which should list only the tailnet ports you set.
+- Via the existing `/tts` route on 8092 instead, the path is `/tts/approvals/studio` (VERIFIED, `studio.py`).
+
+### ComfyUI Mobile Frontend
+
+Project: `github.com/cosmicbuffalo/comfyui-mobile-frontend`, MIT licence and installed as a standard custom node (VERIFIED, project page). The pinned commit is `aa699c819914234b9533f944b1f9047cc61f6ea5` from the plan; I could not open that commit from here (INFERRED).
+
+Install (INFERRED steps, not yet run):
+
+1. Clone into `C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes\` and check out the pinned commit:
+
+   ```powershell
+   cd C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes; git clone https://github.com/cosmicbuffalo/comfyui-mobile-frontend; git -C comfyui-mobile-frontend checkout aa699c819914234b9533f944b1f9047cc61f6ea5
+   ```
+
+2. Install the dependency into the portable's own Python. The project page does not name it; the plan says it is needed:
+
+   ```powershell
+   ..\..\..\python_embeded\python.exe -m pip install pywebpush
+   ```
+
+3. Add the folder name to the `--whitelist-custom-nodes` list, next to `ComfyUI-GGUF elz_nodes`. Check the exact folder name on disk first. The launch line uses `--disable-all-custom-nodes`, so only whitelisted folders load; confirm the node in the startup log.
+
+4. Open the node's Preferences and turn **off** telemetry and CivitAI lookups. The project page does not show these settings, so check the screen itself.
+
+Warnings:
+
+- **No login.** The node has no login (VERIFIED: password auth is an unchecked planned item on the project page). ComfyUI has none either (INFERRED). The tailnet ACL is the only control.
+- Expose it only on a tailnet-only Serve port, never Funnel, for example `tailscale serve --bg --https=8448 http://127.0.0.1:8188`. Do not reuse the Studio port.
+- **Only reachable while ComfyUI is running.** The kill-per-job design stops ComfyUI after every job (VERIFIED, earlier in this guide), so the page is down between jobs and while the LLM holds the GPU.
+
+### ntfy alerts (placeholder)
+
+- Planned keys in the local `gateway/gateway.json`: `ntfy_url` and `ntfy_topic` (placeholder: `"ntfy_url": "<your ntfy server>", "ntfy_topic": "<set locally, never commit>"`). No ntfy code exists in the repo yet (VERIFIED by search).
+- The **topic is a secret.** Anyone who knows it can read or post alerts. Keep it only in `gateway/gateway.json`, which is gitignored (VERIFIED, `.gitignore`). Never put it in this doc, an example config, a commit or a log.
+
+### Add to Home Screen
+
+The Tailscale app must be running on the phone (VERIFIED, [PLATFORM.md](https://edagher92-coder.github.io/arc-llm-lab/guides/platform.html)). The steps below are the standard browser menus, not yet tested here (INFERRED).
+
+- **iOS (Safari):** open the Studio address, tap Share, then **Add to Home Screen**, then **Add**. Use Safari; Chrome on iOS does not offer this.
+- **Android (Chrome):** open the Studio address, tap the menu (three dots), then **Add to Home screen** or **Install app** (Chrome install is VERIFIED in PLATFORM.md).

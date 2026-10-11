@@ -6,8 +6,12 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#121316">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Studio">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Studio</title>
+<link rel="manifest" href="/approvals/studio/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/approvals/studio/icon-180.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23121316'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23ff5a36'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -27,7 +31,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* frame */
 .app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
-.bar{display:flex;align-items:center;gap:16px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--panel)}
+.bar{display:flex;align-items:center;gap:16px;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--panel)}
 .brand{font:600 20px/1 var(--display);letter-spacing:.02em}
 .gpu{display:flex;align-items:center;gap:9px;margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--bg);min-width:0}
 .lamp{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none}
@@ -64,7 +68,7 @@ textarea:focus-visible,input:focus-visible,select:focus-visible{border-color:var
 .btn{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--raised);cursor:pointer;font-weight:500}
 .btn:hover:not(:disabled){border-color:var(--muted)}
 .btn:disabled{opacity:.5;cursor:default}
-.btn.go{background:var(--ink);color:var(--bg);border-color:var(--ink);font:600 16px var(--display);letter-spacing:.03em;padding:13px 16px;width:100%}
+.btn.go{background:var(--ink);color:var(--bg);border-color:var(--ink);font:600 16px var(--display);letter-spacing:.03em;padding:13px 16px;width:100%;min-height:44px}
 .btn.quiet{background:transparent}
 .btn.warn{color:var(--stop)}
 .btn.sm{padding:6px 10px;font-size:13px}
@@ -79,7 +83,7 @@ input[type=range]{width:100%;accent-color:var(--ink);margin:2px 0}
 details.more{margin:0 0 16px}
 details.more summary{cursor:pointer;color:var(--muted);font-size:13.5px;padding:2px 0;margin-bottom:8px}
 .fine{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-align:center}
-.dock{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:12px 18px 18px;background:var(--bg);border-top:1px solid var(--line)}
+.dock{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:12px 18px calc(18px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
 a.btn{color:inherit;display:inline-block;text-decoration:none}
 .err{margin:10px 0 0;padding:9px 12px;border:1px solid #e5677b66;border-radius:9px;background:#e5677b14;color:#f2a5b1;font-size:13.5px}
 
@@ -166,6 +170,14 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
 .shot .acts .go{flex:2 1 40%}
 .shot .acts .go{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
 .over{color:var(--wait)}
+.star{padding:6px 10px;min-width:36px;line-height:1;font-size:17px}
+.star[aria-pressed="true"]{color:var(--tally);border-color:var(--tally)}
+.reel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px}
+.reel-h h2{margin:0}
+.slate .end{display:flex;gap:6px;align-items:center}
+.hint{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:12px;align-items:center;padding:10px 12px;background:var(--raised);border:1px solid var(--line);border-radius:12px;font-size:13.5px;box-shadow:0 8px 24px #0008}
+.hint span{flex:1}
+.hint button{padding:6px 12px}
 .eta{font:13px var(--mono);color:var(--muted)}
 
 @media (min-width:981px){
@@ -196,16 +208,18 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
   .strip-h{padding:12px 14px 4px}
   .strip .tog{display:none}
   .shot{width:min(86vw,320px)}
-  .dock{bottom:-14px;margin:0 -14px -14px;padding:10px 14px 14px}
+  .dock{bottom:-14px;margin:0 -14px -14px;padding:10px 14px calc(14px + env(safe-area-inset-bottom))}
   .app[data-tab="create"] .pane.c,.app[data-tab="stage"] .pane.s,.app[data-tab="reel"] .pane.r{display:block}
-  .nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+  .nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);z-index:5}
   .nav button{padding:14px 4px;background:none;border:0;color:var(--muted);font:600 15px var(--display);letter-spacing:.02em;cursor:pointer}
   .nav button[aria-current="true"]{color:var(--ink);box-shadow:inset 0 2px 0 var(--ink)}
   .gpu span.long{display:none}
+  .hint{bottom:calc(72px + env(safe-area-inset-bottom))}
   .clock{font-size:44px}
 }
 @media (max-width:980px),(pointer:coarse){
-  .btn,.btn.sm,.chip,.wf,.preset,.nav button,.pick,.seg button,.stepper button{min-height:44px}
+  .btn,.btn.sm,.chip,.wf,.preset,.nav button,.pick,.seg button,.stepper button,.star,.hint button{min-height:44px}
+  .star{min-width:44px}
   .seg button{padding:6px 12px}
   input[type=text],input[type=number],input[type=password],select{min-height:44px}
   input[type=range]{height:44px}
@@ -216,7 +230,7 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
   .bar{gap:10px;padding-left:12px;padding-right:12px}
   .gpu{padding:6px 10px;gap:7px}
   .pane{padding:12px}
-  .dock{margin:0 -12px -14px;padding:10px 12px 14px}
+  .dock{margin:0 -12px -14px;padding:10px 12px calc(14px + env(safe-area-inset-bottom))}
   .presets{margin:0 -12px 16px;padding:2px 12px 6px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -241,7 +255,7 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
   <main class="cols">
     <section class="pane c" id="compose" aria-label="Create"></section>
     <section class="pane s" id="stage" aria-label="Preview"></section>
-    <section class="pane r" id="reelPane" aria-label="Queue and library"><h2>Reel</h2><div class="reel" id="reel"></div></section>
+    <section class="pane r" id="reelPane" aria-label="Queue and library"><div class="reel-h"><h2>Reel</h2><button class="chip" id="favFilter" type="button" aria-pressed="false" title="Show only starred clips">&#9733; Favourites</button></div><div class="reel" id="reel"></div></section>
   </main>
   <section class="strip" id="strip" aria-label="Storyboard" data-open="false"></section>
   <nav class="nav" id="nav">
@@ -251,15 +265,17 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
     <button data-tab="reel">Reel</button>
   </nav>
 </div>
+<div class="hint" id="a2hs" role="note" hidden><span>Install Studio: tap <b>Share</b>, then <b>Add to Home Screen</b>.</span><button class="btn sm" id="a2hsOk" type="button">Got it</button></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 "use strict";
 const B = location.pathname.replace(/studio\/?$/, "");          // "/approvals/" here, "/tts/approvals/" on the tailnet
 const $ = s => document.querySelector(s);
+if (B !== "/approvals/") for (const l of document.querySelectorAll('link[rel="manifest"],link[rel="apple-touch-icon"]')) l.href = B + "studio/" + l.getAttribute("href").split("/").pop();   // behind a path prefix (the tailnet)
 const ACTIVE = ["queued", "waiting", "starting", "running"];
 const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, status: null, upload: null, busy: false, seen: {}, enabled: true,
-           mode: "single", shots: [], stripOpen: null};
+           mode: "single", shots: [], stripOpen: null, favOnly: false};
 
 /* per-viewer convenience only: every access is guarded, and the app works without it */
 const store = {
@@ -404,7 +420,7 @@ function renderCompose() {
     const hint = h("div", {class: "help", id: "modeHelp"});
     const paintHint = () => { hint.textContent = (MODES.find(m => m[0] === S.mode) || MODES[0])[2] + ". A few words are enough; Qwen writes the full description when the GPU is not rendering."; };
     const seg = h("div", {class: "seg", role: "group", "aria-label": "Prompt style"}, MODES.map(m => h("button", {type: "button", "aria-pressed": String(S.mode === m[0]), title: m[2], onclick: e => {
-      S.mode = m[0]; seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === e.currentTarget))); paintHint(); store.set("studio.ui.v1", {mode: S.mode, open: S.stripOpen}); }}, m[1])));
+      S.mode = m[0]; seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === e.currentTarget))); paintHint(); saveFlags(); }}, m[1])));
     paintHint();
     const ai = h("button", {class: "btn sm", type: "button", onclick: e => {
       if (S.mode === "continue" && !S.vals.image) return toast("Add a start image first, then say what happens next");
@@ -441,6 +457,7 @@ function renderCompose() {
 function imageField(p) {
   const box = h("div", {class: "drop", tabindex: 0, role: "button", "aria-label": "Choose a start image"});
   const file = h("input", {type: "file", accept: "image/png,image/jpeg,image/webp", hidden: true});
+  const cam = h("input", {type: "file", accept: "image/*", capture: "environment", hidden: true});      // phones open the camera; other browsers fall back to the file picker
   const paint = () => { box.replaceChildren(); if (S.upload) { box.append(h("img", {src: S.upload.url, alt: "Start image"}), h("span", {}, "Click to replace")); } else { box.append(h("b", {}, "Start image"), h("span", {}, "Drop a picture here or choose one")); } };
   const send = async f => {
     if (!f) return; box.replaceChildren(h("span", {}, "Uploading"));
@@ -448,11 +465,12 @@ function imageField(p) {
     catch (x) { toast(x.message); } paint();
   };
   box.onclick = () => file.click(); box.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } };
-  file.onchange = () => send(file.files[0]);
+  file.onchange = () => send(file.files[0]); cam.onchange = () => send(cam.files[0]);
   box.ondragover = e => { e.preventDefault(); box.classList.add("over"); }; box.ondragleave = () => box.classList.remove("over");
   box.ondrop = e => { e.preventDefault(); box.classList.remove("over"); send(e.dataTransfer.files[0]); };
   paint();
-  return h("div", {class: "field"}, h("div", {class: "lab"}, p.label || "Start image", S.upload ? h("button", {class: "btn sm quiet", type: "button", onclick: () => { S.upload = null; delete S.vals.image; renderCompose(); }}, "Remove") : ""), box, file);
+  return h("div", {class: "field"}, h("div", {class: "lab"}, p.label || "Start image", S.upload ? h("button", {class: "btn sm quiet", type: "button", onclick: () => { S.upload = null; delete S.vals.image; renderCompose(); }}, "Remove") : ""), box, file, cam,
+    h("div", {class: "acts", style: "margin-top:8px"}, h("button", {class: "btn sm", type: "button", onclick: () => cam.click()}, "Take photo")));
 }
 /* the request a workflow gets from the Create settings plus per-call overrides; null + message when it cannot be made */
 function buildParams(w, v) {
@@ -481,7 +499,7 @@ function title(j) { return (j.params && j.params.prompt) || (wfByName(j.workflow
 function renderStage() {
   const root = $("#stage"), j = S.jobs.find(x => x.id === S.sel);
   const keepKey = j ? j.id + ":" + j.state : "";
-  if (root.dataset.key === keepKey && j && j.state === "done") return;          // do not restart playback on every poll
+  if (root.dataset.key === keepKey && j && j.state === "done") { const sb = root.querySelector('[data-do="fav"]'); if (sb) paintStar(sb, j); return; }          // do not restart playback on every poll
   root.dataset.key = keepKey; root.replaceChildren(); S.tick = null;
   const st = h("div", {class: "stage"}); root.append(h("h2", {}, "Preview"), st);
   if (!j) { st.append(h("div", {class: "screen"}, h("div", {class: "empty"}, h("b", {}, "Nothing on screen yet"), "Describe a shot on the left and press Make video. Finished clips play here and stay in the reel."))); return; }
@@ -513,15 +531,52 @@ function renderStage() {
   const acts = h("div", {class: "acts"});
   if (j.state === "done" && j.clips.length) {
     acts.append(h("a", {class: "btn", href: clipUrl(j, j.clips[0], true), download: j.clips[0].name}, "Download"));
+    if (canShareFiles()) acts.append(h("button", {class: "btn", type: "button", onclick: e => shareClip(j, e.currentTarget)}, "Share"));
     if (j.clips[0].type.startsWith("video")) acts.append(h("button", {class: "btn", onclick: e => continueFrom(j, e.currentTarget)}, "Continue from last frame"));
   }
   acts.append(h("button", {class: "btn", onclick: () => remix(j)}, "Remix"));
+  if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn", type: "button", onclick: e => rerun(j, e.currentTarget)}, "Run again"));
+  acts.append(starBtn(j, true));
   if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn warn", onclick: () => act("delete", j.id)}, "Delete"));
   st.append(acts);
 }
 function noteFor(j) {
   return {queued: "In line", waiting: "Waiting for Qwen to finish what it is doing", starting: "Handing the GPU over from Qwen, then loading the video model", running: "Rendering"}[j.state] || j.note || j.state;
 }
+/* ---------- favourites, run again, share ---------- */
+function paintStar(b, j) {
+  b.setAttribute("aria-pressed", String(!!j.fav));
+  b.textContent = (j.fav ? "\u2605" : "\u2606") + (b.dataset.long ? " Favourite" : "");
+  b.title = j.fav ? "Starred: kept when old clips are trimmed. Tap to unstar" : "Star this clip to keep it";
+}
+function starBtn(j, long) {
+  const b = h("button", {class: "btn star", type: "button", "data-do": "fav", "aria-label": "Favourite", onclick: () => toggleFav(j)});
+  if (long) b.dataset.long = "1"; paintStar(b, j); return b;
+}
+async function toggleFav(j) {
+  try { const d = await api("fav", {method: "POST", json: {id: j.id, fav: !j.fav}}); j.fav = d.fav; toast(d.fav ? "Starred" : "Unstarred"); await refresh(); }
+  catch (x) { toast(x.message); }
+}
+async function rerun(j, btn) {
+  const was = btn && btn.textContent; if (btn) btn.disabled = true;
+  try { const d = await api("rerun", {method: "POST", json: {id: j.id}}); toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); S.sel = d.id; await refresh(); tab("stage"); }
+  catch (x) { toast(x.message); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
+}
+/* the share sheet takes files only where the browser says so (iOS and Android Chrome); everywhere else the Download link is the way */
+function canShareFiles() {
+  try { return !!(navigator.share && navigator.canShare && navigator.canShare({files: [new File([""], "clip.mp4", {type: "video/mp4"})]})); } catch (e) { return false; }
+}
+async function shareClip(j, btn) {
+  const c = j.clips[0], was = btn.textContent; btn.disabled = true; btn.textContent = "Preparing";
+  try {
+    const r = await fetch(clipUrl(j, c), {credentials: "same-origin"}); if (!r.ok) throw new Error("could not load the clip");
+    const f = new File([await r.blob()], c.name, {type: c.type});
+    if (!navigator.canShare({files: [f]})) { toast("This clip cannot be shared from here. Use Download."); return; }
+    await navigator.share({files: [f], title: "Studio clip"});
+  } catch (x) { if (x && x.name !== "AbortError") toast("Could not open the share sheet. Use Download."); }
+  finally { btn.disabled = false; btn.textContent = was; }
+}
+
 async function act(what, id) {
   try { await api(what, {method: "POST", json: {id}}); if (what === "delete") S.sel = null; toast(what === "cancel" ? "Stopping" : "Deleted"); await refresh(); } catch (x) { toast(x.message); }
 }
@@ -577,9 +632,10 @@ async function continueFrom(j, btn) {
 
 /* ---------- storyboard ---------- */
 const newId = () => "s" + Math.random().toString(36).slice(2, 9);
-function saveUi() { store.set("studio.ui.v1", {mode: S.mode, open: S.stripOpen}); store.set("studio.shots.v1", S.shots.map(s => ({id: s.id, prompt: s.prompt, image: s.image ? {name: s.image.name, thumb: s.image.thumb || ""} : null, seconds: s.seconds, lock: !!s.lock, seed: s.seed, job: s.job || null}))); }
+function saveFlags() { store.set("studio.ui.v1", {mode: S.mode, open: S.stripOpen, fav: S.favOnly}); }
+function saveUi() { saveFlags(); store.set("studio.shots.v1", S.shots.map(s => ({id: s.id, prompt: s.prompt, image: s.image ? {name: s.image.name, thumb: s.image.thumb || ""} : null, seconds: s.seconds, lock: !!s.lock, seed: s.seed, job: s.job || null}))); }
 function loadUi() {
-  const ui = store.get("studio.ui.v1"); if (ui && typeof ui === "object") { if (["single", "multi", "continue"].includes(ui.mode)) S.mode = ui.mode; if (typeof ui.open === "boolean") S.stripOpen = ui.open; }
+  const ui = store.get("studio.ui.v1"); if (ui && typeof ui === "object") { if (["single", "multi", "continue"].includes(ui.mode)) S.mode = ui.mode; if (typeof ui.open === "boolean") S.stripOpen = ui.open; S.favOnly = ui.fav === true; }
   const sh = store.get("studio.shots.v1");
   if (Array.isArray(sh)) S.shots = sh.slice(0, 24).filter(x => x && typeof x === "object").map(x => ({id: typeof x.id === "string" ? x.id : newId(), prompt: String(x.prompt || "").slice(0, 2000),
     image: x.image && typeof x.image.name === "string" && /^up_[0-9a-f]{12}\.(png|jpg|webp)$/.test(x.image.name) ? {name: x.image.name, thumb: typeof x.image.thumb === "string" && x.image.thumb.startsWith("data:image/") ? x.image.thumb : ""} : null,
@@ -671,7 +727,9 @@ function shotCard(s, i) {
       h("label", {class: "lock"}, lockBox, "Lock seed"), seed)),
     h("div", {class: "acts"}, h("button", {class: "btn go", type: "button", "data-do": "make", onclick: () => makeShot(s)}, "Make this shot"), qw,
       h("button", {class: "btn", type: "button", "data-do": "next", hidden: true, onclick: e => continueShot(s, e.currentTarget)}, "Continue from last frame"),
-      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; renderReel(); renderStage(); tab("stage"); }}, "View")));
+      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; renderReel(); renderStage(); tab("stage"); }}, "View"),
+      h("button", {class: "btn", type: "button", "data-do": "again", hidden: true, onclick: e => { const j = shotJob(s); if (j) rerun(j, e.currentTarget); }}, "Run again"),
+      h("button", {class: "btn star", type: "button", "data-do": "fav", hidden: true, "aria-label": "Favourite shot " + (i + 1), onclick: () => { const j = shotJob(s); if (j) toggleFav(j); }}, "\u2606")));
 }
 /* in-place status for each card (pill, state colour, continue/view buttons) so typing is never interrupted */
 function syncShots() {
@@ -680,6 +738,8 @@ function syncShots() {
     const j = shotJob(s), pill = c.querySelector(".pill"), st = j ? j.state : "";
     c.dataset.s = st; c.querySelector('[data-do="next"]').hidden = !(j && st === "done" && j.clips.length && j.clips[0].type.startsWith("video"));
     c.querySelector('[data-do="view"]').hidden = !j;
+    c.querySelector('[data-do="again"]').hidden = !(j && !ACTIVE.includes(st));
+    const sb = c.querySelector('[data-do="fav"]'); sb.hidden = !j; if (j) paintStar(sb, j);
     if (j && ACTIVE.includes(st)) {
       pill.dataset.t0 = String(st === "running" ? (j.started || j.created) : j.created); pill.dataset.est = String(st === "running" ? estSec(wfByName(j.workflow)) : 0);
       pill.dataset.pre = {queued: "In line ", waiting: "Waiting ", starting: "Starting ", running: "Rendering "}[st];
@@ -691,8 +751,10 @@ function syncShots() {
 /* ---------- reel ---------- */
 function renderReel() {
   const r = $("#reel"); r.replaceChildren();
-  if (!S.jobs.length) { r.append(h("p", {class: "help"}, "Your clips will collect here.")); return; }
-  for (const j of S.jobs) {
+  const ff = $("#favFilter"); ff.setAttribute("aria-pressed", String(S.favOnly));
+  const list = S.favOnly ? S.jobs.filter(j => j.fav) : S.jobs;
+  if (!list.length) { r.append(h("p", {class: "help"}, S.favOnly ? "No favourites yet. Star a clip and it stays here." : "Your clips will collect here.")); return; }
+  for (const j of list) {
     const label = {queued: "In line", waiting: "Waiting", starting: "Starting", running: "Rendering", done: "Ready", failed: "Failed", cancelled: "Cancelled"}[j.state] || j.state;
     const live = ACTIVE.includes(j.state), w = wfByName(j.workflow);
     const tm = live ? h("span", {class: "t", "data-t0": String(j.state === "running" ? (j.started || j.created) : j.created), "data-est": String(j.state === "running" ? estSec(w) : 0)}, "")
@@ -700,7 +762,7 @@ function renderReel() {
     r.append(h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
       h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderReel(); renderStage(); tab("stage"); }},
         h("i", {class: "dot"}), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, label), h("span", {}, ago(j.created)), tm)),
-      h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix")));
+      h("div", {class: "end"}, h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix"), starBtn(j, false))));
   }
   tickAll();
 }
@@ -740,6 +802,17 @@ let timer;
 async function loop() { clearTimeout(timer); const busy = await refresh(); timer = setTimeout(loop, busy ? 3000 : 9000); }
 setInterval(tickAll, 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) loop(); });
+
+$("#favFilter").addEventListener("click", () => { S.favOnly = !S.favOnly; saveFlags(); renderReel(); });
+
+/* iOS has no install prompt: say once how to add the app to the Home Screen, unless it is already running as one */
+(function () {
+  const standalone = navigator.standalone === true || (matchMedia && matchMedia("(display-mode: standalone)").matches);
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (standalone || !ios || store.get("studio.a2hs.v1")) return;
+  $("#a2hs").hidden = false;
+  $("#a2hsOk").addEventListener("click", () => { $("#a2hs").hidden = true; store.set("studio.a2hs.v1", true); });
+})();
 
 async function boot() {
   try {

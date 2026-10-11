@@ -4,6 +4,7 @@ It adds routes under /approvals/studio/ to the existing approvals server, so it 
 security headers and the Tailscale publishing already done by tts_server (it appears at /tts/approvals/studio/ on the tailnet).
 
   GET  /approvals/studio                       the single-file app (public: it holds no data; the API below needs the PIN session)
+  GET  /approvals/studio/manifest.webmanifest, icon-180.png, icon-192.png, icon-512.png   the home-screen app files (public and static: no job data)
   GET  /approvals/studio/api/workflows         the workflows and their controls
   GET  /approvals/studio/api/jobs              recent jobs (newest first) with clip links
   GET  /approvals/studio/api/status            who has the GPU, queue length
@@ -11,6 +12,8 @@ security headers and the Tailscale publishing already done by tts_server (it app
   POST /approvals/studio/api/generate          {"workflow", "params"} -> queue a job
   POST /approvals/studio/api/cancel            {"id"}
   POST /approvals/studio/api/delete            {"id"}
+  POST /approvals/studio/api/fav               {"id", "fav": true|false} -> star a job; starred jobs (and their start images) are never trimmed
+  POST /approvals/studio/api/rerun             {"id"} -> queue a new job from an earlier job's settings (same seed), validated again like any new job
   POST /approvals/studio/api/upload            raw image body (header X-Filename) -> {"name"}
   POST /approvals/studio/api/assist            {"idea", "workflow", "mode"} -> a prompt written by Qwen. mode: "single" (default), "multi" (2-4 shots
                                                with named cuts) or "continue" (only what happens next, from the start image); unknown -> "single"
@@ -28,6 +31,9 @@ CLIP_TYPES = {".mp4": "video/mp4", ".webm": "video/webm", ".webp": "image/webp",
 NAME_OK = re.compile(r"^[\w][\w .()+-]{0,150}$")
 UP_OK = re.compile(r"^up_[0-9a-f]{12}\.(png|jpg|webp)$")
 UI_KEYS = ("type", "label", "help", "required", "default", "min", "max", "step", "multiple_of", "rows", "max_len", "choices")
+
+PWA_FILES = {"manifest.webmanifest": "application/manifest+json", "icon-180.png": "image/png", "icon-192.png": "image/png", "icon-512.png": "image/png"}
+JOB_ID = re.compile(r"^[0-9a-f]{8}$")
 
 ASSIST_MODES = ("single", "multi", "continue")
 ASSIST_SYSTEM = (
@@ -72,7 +78,7 @@ def _j(code, obj):
 def _public_job(j):
     d = {"id": j["id"], "workflow": j.get("workflow"), "state": j.get("state"), "note": j.get("note", ""), "created": j.get("created"),
          "started": j.get("started"), "ended": j.get("ended"), "seconds": j.get("seconds"), "error": j.get("error", ""),
-         "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files"))}
+         "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files")), "fav": bool(j.get("fav"))}
     d["clips"] = [{"name": os.path.basename(p), "type": CLIP_TYPES.get(os.path.splitext(p)[1].lower(), "application/octet-stream")}
                   for p in (j.get("files_out") or [])]
     return d
@@ -140,6 +146,16 @@ def routes(q, vc, here, env=None):
         except OSError:
             return 404, "Studio files are missing (gateway/studio/index.html).", "text/plain"
 
+    def pwa_file(name):
+        """A static home-screen file from studio/. Public like the shell: it holds no data and the browser fetches it before any sign-in."""
+        def serve(req):
+            try:
+                with open(os.path.join(here, "studio", name), "rb") as f:
+                    return 200, f.read(), PWA_FILES[name]
+            except OSError:
+                return 404, "Studio files are missing (gateway/studio/%s)." % name, "text/plain"
+        return serve
+
     def workflows(req):
         bad = need(req)
         if bad: return bad
@@ -149,7 +165,9 @@ def routes(q, vc, here, env=None):
     def jobs(req):
         bad = need(req)
         if bad: return bad
-        return _j(200, [_public_job(j) for j in q.recent(40)])
+        out = q.recent(40)
+        have = {j["id"] for j in out}
+        return _j(200, [_public_job(j) for j in out + [f for f in q.favourites() if f["id"] not in have]])    # starred clips stay listed once newer ones push them out
 
     def status(req):
         bad = need(req)
@@ -207,6 +225,29 @@ def routes(q, vc, here, env=None):
         ok, msg = q.delete_job(str(req["body"].get("id") or ""))
         return _j(200 if ok else 409, {"result": msg})
 
+    def fav(req):
+        b = req["body"]
+        jid, on = b.get("id"), b.get("fav")
+        if not isinstance(jid, str) or not JOB_ID.match(jid): return _j(400, {"error": "id must be a job id"})
+        if not isinstance(on, bool): return _j(400, {"error": "fav must be true or false"})
+        if not q.set_fav(jid, on): return _j(404, {"error": "no such job"})
+        return _j(200, {"id": jid, "fav": on})
+
+    def rerun(req):
+        jid = req["body"].get("id")
+        if not isinstance(jid, str) or not JOB_ID.match(jid): return _j(400, {"error": "id must be a job id"})
+        old = q.get(jid)
+        if not old: return _j(404, {"error": "no such job"})
+        if not vc.enabled: return _j(503, {"error": "video generation is not set up on this PC"})
+        raw = dict(old.get("params") or {})                                       # the stored, already-cleaned values, checked again against the workflow as it is now
+        img = (old.get("files") or {}).get("image")
+        if img: raw["image"] = img                                                # submit() re-checks it is an existing png/jpg/webp inside the allowed folders
+        try:
+            nid, pos, est = q.submit(str(old.get("workflow") or ""), raw)
+        except video.VideoError as e:
+            return _j(400, {"error": str(e)})
+        return _j(200, {"id": nid, "position": pos, "est_minutes": est})
+
     def upload(req):
         data = req["raw"] or b""
         if not data: return _j(400, {"error": "empty upload"})
@@ -218,7 +259,7 @@ def routes(q, vc, here, env=None):
         name = "up_%s.%s" % (secrets.token_hex(6), ext)
         with open(os.path.join(real_up, name), "wb") as f:
             f.write(data)
-        _trim_uploads(real_up)
+        _trim_uploads(real_up, protect=_fav_images(q))
         return _j(200, {"name": name, "bytes": len(data)})
 
     def assist(req):
@@ -244,14 +285,22 @@ def routes(q, vc, here, env=None):
 
     table = {"GET " + T: shell, "GET " + T + "/api/workflows": workflows, "GET " + T + "/api/jobs": jobs, "GET " + T + "/api/status": status,
              "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": generate, "POST " + T + "/api/cancel": cancel,
-             "POST " + T + "/api/delete": delete, "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist}
+             "POST " + T + "/api/delete": delete, "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
+             "POST " + T + "/api/fav": fav, "POST " + T + "/api/rerun": rerun}
+    table.update({"GET %s/%s" % (T, n): pwa_file(n) for n in PWA_FILES})
     return table, {"POST " + T + "/api/upload": MAX_UPLOAD + 4096}
 
 
-def _trim_uploads(d, keep=60):
+def _fav_images(q):
+    """File names of the start images that starred jobs were made from (they must survive, or Run again would have nothing to start from)."""
+    return {os.path.basename(str((j.get("files") or {}).get("image") or "")) for j in q.favourites()}
+
+
+def _trim_uploads(d, keep=60, protect=()):
+    """Keep the newest `keep` uploads; anything named in `protect` is never removed and does not count towards the limit."""
     try:
-        fs = sorted((os.path.join(d, f) for f in os.listdir(d) if UP_OK.match(f)), key=os.path.getmtime)
-        for p in fs[:-keep]:
+        fs = sorted((os.path.join(d, f) for f in os.listdir(d) if UP_OK.match(f) and f not in protect), key=os.path.getmtime)
+        for p in fs[:-keep] if keep else fs:
             os.remove(p)
     except OSError:
         pass
