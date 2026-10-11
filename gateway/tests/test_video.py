@@ -748,11 +748,12 @@ def test_popen_unbuffered_env():
         pass
     import subprocess
     real = subprocess.Popen
-    def fake(cmd, cwd=None, env=None, stdout=None, stderr=None): seen.update(env); return object()
+    def fake(cmd, cwd=None, env=None, stdin=None, stdout=None, stderr=None): seen.update(env); seen["_stdin"] = stdin; return object()
     subprocess.Popen = fake
     try:
         log = os.path.join(TMP, "unbuf.log")
         P().popen(["x"], TMP, {"A": "1"}, log); assert seen["PYTHONUNBUFFERED"] == "1" and seen["A"] == "1", seen
+        assert seen["_stdin"] is subprocess.DEVNULL, "ComfyUI must not inherit the MCP stdio pipe as stdin (it hung at start-up)"
         seen.clear(); P().popen(["x"], TMP, {"PYTHONUNBUFFERED": "0"}, log); assert seen["PYTHONUNBUFFERED"] == "0", seen      # an explicit value wins
     finally: subprocess.Popen = real
 

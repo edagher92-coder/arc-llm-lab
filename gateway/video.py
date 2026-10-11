@@ -123,7 +123,9 @@ class Env:
         e = dict(os.environ)
         e.update(env)
         e.setdefault("PYTHONUNBUFFERED", "1")                 # start-up lines must reach comfy.log at once (an empty log is the stall signal)
-        return subprocess.Popen(cmd, cwd=cwd, env=e, stdout=open(log_path, "ab"), stderr=subprocess.STDOUT)
+        # stdin=DEVNULL: without it Windows hands the child this process's stdin, the MCP stdio pipe; a
+        # child touching that pipe blocks behind our pending read, so ComfyUI hung before any output.
+        return subprocess.Popen(cmd, cwd=cwd, env=e, stdin=subprocess.DEVNULL, stdout=open(log_path, "ab"), stderr=subprocess.STDOUT)
 
     def sleep(self, secs):
         time.sleep(secs)
