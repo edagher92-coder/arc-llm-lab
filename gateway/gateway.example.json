@@ -146,7 +146,8 @@
    "video_result",
    "video_queue",
    "video_system",
-   "video_presets"
+   "video_presets",
+   "ask_local"
   ],
   "write": [
    "pc_PowerShell",

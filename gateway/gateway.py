@@ -328,6 +328,9 @@ def build():
     # it also re-registers video_generate with a `preset` argument. Docs: docs/MCP-VIDEO.md.
     import tools_video_mcp as _vmcp
     _vmcp.register(gw, vq, HERE)
+    # ask_local (tools_local_llm.py): delegate low-stakes subtasks to the local Qwen; policy.read. Docs: docs/LOCAL-LLM.md.
+    import tools_local_llm as _llocal
+    _llocal.register(gw, vq, HERE, CFG)
     if vq is not None and vq.cfg.enabled:
         import studio as _studio
         _studio.register(approvals, vq, vq.cfg, HERE)
