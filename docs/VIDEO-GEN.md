@@ -60,9 +60,11 @@ The official int8-convrot files are dequantised on XPU (no int8 speedup) and nee
 | Loader node | `city96/ComfyUI-GGUF` pinned at `6ea2651e` plus `pip install gguf` | |
 | Guard node | `gateway/comfy_nodes/elz_nodes` (replaces NaN audio with silence) | |
 
-Launch flags: `--disable-dynamic-vram --reserve-vram 1.5 --cache-none --whitelist-custom-nodes ComfyUI-GGUF elz_nodes` (see `gateway.example.json`). Workflows: `ltx25g_t2v`, `ltx25g_i2v` (built from `workflows/specs/ltx25g_*.spec.json`).
+Launch flags: `--disable-dynamic-vram --reserve-vram 1.5 --cache-none --use-split-cross-attention --whitelist-custom-nodes ComfyUI-GGUF elz_nodes` (see `gateway.example.json`). Workflows: `ltx25g_t2v`, `ltx25g_i2v` (built from `workflows/specs/ltx25g_*.spec.json`).
 
-**Measured:** Q4_K_M, 768x512, 2 s, 49 frames, with sound: 188 to 219 s from queued to clip, including starting ComfyUI. Sampling ran at about 4.5 s per step (the int8 build was about 2.5 s per step). Free RAM stayed above about 2 GB. The first clip had NaN audio that the AAC muxer rejected; later runs decoded clean, so the guard stays in.
+**Measured:** Q4_K_M, 768x512, 2 s, 49 frames, with sound: 188 to 219 s from queued to clip, including starting ComfyUI. Sampling ran at about 4.5 s per step (the int8 build was about 2.5 s per step). Free RAM stayed above about 2 GB. **Use split attention, not PyTorch SDPA:** with `--use-pytorch-cross-attention` image-to-video produced NaN (all-black video, silent audio) on two of two runs, and text-to-video produced NaN audio on two of three. With `--use-split-cross-attention` image-to-video decoded clean (first frame matches the input, audio peak 0.61) in 185 s. The audio guard stays in as a safety net.
+
+**Memory limits on 32 GB:** Q4_K_M runs in one process (free RAM fell to about 1.8 GB at the lowest). Q6_K does not: the watchdog stopped it at about 32 MB free while the transformer loaded, because the int8 encoder stays in RAM. Q6_K needs the 64 GB RAM or a two-process split (encode, save conditioning, exit, then sample). `--fp32-vae` also pushes it over, so leave it off.
 
 **Watchdog while testing:** stop ComfyUI if Windows "Available MBytes" falls under 400 (do not use "free" memory, it excludes cache and gives false alarms).
 

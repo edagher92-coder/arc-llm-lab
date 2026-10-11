@@ -396,7 +396,7 @@
    "--reserve-vram",
    "1.5",
    "--cache-none",
-   "--use-pytorch-cross-attention",
+   "--use-split-cross-attention",
    "--preview-method",
    "none",
    "--disable-all-custom-nodes",
