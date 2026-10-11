@@ -32,16 +32,26 @@ WF = {"meta": {"description": "test", "est_minutes": "1", "fps": 24, "frames_rul
         "frames": {"type": "int", "default": 97, "min": 9, "max": 241}, "seed": {"type": "int"}, "image": {"type": "image"}}},
       "prompt": {"1": {"class_type": "T", "inputs": {"text": "{{prompt}} | {{negative}}", "w": "{{width}}", "h": "{{height}}", "n": "{{frames}}", "seed": "{{seed}}"}}}}
 
+# A staged workflow: "staged" names two stage graphs kept in wf/stages/ (so they never show up as workflows of their own).
+ENC = {"meta": {"label": "encoding"}, "prompt": {"1": {"class_type": "ENC_CLASS", "inputs": {"prompt": "{{prompt}}", "negative": "{{negative}}", "name": "cond"}}}}
+SMP = {"meta": {"label": "sampling"}, "prompt": {"1": {"class_type": "ElzLoadConditioning", "inputs": {"prompt": "{{prompt}}", "name": "cond", "w": "{{width}}", "n": "{{frames}}", "seed": "{{seed}}"}}}}
+
 class Rig:
-    def __init__(self, mode="ok", loaded=True, busy=False, quiet_s=0, timeout=60, killfile=True):
+    def __init__(self, mode="ok", loaded=True, busy=False, quiet_s=0, timeout=60, killfile=True, staged=False, ntfy=None, enc_class="ElzSaveConditioning"):
         self.t = tempfile.mkdtemp(dir=TMP); self.swap = Swap(loaded, busy); self.port = free_port()
         os.makedirs(os.path.join(self.t, "wf")); json.dump(WF, open(os.path.join(self.t, "wf", "t2v.json"), "w"))
+        if staged:
+            os.makedirs(os.path.join(self.t, "wf", "stages"))
+            json.dump({"meta": dict(WF["meta"], stages=["enc", "smp"]), "prompt": {}}, open(os.path.join(self.t, "wf", "staged.json"), "w"))
+            json.dump(json.loads(json.dumps(ENC).replace("ENC_CLASS", enc_class)), open(os.path.join(self.t, "wf", "stages", "enc.json"), "w"))
+            json.dump(SMP, open(os.path.join(self.t, "wf", "stages", "smp.json"), "w"))
         self.mode_file = os.path.join(self.t, "mode.txt"); open(self.mode_file, "w").write("MAX\n")
         self.comfy_log = os.path.join(self.t, "comfy-requests.log"); self.img_root = os.path.join(self.t, "shared"); os.makedirs(self.img_root)
         cfg = {"comfy_dir": self.t, "comfy_cmd": [PY, os.path.join(HERE, "mock_comfy.py"), str(self.port), mode, self.comfy_log], "comfy_url": "http://127.0.0.1:%d" % self.port,
                "workflows_dir": os.path.join(self.t, "wf"), "input_dir": os.path.join(self.t, "input"), "allowed_roots": [self.img_root], "job_timeout_s": timeout,
                "start_timeout_s": 20, "poll_s": 0.1, "tick_s": 0.1, "llm": {"swap_url": "http://127.0.0.1:%d" % self.swap.port, "model_id": "m", "quiet_s": quiet_s,
                "governor_mode_file": self.mode_file, "unload_timeout_s": 10}}
+        cfg.update(ntfy or {})
         self.kill = os.path.join(self.t, "KILL"); self.shared = []; self.cfgd = cfg
         self.q = video.Queue(video.Cfg(cfg, self.t), self.t, self.kill, share=lambda p: "https://x/%s" % os.path.basename(p))
         self.q.start()
@@ -53,6 +63,22 @@ class Rig:
             time.sleep(0.1)
         raise AssertionError("job %s stuck in %s (wanted %s)" % (jid, self.q.get(jid)["state"], states))
     def mode(self): return open(self.mode_file).read().strip()
+    def cond_dir(self, jid): return os.path.join(self.t, "video", "cond", jid)
+    def log_lines(self): return open(self.comfy_log).read().splitlines() if os.path.exists(self.comfy_log) else []
+    def prompts(self): return [l for l in self.log_lines() if l.startswith("prompt ")]
+    def starts(self): return [l for l in self.log_lines() if l.startswith("start ")]
+    def spy_http(self):
+        """Record every ntfy POST (url, body, headers, timeout) while passing everything else to the real env.http. Returns the list."""
+        posts, orig = [], self.q.env.http
+        def http(method, url, body=None, headers=None, timeout=10):
+            if "ntfy.test" in url:
+                posts.append(dict(url=url, body=body, headers=dict(headers or {}), timeout=timeout)); return {}
+            return orig(method, url, body, headers, timeout)
+        self.q.env.http = http; return posts
+    def settle(self, posts, n=1, secs=5):
+        end = time.time() + secs
+        while len(posts) < n and time.time() < end: time.sleep(0.05)
+        time.sleep(0.6)                                          # a second POST, if there were going to be one, lands in this window
     def comfy_up(self):
         try: s = socket.create_connection(("127.0.0.1", self.port), 0.5); s.close(); return True
         except OSError: return False
@@ -306,6 +332,152 @@ def test_fav_persists_survives_retention_and_sidecar():
         assert jid not in [x["id"] for x in json.load(open(r.q.jobs_path))]            # once unstarred it ages out like any other job
         r.q.set_fav(jid, True)
         assert video.Queue(r.q.cfg, r.t, r.kill).get(jid)["fav"] is True                 # survives a restart
+    finally: r.close()
+
+NTFY = {"ntfy_url": "https://ntfy.test", "ntfy_topic": "elz-video-xyz", "ntfy_click_base": "https://gw.example/"}
+
+def test_ntfy_one_post_per_finished_job():
+    r = Rig(ntfy=NTFY)
+    try:
+        posts = r.spy_http()
+        jid, _, _ = r.q.submit("t2v", {"prompt": "a secret fox", "seconds": 2}); assert r.wait(jid, ("done",))["state"] == "done"; r.settle(posts)
+        assert len(posts) == 1, posts; p = posts[0]
+        assert p["url"] == "https://ntfy.test/elz-video-xyz" and p["timeout"] == 5, p
+        h = p["headers"]; assert h["Title"].startswith("Video ready") and h["Tags"] and h["Priority"] == "default" and h["X-Click"] == "https://gw.example/approvals/studio#job=" + jid, h
+        assert "secret fox" not in p["body"] and "secret fox" not in json.dumps(h) and jid in p["body"], p       # no prompt unless asked
+    finally: r.close()
+
+def test_ntfy_one_post_per_failed_job_and_none_for_cancelled():
+    r = Rig(mode="error", ntfy=NTFY)
+    try:
+        posts = r.spy_http()
+        jid, _, _ = r.q.submit("t2v", {"prompt": "a secret fox"}); assert r.wait(jid, ("failed",))["state"] == "failed"; r.settle(posts)
+        assert len(posts) == 1 and posts[0]["headers"]["Title"].startswith("Video failed") and posts[0]["headers"]["Priority"] == "high", posts
+        assert "OOM" not in posts[0]["body"] and "secret fox" not in posts[0]["body"], posts[0]          # error text can echo inputs: not sent
+    finally: r.close()
+    r = Rig(mode="hang", ntfy=NTFY)
+    try:
+        posts = r.spy_http()
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x"}); r.wait(jid, ("running",)); r.q.cancel_job(jid); assert r.wait(jid, ("cancelled",))["state"] == "cancelled"; time.sleep(0.8)
+        assert posts == [], posts
+    finally: r.close()
+
+def test_ntfy_include_prompt_and_unconfigured_and_fail_soft():
+    r = Rig(ntfy=dict(NTFY, ntfy_include_prompt=True))
+    try:
+        posts = r.spy_http()
+        jid, _, _ = r.q.submit("t2v", {"prompt": "a red kettle", "seconds": 2}); r.wait(jid, ("done",)); r.settle(posts)
+        assert len(posts) == 1 and "a red kettle" in posts[0]["body"], posts
+    finally: r.close()
+    for cfg in ({}, {"ntfy_url": "https://ntfy.test"}, {"ntfy_topic": "t"}):          # unconfigured or half configured: nothing leaves the PC
+        r = Rig(ntfy=cfg)
+        try:
+            posts = r.spy_http(); jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(0.6); assert posts == [], (cfg, posts)
+        finally: r.close()
+    r = Rig(ntfy=NTFY)
+    try:
+        orig = r.q.env.http
+        def boom(method, url, body=None, headers=None, timeout=10):
+            if "ntfy.test" in url: raise OSError("ntfy unreachable")
+            return orig(method, url, body, headers, timeout)
+        r.q.env.http = boom
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done", "failed")); time.sleep(0.6)
+        assert j["state"] == "done" and r.q.get(jid)["state"] == "done" and r.mode() == "MAX"      # a dead ntfy never fails the job
+    finally: r.close()
+
+def test_staged_two_processes_one_lease():
+    r = Rig(staged=True)
+    try:
+        spy = []; orig_popen, orig_kill = r.q.env.popen, r.q.env.kill_tree
+        def popen(cmd, cwd, env, log_path):
+            spy.append(("popen", r.mode(), env.get("ELZ_COND_DIR"), [p.poll() is not None for p in procs])); p = orig_popen(cmd, cwd, env, log_path); procs.append(p); return p
+        def kill_tree(proc): spy.append(("kill",)); return orig_kill(proc)
+        procs = []; r.q.env.popen, r.q.env.kill_tree = popen, kill_tree
+        jid, _, _ = r.q.submit("staged", {"prompt": "a fox", "seconds": 2}); j = r.wait(jid, ("done", "failed"))
+        assert j["state"] == "done" and j["progress"] == 100.0, j
+        pr = r.prompts(); assert len(pr) == 2 and "ElzSaveConditioning" in pr[0] and "ElzLoadConditioning" not in pr[0] and "ElzLoadConditioning" in pr[1], pr      # stage order
+        assert "a fox" in pr[0] and "a fox" in pr[1] and "{{" not in "".join(pr) and '"n": 49' in pr[1]                  # placeholders filled in both stages
+        st = r.starts(); assert len(st) == 2 and st[0] != st[1], st                                                      # two different ComfyUI processes
+        kinds = [x[0] for x in spy]; assert kinds[:3] == ["popen", "kill", "popen"], spy                                    # killed between the stages, not before
+        assert spy[0][1] == spy[2][1] == "OFF", spy                                                                      # the LLM never got the GPU back in between
+        assert spy[0][2] == spy[2][2] == r.cond_dir(jid) and spy[2][3] == [True], spy                                    # same hand-over folder; process 1 was already dead
+        assert r.swap.unloads == 1 and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)                          # one lease, handed back at the end
+        time.sleep(0.5); assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)), "cond file must be deleted on success"
+        assert len([x for x in r.q.jobs if x["workflow"] == "staged"]) == 1 and open(j["files_out"][0], "rb").read() == b"FAKEMP4DATA"
+        assert "enc" not in video.load_workflows(r.q.cfg.workflows_dir)                                                  # stage graphs are not workflows of their own
+    finally: r.close()
+
+def test_staged_progress_maps_across_stages_and_cancel_cleans_up():
+    r = Rig(mode="hang_smp", staged=True)
+    try:
+        jid, _, _ = r.q.submit("staged", {"prompt": "x"}); end = time.time() + 30
+        while time.time() < end and not str(r.q.get(jid).get("note", "")).startswith("stage 2 of 2: sampling"): time.sleep(0.05)
+        j = r.q.get(jid); assert j["state"] == "running" and 15 <= j["progress"] < 100, j                              # stage 1 owns 0-15, stage 2 starts at 15
+        assert os.path.isfile(os.path.join(r.cond_dir(jid), "cond.safetensors"))
+        assert "cancel requested" in r.q.cancel_job(jid); j = r.wait(jid, ("cancelled", "failed")); assert j["state"] == "cancelled", j
+        time.sleep(0.5); assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)) and r.mode() == "MAX" and "interrupt" in open(r.comfy_log).read()
+        assert len(r.prompts()) == 2
+    finally: r.close()
+
+def test_staged_cancel_in_stage_one_skips_stage_two():
+    r = Rig(mode="hang", staged=True)
+    try:
+        jid, _, _ = r.q.submit("staged", {"prompt": "x"}); r.wait(jid, ("running",)); time.sleep(0.5)
+        r.q.cancel_job(jid); assert r.wait(jid, ("cancelled",))["state"] == "cancelled"; time.sleep(0.5)
+        assert len(r.prompts()) == 1 and len(r.starts()) == 1 and "ElzLoadConditioning" not in "".join(r.log_lines())
+        assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)) and r.mode() == "MAX"
+    finally: r.close()
+
+def test_staged_failed_stage_one_never_starts_stage_two():
+    r = Rig(mode="error", staged=True)
+    try:
+        jid, _, _ = r.q.submit("staged", {"prompt": "x"}); j = r.wait(jid, ("failed", "done"))
+        assert j["state"] == "failed" and "OOM on XPU" in j["error"], j; time.sleep(0.5)
+        assert len(r.prompts()) == 1 and len(r.starts()) == 1 and "ElzLoadConditioning" not in "".join(r.log_lines()), r.log_lines()
+        assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)) and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)       # the cond file the mock wrote is gone
+    finally: r.close()
+
+def test_staged_failed_stage_two_cleans_up():
+    r = Rig(mode="error_smp", staged=True)
+    try:
+        jid, _, _ = r.q.submit("staged", {"prompt": "x"}); j = r.wait(jid, ("failed", "done"))
+        assert j["state"] == "failed" and "OOM on XPU" in j["error"], j; time.sleep(0.5)
+        assert len(r.prompts()) == 2 and len(r.starts()) == 2
+        assert not r.comfy_up() and not os.path.exists(r.cond_dir(jid)) and r.mode() == "MAX"
+    finally: r.close()
+
+def test_staged_stage_one_without_cond_file_stops():
+    r = Rig(staged=True, enc_class="SomethingElse")                                    # stage 1 "succeeds" but writes no conditioning
+    try:
+        jid, _, _ = r.q.submit("staged", {"prompt": "x"}); j = r.wait(jid, ("failed", "done"))
+        assert j["state"] == "failed" and "conditioning file" in j["error"], j; time.sleep(0.5)
+        assert len(r.prompts()) == 1 and not r.comfy_up()
+    finally: r.close()
+
+def test_staged_validation_and_orphan_cleanup():
+    r = Rig(staged=True)
+    try:
+        os.remove(os.path.join(r.t, "wf", "stages", "smp.json"))
+        try: r.q.submit("staged", {"prompt": "x"}); raise AssertionError("queued a workflow with a missing stage")
+        except video.VideoError as e: assert "smp" in str(e) and "not found" in str(e), e
+        json.dump({"meta": {"stages": ["x"]}, "prompt": {"1": {"class_type": "A", "inputs": {}}}}, open(os.path.join(r.t, "wf", "stages", "smp.json"), "w"))
+        try: r.q.submit("staged", {"prompt": "x"}); raise AssertionError("nested stages accepted")
+        except video.VideoError as e: assert "nest" in str(e), e
+        for bad in ("../x", "a/b", "", "..", 5, "enc\n"):
+            try: video.load_stage(r.q.cfg.workflows_dir, bad); raise AssertionError("accepted stage name %r" % (bad,))
+            except video.VideoError: pass
+        assert video.stage_names({"meta": {}}) == [] and video.stage_weights({}, 2) == [15.0, 85.0] and abs(sum(video.stage_weights({}, 3)) - 100) < 1e-9
+        r.q.stop(); os.makedirs(r.cond_dir("deadbeef")); open(os.path.join(r.cond_dir("deadbeef"), "cond.safetensors"), "w").write("x")
+        video.Queue(r.q.cfg, r.t, r.kill); assert not os.path.exists(r.cond_dir("deadbeef")), "orphan hand-over folder survived a restart"
+    finally: r.close()
+
+def test_unstaged_job_has_no_progress_and_no_cond_env():
+    r = Rig(staged=True)
+    try:
+        envs = []; orig = r.q.env.popen
+        r.q.env.popen = lambda cmd, cwd, env, lp: (envs.append(dict(env)), orig(cmd, cwd, env, lp))[1]
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",))
+        assert "progress" not in j and envs == [{}] and not os.path.exists(r.cond_dir(jid)) and len(r.starts()) == 1, (j, envs)
     finally: r.close()
 
 if __name__ == "__main__":

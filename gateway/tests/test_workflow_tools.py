@@ -85,6 +85,66 @@ def test_build_workflow():
     try: b.build({"bind": {"nope": ["100.value"]}, "meta": {"params": {}}}, api, INFO); raise AssertionError("bound an undeclared parameter")
     except c.ConvertError as e: assert "not declared" in str(e)
 
+# ---- the two-process (stages) specs, built from the real spec files against a graph shaped like the LTX-2.5 one ----
+SPECS = os.path.join(D, "workflows", "specs")
+Q6_INFO = {"SaveVideo": {"output_node": True}, "Preview": {"output_node": True}, "ElzSaveConditioning": {"output_node": True}}      # as /object_info reports OUTPUT_NODE
+
+def q6_graph():
+    n = lambda c, **i: {"class_type": c, "inputs": i, "_meta": {"title": c}}
+    return {"405:350": n("LTXAVTextEncoderLoader", text_encoder="gemma.safetensors"), "405:376": n("PrimitiveStringMultiline", value="p"),
+            "405:364": n("CLIPTextEncode", text="enhanced", clip=["405:350", 0]), "405:373": n("CLIPTextEncode", text="neg", clip=["405:350", 0]),
+            "405:381": n("Preview", source=["405:376", 0]), "405:366": n("LTXVConditioning", positive=["405:364", 0], negative=["405:373", 0], frame_rate=24),
+            "405:372": n("PrimitiveInt", value=768), "405:360": n("PrimitiveInt", value=512), "405:362": n("PrimitiveInt", value=4),
+            "405:338": n("RandomNoise", noise_seed=1), "405:339": n("RandomNoise", noise_seed=2), "405:384": n("UNETLoader", unet_name="x.safetensors"),
+            "405:340": n("Sampler", model=["405:384", 0], pos=["405:366", 0], neg=["405:366", 1], n1=["405:338", 0], n2=["405:339", 0], w=["405:372", 0], h=["405:360", 0], s=["405:362", 0]),
+            "405:358": n("AudioDecode", samples=["405:340", 0]), "405:370": n("CreateVideo", images=["405:340", 1], audio=["405:358", 0]),
+            "75": n("SaveVideo", video=["405:370", 0], filename_prefix="video/x")}
+
+def spec_file(name): return json.load(open(os.path.join(SPECS, name + ".spec.json"), encoding="utf-8"))
+def classes(g): return sorted(v["class_type"] for v in g.values())
+
+def test_q6_stage_specs_build():
+    enc = b.build(spec_file("ltx25g_q6_enc"), q6_graph(), Q6_INFO)["prompt"]
+    assert classes(enc) == ["CLIPTextEncode", "CLIPTextEncode", "ElzSaveConditioning", "LTXAVTextEncoderLoader", "PrimitiveStringMultiline"], classes(enc)    # encoder only: no UNet, sampler or SaveVideo
+    assert enc["405:902"]["inputs"] == {"positive": ["405:364", 0], "negative": ["405:373", 0], "prompt": "{{prompt}}", "name": "cond"}, enc["405:902"]
+    assert enc["405:373"]["inputs"]["text"] == "{{negative}}" and enc["405:376"]["inputs"]["value"] == "{{prompt}}" and enc["405:364"]["inputs"]["text"] == ["405:376", 0]
+    smp = b.build(spec_file("ltx25g_q6_smp"), q6_graph(), Q6_INFO)["prompt"]
+    assert "405:364" not in smp and "405:373" not in smp and "405:350" not in smp and "405:381" not in smp, sorted(smp)         # no text encoder in stage 2
+    assert smp["405:366"]["inputs"]["positive"] == ["405:901", 0] and smp["405:366"]["inputs"]["negative"] == ["405:901", 1], smp["405:366"]
+    assert smp["405:901"]["class_type"] == "ElzLoadConditioning" and smp["405:901"]["inputs"] == {"prompt": "{{prompt}}", "name": "cond"}
+    assert smp["405:384"] == {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "LTX-2.5-Distilled-Q6_K.gguf"}}
+    assert smp["405:370"]["inputs"]["audio"] == ["405:900", 0] and smp["405:900"]["class_type"] == "ElzAudioNanGuard" and smp["75"]["inputs"]["filename_prefix"] == "video/gw_ltx25q6_t2v"
+    assert {"405:372", "405:360", "405:362", "405:338", "405:339"} <= set(smp) and smp["405:372"]["inputs"]["value"] == "{{width}}"
+    assert all("_meta" not in v for g in (enc, smp) for v in g.values())
+
+def test_q6_parent_spec_and_end_to_end():
+    import tempfile, video
+    parent = b.build(spec_file("ltx25q6_t2v"), None, None)
+    assert parent["prompt"] == {} and parent["meta"]["stages"] == ["ltx25g_q6_enc", "ltx25g_q6_smp"] and parent["meta"]["params"]["prompt"]["required"]
+    d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, "stages"))
+    json.dump(parent, open(os.path.join(d, "ltx25q6_t2v.json"), "w"))
+    for name in parent["meta"]["stages"]:
+        json.dump(b.build(spec_file(name), q6_graph(), Q6_INFO), open(os.path.join(d, "stages", name + ".json"), "w"))
+    wfs = video.load_workflows(d); assert list(wfs) == ["ltx25q6_t2v"], list(wfs)               # stages are not listed as workflows
+    assert video.stage_names(wfs["ltx25q6_t2v"]) == ["ltx25g_q6_enc", "ltx25g_q6_smp"]
+    vals, files = video.resolve_params(wfs["ltx25q6_t2v"], {"prompt": "a fox", "seconds": 3, "width": 960, "height": 544}, None)
+    for name in parent["meta"]["stages"]:
+        g = video.fill_graph(video.load_stage(d, name)["prompt"], vals)
+        assert "{{" not in json.dumps(g), name
+    smp = video.fill_graph(video.load_stage(d, "ltx25g_q6_smp")["prompt"], vals)
+    assert smp["405:901"]["inputs"]["prompt"] == "a fox" and smp["405:372"]["inputs"]["value"] == 960 and isinstance(smp["405:372"]["inputs"]["value"], int)
+    for name in parent["meta"]["stages"]:                                                       # every placeholder a stage uses is a parameter of the parent
+        used = video.PH.findall(json.dumps(video.load_stage(d, name)["prompt"])); assert set(used) <= set(parent["meta"]["params"]), (name, used)
+
+def test_staged_spec_rules():
+    for spec in ({"stages": []}, {"stages": "a"}, {"stages": ["a", "a"]}, {"stages": ["../x"]}, {"stages": ["a"], "set": {"1.x": 1}}):
+        try: b.build(dict(spec, meta={}), None, None); raise AssertionError("accepted %r" % spec)
+        except c.ConvertError: pass
+    api = q6_graph()
+    for bad in ({"rewire": {"405:364:0": ["nope", 0]}}, {"rewire": {"nope:0": ["405:376", 0]}}, {"keep_outputs": ["nope"]}):
+        try: b.build(dict(bad, meta={}), api, Q6_INFO); raise AssertionError("accepted %r" % bad)
+        except c.ConvertError: pass
+
 if __name__ == "__main__":
     sys.path.insert(0, D)
     fails = 0

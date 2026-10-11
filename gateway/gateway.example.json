@@ -420,6 +420,10 @@
   "max_queue": 10,
   "job_timeout_s": 3600,
   "start_timeout_s": 300,
+  "ntfy_url": "",
+  "ntfy_topic": "",
+  "ntfy_click_base": "",
+  "ntfy_include_prompt": false,
   "llm": {
    "swap_url": "http://127.0.0.1:8090",
    "api_key_file": "C:\\AI\\llama-swap\\api-key.txt",

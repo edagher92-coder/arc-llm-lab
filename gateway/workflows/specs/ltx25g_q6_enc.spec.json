@@ -1,0 +1,57 @@
+{
+ "meta": {
+  "title": "Q6 stage 1: encode the prompt",
+  "description": "Stage 1 of ltx25q6_t2v: runs the Gemma text encoder and saves the conditioning for stage 2. Build into workflows/stages/, not the Studio list.",
+  "kind": "stage",
+  "label": "encoding the prompt",
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "negative": {
+    "type": "str",
+    "default": "pc game, console game, video game, cartoon, childish, ugly",
+    "max_len": 500,
+    "label": "Avoid"
+   }
+  }
+ },
+ "set": {
+  "405:364.text": [
+   "405:376",
+   0
+  ]
+ },
+ "add": {
+  "405:902": {
+   "class_type": "ElzSaveConditioning",
+   "inputs": {
+    "positive": [
+     "405:364",
+     0
+    ],
+    "negative": [
+     "405:373",
+     0
+    ],
+    "prompt": "",
+    "name": "cond"
+   }
+  }
+ },
+ "keep_outputs": [
+  "405:902"
+ ],
+ "bind": {
+  "prompt": [
+   "405:376.value",
+   "405:902.prompt"
+  ],
+  "negative": [
+   "405:373.text"
+  ]
+ }
+}

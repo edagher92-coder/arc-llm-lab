@@ -12,10 +12,15 @@ allowed folders, and restores the governor mode even if it crashes (a lock file 
 Workflows are JSON files in workflows_dir: {"meta": {...params...}, "prompt": <ComfyUI API graph with {{placeholders}}>}. The meta block
 makes each workflow self-describing, so the tool's arguments are validated and clamped before anything is queued.
 
+Two-process split: a workflow whose meta has "stages": [name, ...] runs those stage graphs (workflows_dir/stages/<name>.json, falling back to
+workflows_dir/<name>.json) in order under ONE job id and ONE GPU lease. ComfyUI is killed and restarted between stages, so the text encoder's
+host RAM is returned to the OS before the big transformer loads (what Q6_K needs on 32 GB). The stages hand over through a conditioning file
+(ElzSaveConditioning / ElzLoadConditioning) in a per-job folder that is deleted whatever the outcome. Workflows without "stages" are untouched.
+
 Everything outside this file (llama-swap, ComfyUI, process control) is reached through small functions on `Env`, so the tests run the
 whole lifecycle against mock servers.
 """
-import copy, json, math, os, random, re, secrets, subprocess, sys, threading, time, urllib.error, urllib.request
+import copy, json, math, os, random, re, secrets, shutil, subprocess, sys, threading, time, urllib.error, urllib.parse, urllib.request
 
 STATES = ("queued", "waiting", "starting", "running", "done", "failed", "cancelled")
 ACTIVE = ("waiting", "starting", "running")
@@ -54,6 +59,10 @@ class Cfg:
         self.quiet_s = max(0.0, float(llm.get("quiet_s", 90)))
         self.mode_file = llm.get("governor_mode_file") or ""
         self.unload_timeout_s = max(5, float(llm.get("unload_timeout_s") or 90))
+        self.ntfy_url = str(c.get("ntfy_url") or "").strip()                 # push notification when a job ends (done or failed); empty = off
+        self.ntfy_topic = str(c.get("ntfy_topic") or "").strip()
+        self.ntfy_click_base = str(c.get("ntfy_click_base") or "").strip()  # base URL of the gateway, for the notification's tap target
+        self.ntfy_include_prompt = bool(c.get("ntfy_include_prompt", False))
         self.enabled = bool(self.comfy_cmd and self.comfy_dir)
 
     def api_key(self):
@@ -68,7 +77,8 @@ class Env:
     def http(self, method, url, body=None, headers=None, timeout=10):
         h = {"Content-Type": "application/json"}
         h.update(headers or {})
-        req = urllib.request.Request(url, data=(json.dumps(body).encode() if body is not None else None), headers=h, method=method)
+        data = body.encode("utf-8") if isinstance(body, str) else body if isinstance(body, bytes) else (json.dumps(body).encode() if body is not None else None)   # str/bytes go as they are (ntfy)
+        req = urllib.request.Request(url, data=data, headers=h, method=method)
         with urllib.request.urlopen(req, timeout=timeout) as r:
             t = r.read()
         try:
@@ -132,6 +142,47 @@ def load_workflows(d):
         except (OSError, ValueError):
             continue
     return out
+
+
+STAGE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}")
+
+
+def load_stage(d, name):
+    """One stage graph of a staged workflow: workflows_dir/stages/<name>.json (kept out of the Studio list), else workflows_dir/<name>.json."""
+    if not isinstance(name, str) or not STAGE_NAME.fullmatch(name) or ".." in name:
+        raise VideoError("invalid stage name %r" % (name,))
+    for p in (os.path.join(d or "", "stages", name + ".json"), os.path.join(d or "", name + ".json")):
+        if not os.path.isfile(p):
+            continue
+        try:
+            w = json.load(open(p, encoding="utf-8-sig"))
+        except (OSError, ValueError) as ex:
+            raise VideoError("stage %r is unreadable (%s)" % (name, ex))
+        if not (isinstance(w.get("prompt"), dict) and isinstance(w.get("meta"), dict) and w["prompt"]):
+            raise VideoError("stage %r is not a workflow file with a prompt graph" % name)
+        if w["meta"].get("stages"):
+            raise VideoError("stage %r has stages of its own; stages do not nest" % name)
+        return w
+    raise VideoError("stage workflow %r not found (looked in %s)" % (name, os.path.join(d or "", "stages")))
+
+
+def stage_names(wf):
+    """The ordered stage names of a staged workflow, [] for an ordinary one. Raises VideoError for a malformed list."""
+    st = ((wf or {}).get("meta") or {}).get("stages")
+    if st in (None, [], ()):
+        return []
+    if not isinstance(st, list) or not all(isinstance(x, str) and x for x in st):
+        raise VideoError("meta.stages must be a list of stage names")
+    return list(st)
+
+
+def stage_weights(meta, n):
+    """Share of the 0-100 progress bar each stage owns. Default: the first (encode) stage 15 %, the rest split the other 85 %."""
+    w = meta.get("stage_weights")
+    if not (isinstance(w, list) and len(w) == n and all(isinstance(x, (int, float)) and x > 0 for x in w)):
+        w = [100.0] if n == 1 else [15.0] + [85.0 / (n - 1)] * (n - 1)
+    tot = float(sum(w))
+    return [100.0 * x / tot for x in w]
 
 
 def snap_frames(n, rule):
@@ -226,6 +277,7 @@ class Queue:
         self.jobs_path = os.path.join(self.dir, "jobs.json")
         self.lock_path = os.path.join(self.dir, "gpu.lock")
         self.log_path = os.path.join(self.dir, "comfy.log")
+        self.cond_root = os.path.join(self.dir, "cond")      # per-job conditioning hand-over folders of staged workflows
         self.lock = threading.RLock()
         self.cancel = set()
         self.proc = None
@@ -265,6 +317,7 @@ class Queue:
             d = self._lock_read()
             if d and d.get("pid"):                           # the old ComfyUI is still holding the GPU
                 self.env.kill_pid(d["pid"])
+        shutil.rmtree(self.cond_root, ignore_errors=True)    # no job is active after a restart, so any hand-over file is an orphan
         self._restore_mode()
 
     # -- governor hand-off
@@ -320,6 +373,8 @@ class Queue:
         wfs = load_workflows(self.cfg.workflows_dir)
         if workflow not in wfs:
             raise VideoError("unknown workflow %r. Available: %s" % (workflow, ", ".join(sorted(wfs)) or "(none installed)"))
+        for st in stage_names(wfs[workflow]):                # a staged workflow must have every stage in place before it is queued
+            load_stage(self.cfg.workflows_dir, st)
         vals, files = resolve_params(wfs[workflow], raw, self.cfg)
         for name, path in files.items():
             files[name] = self._check_image(path)
@@ -544,32 +599,36 @@ class Queue:
         t0 = time.time()
         self._set(jid, state="starting", started=t0, note="taking the GPU from the LLM")
         try:
+            wf = load_workflows(c.workflows_dir).get(j["workflow"])
+            if wf is None:
+                raise VideoError("workflow %r is no longer installed" % j["workflow"])
+            stages = stage_names(wf)
             self._take_gpu()
             self._unload_llm()
             self._set(jid, note="starting the video engine")
-            self._start_comfy()
+            if stages:
+                cond = self._cond_dir(jid)
+                os.makedirs(cond, exist_ok=True)
+                self._start_comfy({"ELZ_COND_DIR": cond})
+            else:
+                self._start_comfy()
             if jid in self.cancel:
                 raise _Cancelled()
             self._set(jid, state="running", note="loading the model and generating")
-            wf = load_workflows(c.workflows_dir)[j["workflow"]]
             vals = dict(j["params"])
             for name, path in (j.get("files") or {}).items():
                 vals[name] = self._stage_image(path)
-            graph = fill_graph(wf["prompt"], vals)
-            r = e.http("POST", c.comfy_url + "/prompt", {"prompt": graph, "client_id": "gw-" + jid}, timeout=30)
-            if r.get("node_errors"):
-                raise VideoError("ComfyUI rejected the workflow: %s" % json.dumps(r["node_errors"])[:400])
-            pid = r.get("prompt_id")
-            if not pid:
-                raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
-            outputs = self._wait(jid, pid)
+            if stages:
+                outputs = self._run_stages(jid, wf, stages, vals, t0)
+            else:
+                outputs = self._run_graph(jid, fill_graph(wf["prompt"], vals))
             files = self._collect(jid, outputs)
             if not files:
                 raise VideoError("finished with no output files")
             links = [self.share(p) for p in files] if self.share else []
             ended = time.time()
             self._sidecars(j, files, t0, ended)
-            self._set(jid, state="done", ended=ended, seconds=round(ended - t0, 1), files_out=files, links=links, note="")
+            self._set(jid, state="done", ended=ended, seconds=round(ended - t0, 1), files_out=files, links=links, note="", **({"progress": 100.0} if stages else {}))
         except _Cancelled:
             self._set(jid, state="cancelled", ended=time.time(), note="")
         except Exception as ex:
@@ -578,17 +637,98 @@ class Queue:
             with self.lock:
                 self.cancel.discard(jid)
             try:
-                if self.proc is not None and self.proc.poll() is None:
-                    try:                                          # ask ComfyUI to drop its models first; the kill below is still what guarantees the VRAM
-                        e.http("POST", self.cfg.comfy_url + "/free", {"unload_models": True, "free_memory": True}, timeout=5)
-                    except Exception:
-                        pass
-                e.kill_tree(self.proc)
+                self._stop_comfy()
             except Exception:
                 pass
             finally:
                 self.proc = None
+                self._drop_cond(jid)                              # the hand-over file never outlives the job, whatever happened
                 self._restore_mode()                              # the governor prewarms the LLM again
+                self._notify(jid)
+
+    def _stop_comfy(self):
+        e = self.env
+        if self.proc is not None and self.proc.poll() is None:
+            try:                                                  # ask ComfyUI to drop its models first; the kill below is still what guarantees the VRAM
+                e.http("POST", self.cfg.comfy_url + "/free", {"unload_models": True, "free_memory": True}, timeout=5)
+            except Exception:
+                pass
+        e.kill_tree(self.proc)
+
+    def _run_graph(self, jid, graph, span=None, expect_s=None, deadline=None):
+        """Submit one filled graph and wait for it. Returns the history outputs."""
+        c, e = self.cfg, self.env
+        r = e.http("POST", c.comfy_url + "/prompt", {"prompt": graph, "client_id": "gw-" + jid}, timeout=30)
+        if r.get("node_errors"):
+            raise VideoError("ComfyUI rejected the workflow: %s" % json.dumps(r["node_errors"])[:400])
+        pid = r.get("prompt_id")
+        if not pid:
+            raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
+        return self._wait(jid, pid, span, expect_s, deadline)
+
+    # -- two-process split
+    def _cond_dir(self, jid):
+        return os.path.join(self.cond_root, jid)
+
+    def _drop_cond(self, jid):
+        if re.match(r"^[0-9a-f]{8}$", jid or ""):
+            shutil.rmtree(self._cond_dir(jid), ignore_errors=True)
+
+    def _run_stages(self, jid, wf, stages, vals, t0):
+        """Run the stage graphs in order inside the one GPU lease. ComfyUI is killed and started again between stages. A failed or cancelled stage
+        raises, so the remaining stages never start (run()'s cleanup kills the current process and deletes the conditioning folder)."""
+        c = self.cfg
+        n = len(stages)
+        graphs = [load_stage(c.workflows_dir, s) for s in stages]            # all stages present and valid before any process is started again
+        weights = stage_weights(wf["meta"], n)
+        total_s = est_minutes(wf) * 60.0
+        deadline = t0 + c.job_timeout_s                                       # one budget for the whole job, not one per stage
+        cond = self._cond_dir(jid)
+        lo, outputs = 0.0, {}
+        for i, sw in enumerate(graphs):
+            hi = lo + weights[i]
+            label = str(sw["meta"].get("label") or stages[i])[:60]
+            if i:
+                self._set(jid, note="stage %d of %d: freeing memory, restarting the video engine" % (i + 1, n), progress=round(lo, 1))
+                self._stop_comfy()
+                self.proc = None
+                if jid in self.cancel or self._stop.is_set() or self._killed():
+                    raise _Cancelled()
+                self._start_comfy({"ELZ_COND_DIR": cond})
+                if jid in self.cancel:
+                    raise _Cancelled()
+            self._set(jid, note="stage %d of %d: %s" % (i + 1, n, label), progress=round(lo, 1))
+            outputs = self._run_graph(jid, fill_graph(sw["prompt"], vals), (lo, hi), max(1.0, total_s * weights[i] / 100.0), deadline)
+            if i < n - 1 and not (os.path.isfile(os.path.join(cond, "cond.safetensors")) and os.path.isfile(os.path.join(cond, "cond.json"))):
+                raise VideoError("stage %d (%s) finished without writing the conditioning file; stage %d was not started" % (i + 1, stages[i], i + 2))
+            lo = hi
+            self._set(jid, progress=round(lo, 1))
+        return outputs
+
+    # -- push notification
+    def _notify(self, jid):
+        """ntfy push when a job ends done or failed. Off unless ntfy_url and ntfy_topic are set; 5 s timeout; never raises, never changes the job.
+        The text holds no prompt (and no error text, which can echo inputs) unless ntfy_include_prompt is on."""
+        c = self.cfg
+        if not (c.ntfy_url and c.ntfy_topic):
+            return
+        try:
+            j = self.get(jid)
+            if not j or j["state"] not in ("done", "failed"):
+                return
+            clean = lambda x, n=120: re.sub(r"[\x00-\x1f\x7f]+", " ", str(x)).encode("ascii", "replace").decode()[:n]      # header values must be latin-1 safe, single line
+            ok = j["state"] == "done"
+            took = int((j.get("ended") or time.time()) - (j.get("started") or j["created"]))
+            body = ("Clip ready: %d file(s)" % len(j.get("files_out") or []) if ok else "The render failed; open Studio for the reason") + " (job %s, %dm %02ds)." % (j["id"], took // 60, took % 60)
+            if c.ntfy_include_prompt and (j.get("params") or {}).get("prompt"):
+                body += "\nPrompt: " + re.sub(r"\s+", " ", str(j["params"]["prompt"]))[:300]
+            h = {"Title": clean("Video %s: %s" % ("ready" if ok else "failed", j.get("workflow", ""))), "Tags": "movie_camera" if ok else "warning",
+                 "Priority": "default" if ok else "high", "Content-Type": "text/plain; charset=utf-8"}
+            if c.ntfy_click_base.lower().startswith(("http://", "https://")):
+                h["X-Click"] = clean(c.ntfy_click_base.rstrip("/") + "/approvals/studio#job=" + j["id"], 300)
+            self.env.http("POST", c.ntfy_url.rstrip("/") + "/" + urllib.parse.quote(c.ntfy_topic, safe=""), body, headers=h, timeout=5)
+        except Exception as ex:
+            sys.stderr.write("video: ntfy failed (%r)\n" % (ex,))
 
     def _unload_llm(self):
         c, e = self.cfg, self.env
@@ -614,7 +754,7 @@ class Queue:
             time.sleep(min(1.0, c.poll_s))
         raise VideoError("the LLM did not unload within %d s; the GPU was not taken" % c.unload_timeout_s)
 
-    def _start_comfy(self):
+    def _start_comfy(self, extra_env=None):
         c, e = self.cfg, self.env
         try:
             up = bool(e.http("GET", c.comfy_url + "/system_stats", timeout=3))
@@ -622,7 +762,7 @@ class Queue:
             up = False
         if up:
             raise VideoError("another ComfyUI is already running on %s" % c.comfy_url)
-        self.proc = e.popen(c.comfy_cmd, c.comfy_dir, c.comfy_env, self.log_path)
+        self.proc = e.popen(c.comfy_cmd, c.comfy_dir, dict(c.comfy_env, **extra_env) if extra_env else c.comfy_env, self.log_path)
         try:
             self._lock_set(pid=self.proc.pid)
         except OSError:
@@ -648,10 +788,19 @@ class Queue:
         shutil.copyfile(path, os.path.join(self.cfg.input_dir, name))
         return name
 
-    def _wait(self, jid, pid):
+    def _wait(self, jid, pid, span=None, expect_s=None, deadline=None):
+        """Poll until the prompt is in /history. span=(lo, hi) and expect_s (staged jobs only) move the job's progress from lo towards hi
+        by elapsed/expected time, never past 95 % of the span until the stage really ends; deadline replaces the per-wait timeout."""
         c, e = self.cfg, self.env
-        end = time.time() + c.job_timeout_s
+        t_in = time.time()
+        end = deadline if deadline is not None else t_in + c.job_timeout_s
+        shown = span[0] if span else 0
         while time.time() < end:
+            if span:
+                p = span[0] + (span[1] - span[0]) * min(0.95, (time.time() - t_in) / expect_s)
+                if p - shown >= 1:
+                    shown = p
+                    self._set(jid, progress=round(p, 1))
             if jid in self.cancel or self._stop.is_set() or self._killed():
                 try:
                     e.http("POST", c.comfy_url + "/interrupt", {}, timeout=10)

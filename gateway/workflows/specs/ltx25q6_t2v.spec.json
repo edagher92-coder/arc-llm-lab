@@ -1,0 +1,124 @@
+{
+ "meta": {
+  "title": "Text to video (GGUF Q6, two steps)",
+  "description": "LTX-2.5 22B distilled, GGUF Q6_K, with sound. Runs in two ComfyUI processes (encode, then sample) so it fits 32 GB RAM. Describe a shot; it films it.",
+  "kind": "t2v",
+  "fps": 24,
+  "audio": true,
+  "est_minutes": 5,
+  "order": 6,
+  "sizes": [
+   [
+    768,
+    416,
+    "Draft"
+   ],
+   [
+    960,
+    544,
+    "Daily"
+   ],
+   [
+    1280,
+    704,
+    "720p wide"
+   ],
+   [
+    704,
+    1280,
+    "Vertical"
+   ],
+   [
+    1024,
+    1024,
+    "Square"
+   ]
+  ],
+  "presets": [
+   {
+    "name": "draft",
+    "label": "Draft",
+    "params": {
+     "width": 768,
+     "height": 416,
+     "seconds": 3
+    },
+    "note": "Fast check: 768x416, about 73 frames (8n+1)."
+   },
+   {
+    "name": "daily",
+    "label": "Daily",
+    "params": {
+     "width": 960,
+     "height": 544,
+     "seconds": 4
+    },
+    "note": "Stage 1 at 960x544, 97 frames. Final 1920x1088 needs the x2 latent upscale stage in the graph."
+   },
+   {
+    "name": "hero",
+    "label": "Hero",
+    "params": {
+     "width": 960,
+     "height": 544,
+     "seconds": 5
+    },
+    "note": "As Daily with 121 frames (8n+1)."
+   }
+  ],
+  "seconds": {
+   "min": 2,
+   "max": 10,
+   "default": 4,
+   "step": 1
+  },
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "negative": {
+    "type": "str",
+    "default": "pc game, console game, video game, cartoon, childish, ugly",
+    "max_len": 500,
+    "label": "Avoid"
+   },
+   "width": {
+    "type": "int",
+    "default": 768,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "height": {
+    "type": "int",
+    "default": 512,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "seconds": {
+    "type": "int",
+    "default": 4,
+    "min": 2,
+    "max": 10,
+    "label": "Length"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   }
+  },
+  "stage_weights": [
+   15,
+   85
+  ],
+  "est_basis": "estimate; the Q6_K two-process run has not been timed yet"
+ },
+ "stages": [
+  "ltx25g_q6_enc",
+  "ltx25g_q6_smp"
+ ]
+}
