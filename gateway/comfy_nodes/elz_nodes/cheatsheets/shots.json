@@ -1,0 +1,155 @@
+{
+ "schema": 1,
+ "sheet": "shots",
+ "title": "Shot types",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Pick a shot size first, then a camera movement."
+ ],
+ "entries": [
+  {
+   "id": "wide-establishing",
+   "label": "Wide establishing shot",
+   "prompt": "A wide establishing shot shows the whole location and the subject small within it.",
+   "keywords": [
+    "landscape",
+    "city",
+    "establishing",
+    "location",
+    "scene",
+    "aerial",
+    "wide",
+    "building",
+    "skyline"
+   ],
+   "notes": "Sets place before action."
+  },
+  {
+   "id": "medium",
+   "label": "Medium shot",
+   "prompt": "A medium shot frames the subject from the waist up.",
+   "keywords": [
+    "person",
+    "woman",
+    "man",
+    "talks",
+    "walks",
+    "cook",
+    "chef",
+    "worker"
+   ],
+   "notes": "Reliable default for people.",
+   "default": true
+  },
+  {
+   "id": "close-up",
+   "label": "Close-up",
+   "prompt": "A close-up frames the face, with eyes and small expressions in focus.",
+   "keywords": [
+    "face",
+    "emotion",
+    "eyes",
+    "tears",
+    "smile",
+    "reaction",
+    "portrait"
+   ],
+   "notes": "Great for emotion and dialogue."
+  },
+  {
+   "id": "extreme-close",
+   "label": "Extreme close-up",
+   "prompt": "An extreme close-up fills the frame with a single detail.",
+   "keywords": [
+    "detail",
+    "texture",
+    "macro",
+    "eye",
+    "droplet",
+    "hands",
+    "ring"
+   ],
+   "notes": "Pairs with macro camera."
+  },
+  {
+   "id": "over-shoulder",
+   "label": "Over the shoulder",
+   "prompt": "An over-the-shoulder shot looks past one person toward the other.",
+   "keywords": [
+    "conversation",
+    "argue",
+    "dialogue",
+    "interview",
+    "meeting",
+    "two people",
+    "chat"
+   ],
+   "notes": "Good for conversations."
+  },
+  {
+   "id": "two-shot",
+   "label": "Two-shot",
+   "prompt": "A two-shot frames both characters side by side in the same frame.",
+   "keywords": [
+    "couple",
+    "friends",
+    "duo",
+    "pair",
+    "together",
+    "siblings",
+    "partners"
+   ],
+   "notes": "Good for chemistry."
+  },
+  {
+   "id": "product-hero",
+   "label": "Product hero shot",
+   "prompt": "A hero shot of the product, centred, filling the frame with space around it.",
+   "keywords": [
+    "product",
+    "packshot",
+    "bottle",
+    "can",
+    "gadget",
+    "machine",
+    "shoe",
+    "watch",
+    "perfume",
+    "drink"
+   ],
+   "notes": "Pairs with commercial styling."
+  },
+  {
+   "id": "pov",
+   "label": "First-person POV",
+   "prompt": "A first-person point of view, with the viewer's hands visible at the edges of the frame.",
+   "keywords": [
+    "pov",
+    "first person",
+    "hands",
+    "gopro",
+    "dashcam",
+    "my view"
+   ],
+   "notes": "Immersive."
+  },
+  {
+   "id": "low-angle",
+   "label": "Low-angle hero",
+   "prompt": "A low-angle shot looks up at the subject, making them powerful and imposing.",
+   "keywords": [
+    "hero",
+    "giant",
+    "tower",
+    "warrior",
+    "power",
+    "boss",
+    "monument"
+   ],
+   "notes": "Heroic framing."
+  }
+ ]
+}

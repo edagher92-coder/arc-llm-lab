@@ -55,6 +55,14 @@ class Cfg:
         self.max_queue = max(1, int(c.get("max_queue") or 10))
         self.job_timeout_s = max(1.0, float(c.get("job_timeout_s") or 3600))
         self.start_timeout_s = max(5, float(c.get("start_timeout_s") or 300))
+        try:
+            self.comfy_settle_s = max(0.0, float(c.get("comfy_settle_s", 3.0)))      # pause after the LLM has exited, before ComfyUI is spawned (a spawn straight after the exit has stalled at start-up)
+        except (TypeError, ValueError):
+            self.comfy_settle_s = 3.0
+        try:
+            self.comfy_stall_s = max(0.05, float(c.get("comfy_stall_s", 45)))        # a fresh ComfyUI that wrote nothing to its log this long and does not answer is killed and spawned once more
+        except (TypeError, ValueError):
+            self.comfy_stall_s = 45.0
         self.poll_s = max(0.05, float(c.get("poll_s") or 3))
         self.tick_s = max(0.05, float(c.get("tick_s") or 5))
         self.keep_jobs = max(10, int(c.get("keep_jobs") or 200))
@@ -114,7 +122,11 @@ class Env:
     def popen(self, cmd, cwd, env, log_path):
         e = dict(os.environ)
         e.update(env)
+        e.setdefault("PYTHONUNBUFFERED", "1")                 # start-up lines must reach comfy.log at once (an empty log is the stall signal)
         return subprocess.Popen(cmd, cwd=cwd, env=e, stdout=open(log_path, "ab"), stderr=subprocess.STDOUT)
+
+    def sleep(self, secs):
+        time.sleep(secs)
 
     def kill_tree(self, proc):
         if proc is None or proc.poll() is not None:
@@ -735,6 +747,9 @@ class Queue:
             if not sess:
                 self._take_gpu()
                 self._unload_llm()
+                if c.comfy_settle_s > 0:
+                    self._set(jid, note="letting the GPU settle")
+                    e.sleep(c.comfy_settle_s)
                 self._set(jid, note="starting the video engine")
             if stages:
                 cond = self._cond_dir(jid)
@@ -1185,12 +1200,21 @@ class Queue:
             up = False
         if up:
             raise VideoError("another ComfyUI is already running on %s" % c.comfy_url)
-        self.proc = e.popen(c.comfy_cmd, c.comfy_dir, dict(c.comfy_env, **extra_env) if extra_env else c.comfy_env, self.log_path)
-        try:
-            self._lock_set(pid=self.proc.pid)
-        except OSError:
-            pass
-        end = time.time() + c.start_timeout_s
+        env = dict(c.comfy_env, **extra_env) if extra_env else c.comfy_env
+        log_size = lambda: os.path.getsize(self.log_path) if os.path.exists(self.log_path) else 0
+
+        def spawn():
+            self.proc = e.popen(c.comfy_cmd, c.comfy_dir, env, self.log_path)
+            try:
+                self._lock_set(pid=self.proc.pid)
+            except OSError:
+                pass
+            return time.time(), log_size()
+
+        end = time.time() + c.start_timeout_s                     # one deadline, measured from the first spawn
+        t_spawn, size0 = spawn()
+        respawned, checked = False, False                         # checked: this spawn has shown life in its log, so it is only slow
+        stalled = lambda: "ComfyUI stalled at start-up twice (no output); see %s" % self.log_path
         while time.time() < end:
             if self.proc.poll() is not None:
                 raise VideoError("ComfyUI exited during start-up (see %s)" % self.log_path)
@@ -1199,7 +1223,25 @@ class Queue:
                     return
             except Exception:
                 pass
+            if not checked and time.time() - t_spawn >= c.comfy_stall_s:
+                if log_size() > size0:
+                    checked = True
+                elif respawned:
+                    e.kill_tree(self.proc)
+                    raise VideoError(stalled())
+                else:
+                    e.kill_tree(self.proc)
+                    try:
+                        with open(self.log_path, "ab") as f:
+                            f.write(("[gateway] ComfyUI produced no output in %d s; restarting once\n" % c.comfy_stall_s).encode())
+                    except OSError:
+                        pass
+                    respawned = True
+                    t_spawn, size0 = spawn()
+                    continue
             time.sleep(min(1.0, c.poll_s))
+        if not checked and log_size() <= size0 and respawned:
+            raise VideoError(stalled())
         raise VideoError("ComfyUI did not answer within %d s" % c.start_timeout_s)
 
     def _stage_image(self, path):

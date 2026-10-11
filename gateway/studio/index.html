@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#121316">
+<meta name="theme-color" content="#060a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Studio">
@@ -12,228 +12,339 @@
 <title>Studio</title>
 <link rel="manifest" href="/approvals/studio/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/approvals/studio/icon-180.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23121316'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23ff5a36'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060a14'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23ff6b2c'/%3E%3C/svg%3E">
 <style>
 :root{
-  --bg:#121316; --panel:#1a1c20; --raised:#23262b; --line:#2e3238; --ink:#e9e6df; --muted:#8b9099; --faint:#5d626b;
-  --tally:#ff5a36; --go:#5fd38d; --wait:#e8b64a; --stop:#e5677b;
-  --display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --bg:#060a14; --deck:#0b1222; --raise:#111b33; --line:#1e2b4a; --line2:#2d4070;
+  --ink:#eaf0ff; --mute:#a3b1d1; --faint:#8493b8;
+  --cobalt:#3f6fff; --cobalt-hi:#9db8ff; --cobalt-bg:#14224a;
+  --ember:#ff6b2c; --ember-ink:#1b0b03; --go:#46d39a; --wait:#f5b94a; --stop:#ff6f86;
+  --display:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Roboto Condensed",sans-serif-condensed,"Arial Narrow",system-ui,sans-serif;
   --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,monospace;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Roboto Mono",monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
 }
 *{box-sizing:border-box}
-html,body{height:100%;overflow-x:hidden}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);-webkit-text-size-adjust:100%}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation}
 [hidden]{display:none!important}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.btn:focus-visible,.chip:focus-visible,.wf:focus-visible,.pick:focus-visible,.drop:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+:focus-visible{outline:2px solid var(--cobalt-hi);outline-offset:2px}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
-/* frame */
-.app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
-.bar{display:flex;align-items:center;gap:16px;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--panel)}
-.brand{font:600 20px/1 var(--display);letter-spacing:.02em}
-.gpu{display:flex;align-items:center;gap:9px;margin-left:auto;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--bg);min-width:0}
-.lamp{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none}
-.gpu .k{font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);flex:none}
-.gpu[data-own="video"] .lamp{background:var(--tally);box-shadow:0 0 0 3px #ff5a3633;animation:tally 1.6s ease-in-out infinite}
-.gpu[data-own="llm"] .lamp{background:var(--go)}
-.gpu[data-own="handoff"] .lamp{background:var(--wait);box-shadow:0 0 0 3px #e8b64a33}
-@keyframes tally{50%{box-shadow:0 0 0 6px #ff5a3600}}
-.gpu span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--muted)}
-.gpu b{font-weight:600;color:var(--ink)}
+/* frame: header, rail (desktop) / tab bar (phone), views */
+.app{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:100vw;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh;grid-template-areas:"bar" "main" "nav"}
+.bar{grid-area:bar;position:relative;display:flex;align-items:center;gap:10px;padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));padding-top:calc(8px + env(safe-area-inset-top));background:var(--deck);border-bottom:1px solid var(--line)}
+.bar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:4px;background:repeating-linear-gradient(115deg,var(--ember) 0 14px,transparent 14px 28px);opacity:.85;transform-origin:left;pointer-events:none}
+.brand{display:flex;align-items:center;gap:9px;flex:none}
+.rec{width:12px;height:12px;border-radius:50%;background:var(--faint);flex:none;transition:background .3s,box-shadow .3s}
+.app[data-live="1"] .rec{background:var(--ember);box-shadow:0 0 0 0 #ff6b2c88;animation:tally 1.5s ease-in-out infinite}
+.brand b{font:700 21px/1 var(--display);letter-spacing:.14em;text-transform:uppercase}
+.brand small{font:11px var(--mono);color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.sp{flex:1 1 0;min-width:0}
+.pill{display:flex;align-items:center;gap:8px;min-height:44px;min-width:0;flex:0 1 auto;padding:4px 12px;border:1px solid var(--line2);border-radius:999px;background:var(--bg);cursor:pointer;transition:border-color .2s,transform .12s}
+.pill:hover{border-color:var(--cobalt-hi)}
+.pill:active{transform:scale(.97)}
+.lamp{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none;transition:background .3s}
+.pill .k{font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);flex:none}
+.pill span.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--mute);min-width:0}
+.pill b{color:var(--ink);font-weight:600}
+.pill[data-own="video"] .lamp{background:var(--ember);animation:tally 1.5s ease-in-out infinite}
+.pill[data-own="llm"] .lamp{background:var(--go)}
+.pill[data-own="handoff"] .lamp{background:var(--wait);animation:tally 1s ease-in-out infinite}
+@keyframes tally{0%{box-shadow:0 0 0 0 #ff6b2c99}70%,100%{box-shadow:0 0 0 7px #ff6b2c00}}
+.iconbtn{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line2);border-radius:12px;background:var(--bg);cursor:pointer;color:var(--ink);transition:border-color .2s,transform .12s}
+.iconbtn:hover{border-color:var(--cobalt-hi)}
+.iconbtn:active{transform:scale(.94)}
 
-.cols{display:grid;grid-template-columns:minmax(330px,390px) minmax(0,1fr) minmax(280px,340px);min-height:0}
-.pane{min-height:0;overflow:auto;padding:18px;border-right:1px solid var(--line)}
-.pane:last-child{border-right:0}
-.pane h2{margin:0 0 12px;font:600 17px/1.2 var(--display);letter-spacing:.02em}
-.nav{display:none}
+main{grid-area:main;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:16px max(14px,env(safe-area-inset-right)) 28px max(14px,env(safe-area-inset-left))}
+.view.on{animation:fade .28s var(--ease)}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.intro .bar{animation:rise .5s var(--ease) both}
+.intro .nav{animation:rise .5s .25s var(--ease) both}
+.intro .view.on{animation:none}
+.intro .view.on .sec{animation:rise .6s var(--ease) both}
+.intro .view.on .sec:nth-child(1){animation-delay:.08s}
+.intro .view.on .sec:nth-child(2){animation-delay:.16s}
+.intro .view.on .sec:nth-child(3){animation-delay:.24s}
+.intro .view.on .sec:nth-child(4){animation-delay:.32s}
+.intro .view.on .sec:nth-child(n+5){animation-delay:.4s}
 
-/* compose */
-.wfs{display:grid;gap:8px;margin-bottom:18px}
-.wf{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer}
-.wf[aria-pressed="true"]{border-color:var(--ink);background:var(--raised)}
-.wf .t{font:600 15px/1.25 var(--display);letter-spacing:.02em}
-.wf .m{font-size:12.5px;color:var(--muted);grid-column:1/-1}
-.wf .e{font:12.5px var(--mono);color:var(--muted);align-self:center}
-.field{margin:0 0 16px}
-.field>label,.lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:13.5px;color:var(--muted)}
-.field>label output{font:13px var(--mono);color:var(--ink)}
-.help{font-size:12.5px;color:var(--faint);margin-top:4px}
-textarea,input[type=text],input[type=number],input[type=password],select{width:100%;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+.nav{grid-area:nav;display:grid;grid-template-columns:repeat(4,1fr);background:var(--deck);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.nav button{position:relative;display:grid;justify-items:center;align-content:center;gap:2px;min-height:56px;padding:6px 2px;background:none;border:0;color:var(--faint);font:700 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,background .2s}
+.nav button:active{background:var(--raise)}
+.nav button[aria-current="page"]{color:var(--ink)}
+.nav button[aria-current="page"]::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;background:var(--ember);border-radius:0 0 3px 3px;animation:fade .3s var(--ease)}
+.nav .badge{position:absolute;top:5px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--ember);color:var(--ember-ink);font:700 11px/18px var(--mono);text-align:center}
+
+/* slate type */
+.sec{margin:0 0 22px;min-width:0}
+.sec>h2,.hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 10px;font:700 13px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.sec>h2 small,.hd small{font:12px var(--mono);letter-spacing:.02em;text-transform:none;color:var(--faint)}
+.field{margin:0 0 18px;padding-top:10px;border-top:1px solid var(--line)}
+.field>label,.lab{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font:700 11.5px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.field>label output,.lab output{font:600 13px var(--mono);letter-spacing:0;text-transform:none;color:var(--ink)}
+.help{font-size:12.5px;color:var(--faint);margin-top:6px}
+textarea,input[type=text],input[type=number],input[type=password],select{width:100%;min-height:44px;padding:10px 12px;background:var(--deck);border:1px solid var(--line2);border-radius:6px;transition:border-color .2s,box-shadow .2s}
 textarea{resize:vertical;min-height:112px;line-height:1.45}
-textarea:focus-visible,input:focus-visible,select:focus-visible{border-color:var(--ink);outline:2px solid var(--ink);outline-offset:1px}
+textarea:focus-visible,input:focus-visible,select:focus-visible{border-color:var(--cobalt-hi);box-shadow:0 0 0 3px #3f6fff44;outline:none}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);background-position:calc(100% - 18px) 52%,calc(100% - 13px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
 .row{display:flex;gap:8px;align-items:stretch}
 .row>input{min-width:0}
-.btn{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--raised);cursor:pointer;font-weight:500}
-.btn:hover:not(:disabled){border-color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid var(--line2);border-radius:6px;background:var(--raise);color:var(--ink);cursor:pointer;font-weight:600;text-decoration:none;transition:border-color .2s,background .2s,transform .12s var(--ease),opacity .2s}
+.btn:hover:not(:disabled){border-color:var(--cobalt-hi)}
+.btn:active:not(:disabled){transform:scale(.97)}
 .btn:disabled{opacity:.5;cursor:default}
-.btn.go{background:var(--ink);color:var(--bg);border-color:var(--ink);font:600 16px var(--display);letter-spacing:.03em;padding:13px 16px;width:100%;min-height:44px}
+.btn.go{background:var(--ember);color:var(--ember-ink);border-color:var(--ember);font:700 17px var(--display);letter-spacing:.12em;text-transform:uppercase;width:100%;min-height:52px;position:relative;overflow:hidden}
+.btn.go:hover:not(:disabled){background:#ff814c;border-color:#ff814c}
 .btn.quiet{background:transparent}
-.btn.warn{color:var(--stop)}
-.btn.sm{padding:6px 10px;font-size:13px}
+.btn.warn{color:var(--stop);border-color:#ff6f8666}
+.btn.sm{min-height:44px;padding:6px 12px;font-size:13.5px}
+.btn.alt{background:transparent}
+a.btn{display:inline-flex}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-size:13.5px}
-.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--raised)}
-.chip small{color:var(--muted);margin-left:4px}
-input[type=range]{width:100%;accent-color:var(--ink);margin:2px 0}
-.drop{display:grid;place-items:center;gap:4px;min-height:120px;padding:14px;border:1.5px dashed var(--line);border-radius:10px;background:var(--panel);text-align:center;color:var(--muted);cursor:pointer;overflow:hidden}
-.drop.over{border-color:var(--ink)}
-.drop img{max-width:100%;max-height:180px;border-radius:6px;display:block}
-details.more{margin:0 0 16px}
-details.more summary{cursor:pointer;color:var(--muted);font-size:13.5px;padding:2px 0;margin-bottom:8px}
-.fine{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-align:center}
-.dock{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:12px 18px calc(18px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
-a.btn{color:inherit;display:inline-block;text-decoration:none}
-.err{margin:10px 0 0;padding:9px 12px;border:1px solid #e5677b66;border-radius:9px;background:#e5677b14;color:#f2a5b1;font-size:13.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 12px;border:1px solid var(--line2);border-radius:6px;background:var(--deck);cursor:pointer;font-size:13.5px;transition:border-color .2s,background .2s,transform .12s}
+.chip:active{transform:scale(.96)}
+.chip[aria-pressed="true"]{border-color:var(--cobalt);background:var(--cobalt-bg)}
+.chip small{color:var(--mute);font:12px var(--mono)}
+input[type=range]{width:100%;height:44px;accent-color:var(--ember);margin:0;background:transparent}
+.err{margin:10px 0 0;padding:10px 12px;border:1px solid #ff6f8677;border-left-width:4px;border-radius:6px;background:#ff6f8618;color:#ffb3c0;font-size:13.5px}
+.fine{font-size:12.5px;color:var(--faint);margin:8px 0 0;text-align:center}
+.mono{font-family:var(--mono)}
+
+/* GPU switch */
+.gpuline{display:grid;gap:8px;padding:12px;border:1px solid var(--line2);border-radius:8px;background:linear-gradient(180deg,var(--raise),var(--deck))}
+.gpuline .hd{margin:0}
+.gsw{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border:1px solid var(--line2);border-radius:10px;background:var(--bg)}
+.gsw::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:7px;background:var(--cobalt-bg);border:1px solid var(--cobalt);transition:transform .35s var(--ease),background .3s,border-color .3s}
+.gsw[data-v="llm"]::before{transform:translateX(100%);border-color:var(--go);background:#0f3327}
+.gsw[data-v="video"]::before{border-color:var(--ember);background:#3a1a0b}
+.gsw[data-v=""]::before{opacity:0}
+.gsw button{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;background:none;border:0;border-radius:7px;color:var(--mute);font:700 15px var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:color .2s}
+.gsw button[aria-checked="true"]{color:var(--ink)}
+.gsw button i{width:9px;height:9px;border-radius:50%;background:var(--faint)}
+.gsw button[aria-checked="true"][data-m="video"] i{background:var(--ember)}
+.gsw button[aria-checked="true"][data-m="llm"] i{background:var(--go)}
+.gsw[aria-busy="true"]{opacity:.7}
+.gsw-msg{font-size:13px;color:var(--mute);min-height:1.2em}
+.gsw-msg.bad{color:#ffb3c0}
+
+/* create */
+.split{display:grid;gap:0}
+.wfs{display:grid;gap:8px}
+.wf{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;min-height:44px;padding:10px 12px;background:var(--deck);border:1px solid var(--line2);border-left-width:4px;border-radius:6px;cursor:pointer;transition:border-color .2s,background .2s,transform .12s}
+.wf:active{transform:scale(.985)}
+.wf[aria-pressed="true"]{border-color:var(--cobalt);background:var(--cobalt-bg);border-left-color:var(--ember)}
+.wf .t{font:700 15px/1.25 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.wf .m{font-size:12.5px;color:var(--mute);grid-column:1/-1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wf .e{font:12.5px var(--mono);color:var(--mute);align-self:center}
+.presets{display:flex;gap:8px;overflow-x:auto;margin:0 -14px 14px;padding:2px 14px 6px;scroll-snap-type:x proximity;scroll-padding-inline:14px}
+.preset{flex:none;scroll-snap-align:start;display:grid;gap:1px;text-align:left;min-height:44px;padding:8px 12px;min-width:96px;background:var(--deck);border:1px solid var(--line2);border-radius:6px;cursor:pointer;transition:border-color .2s,transform .12s}
+.preset:active{transform:scale(.96)}
+.preset b{font:700 14px/1.2 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.preset small{font:11.5px var(--mono);color:var(--mute);white-space:nowrap}
+.preset[aria-pressed="true"]{border-color:var(--ember);background:#2a1409}
+.seg{display:flex;width:100%;margin-bottom:8px;border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--deck)}
+.seg button{flex:1;min-height:44px;padding:6px 8px;background:none;border:0;border-right:1px solid var(--line);color:var(--mute);font-size:13px;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--cobalt-bg);color:var(--ink);box-shadow:inset 0 -3px 0 var(--ember)}
+.seg button:focus-visible{outline-offset:-3px}
+.assist{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.assist .lab{margin:0}
+.drop{display:grid;place-items:center;gap:4px;min-height:132px;padding:14px;border:1.5px dashed var(--line2);border-radius:8px;background:var(--deck);text-align:center;color:var(--mute);cursor:pointer;overflow:hidden;transition:border-color .2s,background .2s}
+.drop:hover,.drop.over{border-color:var(--cobalt-hi);background:var(--cobalt-bg)}
+.drop img{max-width:100%;max-height:180px;border-radius:4px;display:block}
+details.adv{margin:0 0 18px;border-top:1px solid var(--line);padding-top:6px}
+details.adv>summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;cursor:pointer;list-style:none;font:700 12px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+details.adv>summary::-webkit-details-marker{display:none}
+details.adv>summary::after{content:"+";font:400 22px/1 var(--mono);color:var(--ember);transition:transform .25s var(--ease)}
+details.adv[open]>summary::after{transform:rotate(45deg)}
+details.adv .field:first-of-type{margin-top:6px}
+.req{margin:0;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font:12px/1.5 var(--mono);color:var(--mute);white-space:pre-wrap;overflow-wrap:anywhere}
+.toggle{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.toggle input{appearance:none;flex:none;width:46px;height:28px;margin:0;border-radius:14px;background:var(--bg);border:1px solid var(--line2);position:relative;cursor:pointer;transition:background .25s,border-color .25s}
+.toggle input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--mute);transition:transform .25s var(--ease),background .25s}
+.toggle input:checked{background:#3a1a0b;border-color:var(--ember)}
+.toggle input:checked::after{transform:translateX(18px);background:var(--ember)}
+.toggle input:focus-visible{outline:2px solid var(--cobalt-hi);outline-offset:2px}
+.toggle span{flex:1;min-width:0}
+.toggle small{display:block;color:var(--faint);font-size:12.5px}
+.dock{position:sticky;bottom:-28px;margin:8px -14px 0;padding:12px 14px 22px;background:linear-gradient(180deg,#060a1400,var(--bg) 22%);z-index:3}
+.dock .row .go{flex:1;width:auto}.dock .row .btn:not(.go){min-height:52px;flex:none}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
 
 /* stage */
 .stage{display:grid;gap:14px;align-content:start}
-.screen{position:relative;background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:grid;place-items:center;min-height:240px;max-height:68vh}
-.screen video,.screen img{display:block;max-width:100%;max-height:68vh;margin:auto;background:#000}
+.screen{position:relative;background:#000;border:1px solid var(--line2);border-radius:8px;overflow:hidden;display:grid;place-items:center;min-height:220px;max-height:66vh}
+.screen::before,.screen::after{content:"";position:absolute;left:8px;right:8px;height:6px;background:repeating-linear-gradient(90deg,#1b2745 0 8px,transparent 8px 18px);opacity:.7;pointer-events:none;z-index:1}
+.screen::before{top:3px}.screen::after{bottom:3px}
+.screen video,.screen img{display:block;max-width:100%;max-height:66vh;margin:auto;background:#000}
 .screen audio{width:90%;margin:30px 0}
-.empty{padding:40px 24px;text-align:center;color:var(--muted);max-width:42ch}
-.empty b{display:block;color:var(--ink);font:600 18px var(--display);margin-bottom:6px;letter-spacing:.02em}
-.live{display:grid;gap:10px;justify-items:center;padding:36px 20px;text-align:center}
-.clock{font:300 54px/1 var(--mono);letter-spacing:.02em}
-.track{width:min(420px,80vw);height:6px;border-radius:3px;background:var(--raised);overflow:hidden}
-.track i{display:block;height:100%;background:var(--tally);width:0;transition:width .8s linear}
-.live .note{color:var(--muted);font-size:14px}
+.empty{padding:36px 22px;text-align:center;color:var(--mute);max-width:44ch}
+.empty b{display:block;color:var(--ink);font:700 18px var(--display);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
+.live{display:grid;gap:12px;justify-items:center;padding:34px 18px;text-align:center;width:100%}
+.live .on-air{display:inline-flex;align-items:center;gap:8px;padding:3px 10px;border:1px solid var(--ember);border-radius:3px;color:var(--ember);font:700 12px var(--display);letter-spacing:.2em;text-transform:uppercase}
+.live .on-air i{width:8px;height:8px;border-radius:50%;background:var(--ember);animation:tally 1.2s ease-in-out infinite}
+.live .on-air.wait{color:var(--wait);border-color:var(--wait)}.live .on-air.wait i{background:var(--wait)}
+.clock{font:300 56px/1 var(--mono);letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.track{position:relative;width:min(440px,84%);height:14px;border-radius:3px;background:var(--deck);border:1px solid var(--line2);overflow:hidden}
+.track i{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(115deg,var(--ember) 0 10px,#ff9161 10px 20px);background-size:28px 100%;transition:width .8s linear;animation:slide 1.2s linear infinite}
+.track.ind i{width:35%;animation:sweep 1.6s var(--ease) infinite,slide 1.2s linear infinite;transition:none}
+@keyframes slide{to{background-position:28px 0}}
+@keyframes sweep{0%{left:-35%}100%{left:100%}}
+.eta{font:13px var(--mono);color:var(--mute);overflow-wrap:anywhere}
+.eta.over{color:var(--wait)}
+.live .note{color:var(--mute);font-size:14px;max-width:46ch}
 .meta{display:grid;gap:10px}
 .meta p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--mute)}
 .kv b{color:var(--ink);font-weight:500;font-family:var(--mono);font-size:12.5px}
-.acts{display:flex;flex-wrap:wrap;gap:8px}
+.star{min-width:44px;padding:6px 10px;line-height:1;font-size:18px}
+.star[aria-pressed="true"]{color:var(--ember);border-color:var(--ember)}
 
-/* reel */
+/* queue: call sheet */
+.qgrid{display:grid;gap:22px}
 .reel{display:grid;gap:8px}
-.slate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:0 8px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;width:100%}
-.slate[aria-current="true"]{border-color:var(--ink);background:var(--raised)}
-.pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;text-align:left;padding:10px 0 10px 12px;background:none;border:0;cursor:pointer;min-width:0}
-.slate .dot{width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--faint)}
-.slate[data-s="done"] .dot{background:var(--go)}
-.slate[data-s="queued"] .dot,.slate[data-s="waiting"] .dot{background:var(--wait)}
-.slate[data-s="starting"] .dot,.slate[data-s="running"] .dot{background:var(--tally);animation:tally 1.6s infinite}
-.slate[data-s="failed"] .dot{background:var(--stop)}
-.slate .p{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:14px}
-.slate .s{grid-column:2;font-size:12.5px;color:var(--muted);display:flex;gap:4px 12px;flex-wrap:wrap}
+.slate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--deck);border:1px solid var(--line);border-left:4px solid var(--line2);border-radius:4px;width:100%;transition:border-color .2s,background .2s}
+.slate[aria-current="true"]{border-color:var(--cobalt);background:var(--cobalt-bg)}
+.slate[data-s="done"]{border-left-color:var(--go)}
+.slate[data-s="queued"],.slate[data-s="waiting"]{border-left-color:var(--wait)}
+.slate[data-s="starting"],.slate[data-s="running"]{border-left-color:var(--ember)}
+.slate[data-s="failed"]{border-left-color:var(--stop)}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;text-align:left;min-height:44px;padding:10px 0 10px 12px;background:none;border:0;cursor:pointer;min-width:0}
+.pick .no{font:700 12px var(--mono);color:var(--faint);padding-top:2px}
+.slate .p{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:14px;overflow-wrap:anywhere}
+.slate .s{grid-column:2;font-size:12.5px;color:var(--mute);display:flex;gap:2px 12px;flex-wrap:wrap}
 .slate .s .t{font-family:var(--mono)}
+.slate .s .t.over,.over{color:var(--wait)}
+.slate .end{display:flex;gap:6px;align-items:center;padding-right:8px}
+.mini{position:relative;height:3px;margin:0 12px 0 0;grid-column:1/-1;background:var(--line);overflow:hidden;border-radius:2px}
+.mini i{display:block;height:100%;width:0;background:var(--ember);transition:width .8s linear}
 
+/* gallery: contact sheet */
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{position:relative;display:grid;grid-template-rows:auto auto;padding:0;background:var(--deck);border:1px solid var(--line);border-radius:4px;overflow:hidden;cursor:pointer;text-align:left;transition:border-color .2s,transform .15s var(--ease)}
+.tile:hover{border-color:var(--cobalt-hi)}
+.tile:active{transform:scale(.97)}
+.tile .fr{position:relative;aspect-ratio:16/10;background:#000;display:grid;place-items:center;color:var(--faint);font:700 12px var(--display);letter-spacing:.14em;overflow:hidden}
+.tile .fr video,.tile .fr img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .cap{display:grid;gap:2px;padding:7px 9px 9px;min-width:0}
+.tile .cap span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px}
+.tile .cap small{font:11.5px var(--mono);color:var(--faint)}
+.tile .fv{position:absolute;top:5px;right:6px;color:var(--ember);font-size:18px;text-shadow:0 1px 4px #000;z-index:2}
+.tile .tc{position:absolute;left:6px;bottom:5px;padding:1px 5px;background:#000b;border-radius:2px;font:11px var(--mono);color:var(--ink);z-index:2}
 
-/* presets + assist modes */
-.presets{display:flex;gap:8px;overflow-x:auto;margin:0 -18px 16px;padding:2px 18px 6px;scroll-snap-type:x proximity;scroll-padding-inline:18px}
-.preset{flex:none;scroll-snap-align:start;display:grid;gap:1px;text-align:left;padding:8px 12px;min-width:92px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer}
-.preset b{font:600 14.5px/1.2 var(--display);letter-spacing:.02em}
-.preset small{font:11.5px var(--mono);color:var(--muted);white-space:nowrap}
-.preset[aria-pressed="true"]{border-color:var(--tally);background:var(--raised)}
-.seg{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
-.seg button{padding:6px 10px;background:none;border:0;border-right:1px solid var(--line);color:var(--muted);font-size:13px;cursor:pointer}
-.seg button:last-child{border-right:0}
-.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink)}
-.seg button:focus-visible{outline-offset:-2px}
-.assist{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
-.assist .lab{margin:0}
-.seg{display:flex;width:100%;margin-bottom:8px}
-.seg button{flex:1}
-.btn.alt{background:transparent}
+/* skeleton */
+.sk{position:relative;overflow:hidden;background:var(--deck);border:1px solid var(--line);border-radius:4px;min-height:56px}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,#3f6fff22 50%,transparent 80%);transform:translateX(-100%);animation:shim 1.4s infinite}
+@keyframes shim{to{transform:translateX(100%)}}
+.sk.tall{min-height:140px}
+
+/* system: instrument panel */
+.panel{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.inst{display:grid;gap:6px;align-content:start;padding:12px;background:var(--deck);border:1px solid var(--line);border-top:3px solid var(--line2);border-radius:4px;min-width:0}
+.inst h3{margin:0;font:700 11.5px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.inst .big{font:600 24px/1.1 var(--mono);overflow-wrap:anywhere}
+.inst .big.unk{color:var(--faint);font-size:18px}
+.inst p{margin:0;font-size:12.5px;color:var(--mute);overflow-wrap:anywhere}
+.meter{height:8px;border-radius:2px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--cobalt);transition:width .6s var(--ease)}
+.meter.warn i{background:var(--wait)}
+.inst[data-t="video"]{border-top-color:var(--ember)}
+.inst[data-t="llm"]{border-top-color:var(--go)}
+.inst[data-t="blue"]{border-top-color:var(--cobalt)}
+.kvlist{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
+.kvlist dt{color:var(--faint)}
+.kvlist dd{margin:0;font-family:var(--mono);font-size:12.5px;text-align:right;overflow-wrap:anywhere}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+
+/* dialogs */
+dialog{padding:0;border:1px solid var(--line2);border-radius:14px 14px 0 0;background:var(--bg);color:var(--ink);width:100%;max-width:640px;max-height:90dvh;margin:auto auto 0;overflow:hidden}
+dialog[open]{display:flex;flex-direction:column;animation:sheetup .35s var(--ease)}
+dialog::backdrop{background:#02050dcc;animation:fade .25s}
+@keyframes sheetup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.dh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--deck)}
+.dh h2{margin:0;font:700 16px var(--display);letter-spacing:.14em;text-transform:uppercase}
+.db{padding:14px;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+dialog.wide{max-width:900px}
+
+/* sign in + toasts + hint */
+.gate{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(120% 80% at 50% 0,#10204a 0,var(--bg) 60%);z-index:30;padding:20px}
+.gate form{display:grid;gap:12px;width:min(340px,100%)}
+.gate h1{margin:0;font:700 34px var(--display);letter-spacing:.2em;text-transform:uppercase}
+.gate p{margin:0;color:var(--mute)}
+#toasts{position:fixed;left:0;right:0;bottom:calc(72px + env(safe-area-inset-bottom));display:grid;justify-items:center;gap:8px;z-index:40;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;max-width:min(92vw,460px);padding:10px 14px;background:var(--ink);color:#0a1020;border-radius:6px;border-left:5px solid var(--cobalt);font-weight:600;box-shadow:0 10px 30px #000a;animation:rise .35s var(--ease)}
+.toast.ok{border-left-color:var(--go)}.toast.err{border-left-color:#d6213f}
+.toast.out{opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s}
+.toast button{min-height:36px;padding:4px 10px;border:1px solid #0a102066;border-radius:4px;background:transparent;color:#0a1020;font-weight:700;cursor:pointer}
+.hint{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:12px;align-items:center;padding:10px 12px;background:var(--raise);border:1px solid var(--line2);border-radius:8px;font-size:13.5px;box-shadow:0 8px 24px #0008}
+.hint span{flex:1}
 
 /* storyboard */
-.strip{border-top:1px solid var(--line);background:var(--panel);min-width:0}
-.strip-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px}
-.strip-h h2{margin:0;font:600 16px/1 var(--display);letter-spacing:.02em}
-.strip-h .n{font:12.5px var(--mono);color:var(--muted)}
-.strip-h .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-.strip-b{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x proximity}
+.strip{min-width:0}
+.strip-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
+.strip-h h2{margin:0;font:700 13px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.strip-h .n{font:12.5px var(--mono);color:var(--faint)}
+.strip-h .spc{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.strip-b{display:grid;gap:12px}
 .strip[data-open="false"] .strip-b{display:none}
-.strip-empty{color:var(--muted);font-size:13.5px;padding:6px 0 10px}
-.shot{flex:none;width:292px;scroll-snap-align:start;display:grid;gap:8px;align-content:start;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
-.shot[data-s="done"]{border-color:#5fd38d55}
-.shot[data-s="running"],.shot[data-s="starting"]{border-color:#ff5a3688}
-.shot[data-s="failed"]{border-color:#e5677b88}
+.strip-empty{color:var(--mute);font-size:13.5px;margin:0}
+.shot{display:grid;gap:10px;align-content:start;padding:12px;background:var(--deck);border:1px solid var(--line);border-top:3px solid var(--line2);border-radius:4px}
+.shot[data-s="done"]{border-top-color:var(--go)}
+.shot[data-s="running"],.shot[data-s="starting"]{border-top-color:var(--ember)}
+.shot[data-s="queued"],.shot[data-s="waiting"]{border-top-color:var(--wait)}
+.shot[data-s="failed"]{border-top-color:var(--stop)}
 .shot-h{display:flex;align-items:center;gap:8px}
-.shot-h b{font:600 14px var(--display);letter-spacing:.04em}
-.pill{font:12px var(--mono);color:var(--muted);margin-left:auto;white-space:nowrap}
-.pill.over{color:var(--wait)}
+.shot-h b{font:700 14px var(--display);letter-spacing:.14em}
+.shot-h .pl{font:12px var(--mono);color:var(--mute);margin-left:auto;white-space:nowrap}
 .shot textarea{min-height:76px;font-size:14px}
-.shot-img{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-.shot-img img{width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:none}
-.shot-img span{flex:1;min-width:0}
+.shot-img{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.shot-img img{width:56px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--line);flex:none}
+.shot-img span{flex:1;min-width:8ch}
 .shot-side{display:grid;gap:8px}
-.shot-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.shot-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
 .stepper{display:inline-flex;align-items:center;gap:2px}
 .stepper output{font:13px var(--mono);color:var(--ink);min-width:9ch;text-align:center}
-.stepper button{width:36px;padding:6px 0;text-align:center}
-.lock{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
-.lock input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px;margin:0}
-.lock-seed{width:14ch!important;padding:5px 8px!important;font:12.5px var(--mono)}
-.shot .acts .btn{flex:1 1 auto;text-align:center;padding:8px 10px}
-.shot .acts .go{flex:2 1 40%}
-.shot .acts .go{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
-.over{color:var(--wait)}
-.star{padding:6px 10px;min-width:36px;line-height:1;font-size:17px}
-.star[aria-pressed="true"]{color:var(--tally);border-color:var(--tally)}
-.reel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px}
-.reel-h h2{margin:0}
-.slate .end{display:flex;gap:6px;align-items:center}
-.hint{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:12px;align-items:center;padding:10px 12px;background:var(--raised);border:1px solid var(--line);border-radius:12px;font-size:13.5px;box-shadow:0 8px 24px #0008}
-.hint span{flex:1}
-.hint button{padding:6px 12px}
-.eta{font:13px var(--mono);color:var(--muted)}
+.stepper button{width:44px;padding:6px 0}
+.lock{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px}
+.lock input[type=checkbox]{accent-color:var(--ember);width:24px;height:24px;margin:0}
+.lock-seed{width:14ch!important;min-height:44px;padding:5px 8px!important;font:12.5px var(--mono)}
+.shot .acts .btn{flex:1 1 auto}
+.shot .acts .go{flex:2 1 40%;width:auto;font-size:14px;min-height:44px;letter-spacing:.08em}
 
+/* wider screens: rail + two columns */
 @media (min-width:981px){
-  .presets{flex-wrap:wrap;overflow:visible;margin:0 0 16px;padding:0}
-  .strip{max-height:40vh;display:flex;flex-direction:column}
-  .strip-b{align-items:start;overflow-y:auto;min-height:0}
-  .shot{width:540px;grid-template-columns:minmax(0,1fr) 210px;grid-template-areas:"head head" "prompt side" "acts acts";gap:8px 12px}
-  .shot-h{grid-area:head}
-  .shot>textarea{grid-area:prompt;height:100%;min-height:96px;resize:none}
-  .shot-side{grid-area:side;display:grid;gap:8px;align-content:start}
-  .shot>.acts{grid-area:acts}
+  .app{grid-template-columns:84px minmax(0,1fr);grid-template-areas:"bar bar" "nav main"}
+  .nav{grid-template-columns:1fr;grid-auto-rows:76px;align-content:start;border-top:0;border-right:1px solid var(--line);padding:6px 0}
+  .nav button[aria-current="page"]::before{top:20%;bottom:20%;left:0;right:auto;width:3px;height:auto;border-radius:0 3px 3px 0}
+  .nav .badge{top:10px;left:calc(50% + 6px)}
+  .view{padding:20px 28px 32px}
+  #v-create .split{grid-template-columns:minmax(360px,440px) minmax(0,1fr);gap:0 36px;align-items:start}
+  .presets{flex-wrap:wrap;overflow:visible;margin:0 0 14px;padding:0}
+  .dock{margin:8px 0 -32px;padding-left:0;padding-right:0}
+  .qgrid{grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:32px;align-items:start}
+  .qgrid .stagecol{order:2;position:sticky;top:0}
+  .brand small{display:inline}
+  dialog{border-radius:14px;margin:auto;max-height:86dvh}
+  #toasts{bottom:24px}
+  .hint{bottom:20px;max-width:420px}
 }
-/* sign in + toast */
-.gate{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:10;padding:20px}
-.gate form{display:grid;gap:12px;width:min(340px,100%)}
-.gate h1{margin:0;font:600 28px var(--display)}
-.gate p{margin:0;color:var(--muted)}
-.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;z-index:20;max-width:90vw}
-
-@media (max-width:980px){
-  .cols{grid-template-columns:1fr;padding-bottom:64px}
-  .pane{border-right:0;padding:14px;display:none}
-  .presets{margin:0 -14px 16px;padding:2px 14px 6px}
-  .strip{display:none;overflow:auto;padding-bottom:64px;border-top:0}
-  .app[data-tab="shots"] .cols{display:none}
-  .app[data-tab="shots"] .strip{display:block}
-  .strip .strip-b{display:flex!important;padding:4px 14px 14px}
-  .strip-h{padding:12px 14px 4px}
-  .strip .tog{display:none}
-  .shot{width:min(86vw,320px)}
-  .dock{bottom:-14px;margin:0 -14px -14px;padding:10px 14px calc(14px + env(safe-area-inset-bottom))}
-  .app[data-tab="create"] .pane.c,.app[data-tab="stage"] .pane.s,.app[data-tab="reel"] .pane.r{display:block}
-  .nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);z-index:5}
-  .nav button{padding:14px 4px;background:none;border:0;color:var(--muted);font:600 15px var(--display);letter-spacing:.02em;cursor:pointer}
-  .nav button[aria-current="true"]{color:var(--ink);box-shadow:inset 0 2px 0 var(--ink)}
-  .gpu span.long{display:none}
-  .hint{bottom:calc(72px + env(safe-area-inset-bottom))}
+@media (max-width:980px){.brand small{display:none}}
+@media (max-width:420px){
   .clock{font-size:44px}
+  .brand b{font-size:19px;letter-spacing:.1em}
+  .pill .k{display:none}
 }
-@media (max-width:980px),(pointer:coarse){
-  .btn,.btn.sm,.chip,.wf,.preset,.nav button,.pick,.seg button,.stepper button,.star,.hint button{min-height:44px}
-  .star{min-width:44px}
-  .seg button{padding:6px 12px}
-  input[type=text],input[type=number],input[type=password],select{min-height:44px}
-  input[type=range]{height:44px}
-  .lock{min-height:44px}.lock input[type=checkbox]{width:24px;height:24px}
-  .drop{min-height:132px}
-}
-@media (max-width:400px){
-  .bar{gap:10px;padding-left:12px;padding-right:12px}
-  .gpu{padding:6px 10px;gap:7px}
-  .pane{padding:12px}
-  .dock{margin:0 -12px -14px;padding:10px 12px calc(14px + env(safe-area-inset-bottom))}
-  .presets{margin:0 -12px 16px;padding:2px 12px 6px}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:359px){.pill .t .long{display:none}}
+@media (pointer:coarse){input[type=checkbox]{min-width:24px;min-height:24px}}
+
+/* motion: system setting by default, overridable in Settings */
+html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media (prefers-reduced-motion:reduce){html:not([data-motion="full"]) *,html:not([data-motion="full"]) *::before,html:not([data-motion="full"]) *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -247,26 +358,43 @@ a.btn{color:inherit;display:inline-block;text-decoration:none}
   </form>
 </div>
 
-<div class="app" id="app" data-tab="create">
+<div class="app intro" id="app" data-live="0">
   <header class="bar">
-    <div class="brand">Studio</div>
-    <div class="gpu" id="gpu" data-own="" role="status" aria-live="polite" title="Green: Qwen has the GPU. Amber: handing over. Orange: video is rendering and Qwen is paused."><i class="lamp"></i><span class="k">GPU</span><span id="gpuText">Connecting</span></div>
+    <div class="brand"><i class="rec" aria-hidden="true"></i><b>Studio</b><small>LTX 2.5 · Arc B60</small></div>
+    <div class="sp"></div>
+    <button class="pill" id="gpu" type="button" data-own="" aria-live="polite" title="Open the System tab. Green: Qwen has the GPU. Amber: handing over. Orange: video has the GPU."><i class="lamp"></i><span class="k">GPU</span><span class="t" id="gpuText">Connecting</span></button>
+    <button class="iconbtn" id="openSettings" type="button" aria-label="Settings and advanced" title="Settings and advanced"></button>
   </header>
-  <main class="cols">
-    <section class="pane c" id="compose" aria-label="Create"></section>
-    <section class="pane s" id="stage" aria-label="Preview"></section>
-    <section class="pane r" id="reelPane" aria-label="Queue and library"><div class="reel-h"><h2>Reel</h2><button class="chip" id="favFilter" type="button" aria-pressed="false" title="Show only starred clips">&#9733; Favourites</button></div><div class="reel" id="reel"></div></section>
+  <main>
+    <section class="view" id="v-create" aria-label="Create" hidden>
+      <div class="split">
+        <div class="sec" id="createCol"><div class="gpuline" id="gpuRow"></div><div id="compose" style="margin-top:18px"></div></div>
+        <div class="sec strip" id="strip" aria-label="Storyboard" data-open="false"></div>
+      </div>
+    </section>
+    <section class="view" id="v-queue" aria-label="Queue" hidden>
+      <div class="qgrid">
+        <div class="sec"><div class="hd"><span>On the slate</span><small id="qCount"></small></div><div class="reel" id="qList"></div></div>
+        <div class="sec stagecol"><div class="hd"><span>Monitor</span></div><div id="stage"></div></div>
+      </div>
+    </section>
+    <section class="view" id="v-gallery" aria-label="Gallery" hidden>
+      <div class="sec"><div class="hd"><span>Gallery</span><button class="chip" id="favFilter" type="button" aria-pressed="false" title="Show only starred clips">&#9733; Favourites</button></div><div class="sheet" id="sheet"></div></div>
+    </section>
+    <section class="view" id="v-system" aria-label="System" hidden>
+      <div class="sec"><div class="hd"><span>GPU control</span><small id="sysAge"></small></div><div class="gpuline" id="gpuRow2"></div></div>
+      <div class="sec" id="comfyCol"></div>
+      <div class="sec"><div class="hd"><span>Machine</span></div><div class="panel" id="sysPanel"></div></div>
+    </section>
   </main>
-  <section class="strip" id="strip" aria-label="Storyboard" data-open="false"></section>
-  <nav class="nav" id="nav">
-    <button data-tab="create" aria-current="true">Create</button>
-    <button data-tab="stage">Preview</button>
-    <button data-tab="shots">Shots</button>
-    <button data-tab="reel">Reel</button>
-  </nav>
+  <nav class="nav" id="nav" aria-label="Sections"></nav>
 </div>
+
+<dialog id="settings" aria-label="Settings and advanced"><div class="dh"><h2>Settings</h2><button class="btn sm" id="closeSettings" type="button">Done</button></div><div class="db" id="settingsBody"></div></dialog>
+<dialog id="viewer" class="wide" aria-label="Clip"><div class="dh"><h2>Clip</h2><button class="btn sm" id="closeViewer" type="button">Close</button></div><div class="db" id="viewerBody"></div></dialog>
+
 <div class="hint" id="a2hs" role="note" hidden><span>Install Studio: tap <b>Share</b>, then <b>Add to Home Screen</b>.</span><button class="btn sm" id="a2hsOk" type="button">Got it</button></div>
-<div class="toast" id="toast" hidden></div>
+<div id="toasts" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -274,14 +402,24 @@ const B = location.pathname.replace(/studio\/?$/, "");          // "/approvals/"
 const $ = s => document.querySelector(s);
 if (B !== "/approvals/") for (const l of document.querySelectorAll('link[rel="manifest"],link[rel="apple-touch-icon"]')) l.href = B + "studio/" + l.getAttribute("href").split("/").pop();   // behind a path prefix (the tailnet)
 const ACTIVE = ["queued", "waiting", "starting", "running"];
-const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, status: null, upload: null, busy: false, seen: {}, enabled: true,
-           mode: "single", shots: [], stripOpen: null, favOnly: false};
+const COMFY_PORT = 8448;                                          // CueForge / ComfyUI on the tailnet
+const S = {wfs: [], wf: null, vals: {}, jobs: [], sel: null, status: null, sys: null, sysAt: 0, upload: null, enabled: true, mode: "single", shots: [], stripOpen: null,
+           favOnly: false, tab: "create", loaded: false, ticks: {}, modeBusy: false, comfyBusy: false, modeMsg: "", seen: {}};
 
 /* per-viewer convenience only: every access is guarded, and the app works without it */
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window or blocked storage */ } }
 };
+
+/* ---------- settings (persisted) ---------- */
+const DEFAULTS = {wf: "", len: 0, size: "", seedLock: false, autoOpen: true, haptics: true, sound: false, motion: "system", poll: "normal"};
+const POLL = {live: {label: "Live (every 2 s while rendering)", busy: 2000, idle: 6000}, normal: {label: "Normal (every 3 s while rendering)", busy: 3000, idle: 9000}, saver: {label: "Battery saver (every 8 s while rendering)", busy: 8000, idle: 30000}};
+const CFG = Object.assign({}, DEFAULTS);
+(function () { const s = store.get("studio.settings.v3"); if (s && typeof s === "object") for (const k of Object.keys(DEFAULTS)) if (typeof s[k] === typeof DEFAULTS[k]) CFG[k] = s[k]; if (!POLL[CFG.poll]) CFG.poll = "normal"; if (!["system", "reduce", "full"].includes(CFG.motion)) CFG.motion = "system"; })();
+function saveCfg() { store.set("studio.settings.v3", CFG); applyCfg(); }
+function applyCfg() { document.documentElement.dataset.motion = CFG.motion; }
+applyCfg();
 
 function h(tag, attrs, ...kids) {
   const e = document.createElement(tag);
@@ -292,14 +430,40 @@ function h(tag, attrs, ...kids) {
   for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
   return e;
 }
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500); }
+const ICONS = {
+  create: ["M12 5v14", "M5 12h14"],
+  queue: ["M8 6h12", "M8 12h12", "M8 18h12", "M4 6h.01", "M4 12h.01", "M4 18h.01"],
+  gallery: ["M4 4h7v7H4z", "M13 4h7v7h-7z", "M4 13h7v7H4z", "M13 13h7v7h-7z"],
+  system: ["M7 7h10v10H7z", "M10 3v4", "M14 3v4", "M10 17v4", "M14 17v4", "M3 10h4", "M3 14h4", "M17 10h4", "M17 14h4"],
+  sliders: ["M4 7h10", "M18 7h2", "M4 17h2", "M10 17h10", "M14 5v4", "M6 15v4"]
+};
+function icon(name) {
+  const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "ic"); s.setAttribute("aria-hidden", "true");
+  for (const d of ICONS[name]) { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.append(p); }
+  return s;
+}
+function toast(msg, kind, action) {
+  const box = $("#toasts"); while (box.children.length >= 3) box.firstChild.remove();
+  const t = h("div", {class: "toast" + (kind ? " " + kind : "")}, h("span", {}, msg));
+  if (action) t.append(h("button", {type: "button", onclick: () => { t.remove(); action.fn(); }}, action.label));
+  box.append(t);
+  setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 300); }, kind === "err" ? 6000 : 3500);
+}
 function mmss(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); return String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
 function ago(t) { const s = Date.now() / 1000 - t; return s < 90 ? "just now" : s < 5400 ? Math.round(s / 60) + " min ago" : s < 129600 ? Math.round(s / 3600) + " h ago" : Math.round(s / 86400) + " d ago"; }
 function lock() { const g = $("#gate"); g.hidden = false; $("#pin").focus(); }
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const wfByName = n => S.wfs.find(w => w.name === n);
 function estSec(w) { const n = String((w && w.est_minutes) || "").match(/[\d.]+/g); return n ? parseFloat(n[n.length - 1]) * 60 : 0; }
-function estText(w) { const e = estSec(w); return e ? " / ~" + Math.round(e / 60) + " min" : ""; }
+/* the workflow's measured time, scaled by size and length when it says what it was measured at (est_ref = [width, height, seconds]) */
+function estFor(j) {
+  const w = wfByName(j.workflow); let e = estSec(w); if (!e) return 0;
+  const r = w.est_ref, p = j.params || {};
+  if (r && p.width && p.height) { const secs = +p.seconds || (p.frames ? (p.frames - 1) / (+w.fps || 24) : 0); if (secs > 0) e *= (p.width * p.height * secs) / (r[0] * r[1] * r[2]); }
+  return Math.max(e, 10);
+}
+const isTyping = () => { const a = document.activeElement; return !!a && /^(TEXTAREA|INPUT|SELECT)$/.test(a.tagName); };
 
 async function api(path, o) {
   o = o || {};
@@ -308,7 +472,7 @@ async function api(path, o) {
     body: o.json ? JSON.stringify(o.json) : o.body});
   if (r.status === 401) { lock(); throw new Error("signed out"); }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || d.result || ("request failed (" + r.status + ")"));
+  if (!r.ok) { const e = new Error(d.error || d.result || ("request failed (" + r.status + ")")); e.status = r.status; throw e; }
   return d;
 }
 
@@ -319,8 +483,131 @@ $("#gateForm").addEventListener("submit", async e => {
   if (r.ok) { $("#gate").hidden = true; $("#pin").value = ""; $("#gateErr").hidden = true; boot(); }
   else { const m = $("#gateErr"); m.textContent = r.status === 429 ? "Too many wrong PINs. Wait a few minutes." : "That PIN is not right."; m.hidden = false; }
 });
-$("#nav").addEventListener("click", e => { const b = e.target.closest("button"); if (b) tab(b.dataset.tab); });
-function tab(t) { $("#app").dataset.tab = t; document.querySelectorAll("#nav button").forEach(b => b.setAttribute("aria-current", String(b.dataset.tab === t))); }
+
+/* ---------- tabs ---------- */
+const TABS = [["create", "Create"], ["queue", "Queue"], ["gallery", "Gallery"], ["system", "System"]];
+function buildNav() {
+  const nav = $("#nav"); nav.replaceChildren();
+  for (const [id, label] of TABS) nav.append(h("button", {type: "button", "data-tab": id, "aria-current": "false", onclick: () => tab(id)}, icon(id), h("span", {}, label), id === "queue" ? h("i", {class: "badge", id: "qBadge", hidden: true}) : null));
+}
+function tab(t) {
+  if (!TABS.some(x => x[0] === t)) t = "create";
+  S.tab = t; store.set("studio.tab.v3", t);
+  document.querySelectorAll(".view").forEach(v => { const on = v.id === "v-" + t; if (on && v.hidden) { v.hidden = false; v.classList.remove("on"); void v.offsetWidth; v.classList.add("on"); } else if (!on) { v.hidden = true; v.classList.remove("on"); } });
+  document.querySelectorAll("#nav button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t ? "page" : "false"));
+  if (t === "queue") renderQueue(); if (t === "gallery") renderGallery(); if (t === "system") { renderSystem(); pollSys(); }
+  const v = $("#v-" + t); if (v) v.scrollTop = 0;
+}
+
+/* ---------- GPU switch (Video / Qwen) ---------- */
+function gpuView() {
+  const s = S.sys; if (!s) return "";
+  if (s.mode === "video" || s.mode === "busy") return "video";
+  return s.mode === "llm" ? "llm" : "";
+}
+function gpuSwitch() {
+  const mk = (m, label) => h("button", {type: "button", role: "radio", "data-m": m, "aria-checked": "false", onclick: () => setMode(m)}, h("i"), label);
+  return h("div", {class: "gsw", role: "radiogroup", "aria-label": "Who has the GPU", "data-v": ""}, mk("video", "Video"), mk("llm", "Qwen"));
+}
+function gpuControl(root) {
+  root.replaceChildren(h("div", {class: "hd"}, h("span", {}, "GPU"), h("small", {class: "gsw-state"}, "")), gpuSwitch(), h("div", {class: "gsw-msg", role: "status"}, ""));
+  paintSwitches();
+}
+function paintSwitches() {
+  const v = gpuView(), s = S.sys;
+  document.querySelectorAll(".gsw").forEach(sw => {
+    sw.dataset.v = v; sw.setAttribute("aria-busy", String(S.modeBusy));
+    sw.querySelectorAll("button").forEach(b => { b.setAttribute("aria-checked", String(b.dataset.m === v)); b.disabled = S.modeBusy; });
+  });
+  const txt = !s ? "Reading the PC" : s.mode === "busy" ? (s.comfy && s.comfy.session ? "Busy: ComfyUI session open" : "Busy: video is in the queue") : s.mode === "video" ? "Video has the GPU, Qwen is unloaded" : s.mode === "llm" ? (s.llm_loaded ? "Qwen has the GPU, model loaded" : "Qwen has the GPU, model not loaded yet") : "Unknown";
+  document.querySelectorAll(".gsw-state").forEach(e => e.textContent = s ? (s.mode === "video" ? "VIDEO" : s.mode === "llm" ? "QWEN" : s.mode === "busy" ? "BUSY" : "") : "");
+  document.querySelectorAll(".gsw-msg").forEach(e => { e.textContent = S.modeMsg || txt; e.classList.toggle("bad", !!S.modeMsg); });
+}
+async function setMode(m) {
+  if (S.modeBusy || gpuView() === m && !(S.sys && S.sys.mode === "busy" && m === "llm")) return;
+  S.modeBusy = true; S.modeMsg = ""; paintSwitches();
+  try { await api("mode", {method: "POST", json: {mode: m}}); toast(m === "video" ? "GPU handed to Video" : "GPU handed back to Qwen", "ok"); }
+  catch (x) {
+    S.modeMsg = x.status === 409 ? (x.message && x.message.length > 8 ? x.message : "A video is rendering; wait or cancel it first") : x.message;
+    toast(S.modeMsg, "err");
+  }
+  S.modeBusy = false; await pollSys(); if (!S.modeMsg) paintSwitches();
+}
+
+/* ---------- ComfyUI / CueForge session ---------- */
+function comfyUrl(path) { const p = S.sys && S.sys.comfy && Number.isInteger(S.sys.comfy.port) && S.sys.comfy.port > 0 ? S.sys.comfy.port : COMFY_PORT; return "https://" + location.hostname + ":" + p + path; }
+function comfyState() {
+  const c = S.sys && S.sys.comfy; if (!c) return "unknown";
+  if (c.session && c.idle_s == null) return "starting";
+  if (c.session) return "ready";
+  if (c.running) return "running";
+  return "off";
+}
+async function comfyAct(action) {
+  if (S.comfyBusy) return; S.comfyBusy = true; renderComfy();
+  try { await api("comfy", {method: "POST", json: {action}}); toast(action === "start" ? "Starting ComfyUI. It takes a moment." : "Stopping ComfyUI", "ok"); }
+  catch (x) { toast(x.status === 409 ? (x.message || "A video is rendering; wait or cancel it first") : x.message, "err"); }
+  S.comfyBusy = false; await pollSys(); renderComfy();
+}
+function renderComfy() {
+  const root = $("#comfyCol"); if (!root) return; root.replaceChildren();
+  const st = comfyState(), c = (S.sys && S.sys.comfy) || {}, up = st === "ready" || st === "running";
+  const label = {unknown: "Unknown", off: "Off", starting: "Starting", ready: "Ready", running: "Running"}[st];
+  const idle = c.session && c.idle_s != null ? "Idle for " + (c.idle_s < 90 ? c.idle_s + " s" : Math.round(c.idle_s / 60) + " min") + ". It stops itself after a quiet spell." : st === "starting" ? "Taking the GPU from Qwen and loading ComfyUI." : st === "off" ? "Not running. Starting it takes the GPU from Qwen and stops itself when idle." : st === "running" ? "ComfyUI is up." : "Waiting for the PC.";
+  root.append(h("div", {class: "hd"}, h("span", {}, "ComfyUI / CueForge session"), h("small", {}, label)),
+    h("div", {class: "inst", "data-t": up ? "video" : "blue"}, h("div", {class: "big" + (st === "unknown" ? " unk" : "")}, label), h("p", {}, idle),
+      h("div", {class: "acts"},
+        st === "off" || st === "unknown" ? h("button", {class: "btn go", type: "button", style: "width:auto;min-width:160px;font-size:15px", disabled: S.comfyBusy || st === "unknown", onclick: () => comfyAct("start")}, S.comfyBusy ? "Starting" : "Start session")
+          : h("button", {class: "btn warn", type: "button", disabled: S.comfyBusy, onclick: () => comfyAct("stop")}, S.comfyBusy ? "Stopping" : "Stop session")),
+      up ? h("div", {class: "links"},
+        h("a", {class: "btn", href: comfyUrl("/mobile"), target: "_blank", rel: "noopener noreferrer"}, "Open CueForge"),
+        h("a", {class: "btn quiet", href: comfyUrl("/"), target: "_blank", rel: "noopener noreferrer"}, "Open ComfyUI")) : null));
+}
+
+/* ---------- system poll + System tab ---------- */
+async function pollSys() {
+  try { S.sys = await api("system"); S.sysAt = Date.now(); } catch (x) { if (x.message === "signed out") return; }
+  renderGpu(); paintSwitches(); if (S.tab === "system") renderSystem();
+}
+const unk = v => v == null || v === "" || (typeof v === "number" && !isFinite(v));
+const gb = mb => (mb / 1024).toFixed(mb >= 10240 ? 0 : 1) + " GB";
+function inst(title, big, lines, tone, meter) {
+  return h("div", {class: "inst", "data-t": tone || ""}, h("h3", {}, title), h("div", {class: "big" + (big === "Unknown" ? " unk" : "")}, big),
+    meter != null ? h("div", {class: "meter" + (meter > 90 ? " warn" : ""), role: "meter", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(Math.round(meter)), "aria-label": title}, h("i", {style: "width:" + clamp(meter, 0, 100) + "%"})) : null,
+    (lines || []).filter(Boolean).map(l => h("p", {}, l)));
+}
+function renderSystem() {
+  const root = $("#sysPanel"); if (!root) return;
+  if (!$("#gpuRow2").firstChild) gpuControl($("#gpuRow2"));
+  renderComfy();
+  const s = S.sys;
+  $("#sysAge").textContent = s ? "updated " + mmss((Date.now() - S.sysAt) / 1000) + " ago" : "";
+  if (!s) { root.replaceChildren(...[0, 1, 2, 3].map(() => h("div", {class: "sk tall"}))); return; }
+  const owner = s.mode === "video" ? "Video" : s.mode === "llm" ? "Qwen" : s.mode === "busy" ? "Video (busy)" : "Unknown";
+  const ram = s.ram || {}, ramT = ram.total_mb || 0, ramA = ram.avail_mb || 0, ramUsed = ramT ? ramT - ramA : 0;
+  const v = s.vram;
+  const vramOk = v && typeof v === "object" && Number.isFinite(+v.total_mb) && +v.total_mb > 0 && Number.isFinite(+v.used_mb);
+  const q = s.queue || {}, lastR = s.last || {}, dr = s.drive || {};
+  const cards = [
+    inst("GPU owner", owner, [s.mode === "busy" ? (s.comfy && s.comfy.session ? "A ComfyUI session is holding the GPU." : "A video is queued or rendering.") : null], s.mode === "llm" ? "llm" : s.mode ? "video" : ""),
+    inst("Qwen", unk(s.llm_loaded) ? "Unknown" : s.llm_loaded ? "Loaded" : "Not loaded", ["The language model that writes prompts."], "llm"),
+    vramOk ? inst("VRAM", gb(+v.used_mb) + " used", [gb(+v.total_mb - +v.used_mb) + " free of " + gb(+v.total_mb)], "blue", (+v.used_mb / +v.total_mb) * 100)
+      : inst("VRAM", "Unknown", ["This PC does not report GPU memory to Studio yet."], "blue"),
+    inst("System RAM", ramT ? gb(ramUsed) + " used" : "Unknown", ramT ? [gb(ramA) + " free of " + gb(ramT)] : ["The PC did not report memory."], "blue", ramT ? ramUsed / ramT * 100 : null),
+    inst("Queue", unk(q.len) ? "Unknown" : q.len + (q.len === 1 ? " job" : " jobs"), [q.running_id ? "Rendering " + q.running_id + (q.stage ? ": " + q.stage : "") + (typeof q.progress === "number" ? " (" + Math.round(q.progress) + "%)" : "") : "Nothing rendering"], "video", typeof q.progress === "number" ? q.progress : null),
+    inst("Disk for clips", s.disk && s.disk.out_free_gb ? s.disk.out_free_gb + " GB free" : "Unknown", ["Where finished clips are saved."], "blue"),
+    inst("Last render", lastR.seconds != null ? mmss(lastR.seconds) : "Unknown", [lastR.out_seconds ? lastR.out_seconds + " s of film" + (lastR.seconds ? " · " + (lastR.seconds / lastR.out_seconds).toFixed(1) + " s per second of film" : "") : "No finished render to measure yet."], "video"),
+    h("div", {class: "inst", "data-t": "blue"}, h("h3", {}, "Services"), h("dl", {class: "kvlist"},
+      h("dt", {}, "Drive copy"), h("dd", {}, unk(dr.mode) ? "Unknown" : dr.mode === "off" ? "Off" : dr.mode + (dr.dir_ok ? "" : " (folder not writable)")),
+      h("dt", {}, "Last copied"), h("dd", {}, dr.last_path || (dr.last_error ? "Error: " + dr.last_error : "None")),
+      h("dt", {}, "Phone alerts"), h("dd", {}, unk(s.ntfy) ? "Unknown" : s.ntfy ? "On" : "Off"),
+      h("dt", {}, "Loudness norm"), h("dd", {}, unk(s.loudnorm) ? "Unknown" : s.loudnorm ? "On" : "Off"),
+      h("dt", {}, "Studio"), h("dd", {}, s.version || "Unknown"),
+      h("dt", {}, "Workflows"), h("dd", {}, S.wfs.length ? S.wfs.length + " installed" : "Unknown"))),
+    s.error ? h("div", {class: "err"}, "The PC could not read all its numbers (" + s.error + "). What is shown is what it had.") : null
+  ];
+  root.replaceChildren(...cards.filter(Boolean));
+}
 
 /* ---------- compose ---------- */
 function wfNow() { return wfByName(S.wf); }
@@ -329,8 +616,8 @@ function pickWf(name) {
   S.vals = Object.assign({}, keep);
   if (!w.params.image) delete S.vals.image;
   for (const [k, p] of Object.entries(w.params)) if (!(k in S.vals) && "default" in p && !["prompt", "negative", "seed", "image"].includes(k)) S.vals[k] = p.default;
-  const sr = secRange(w); if (sr && S.vals.seconds == null) S.vals.seconds = sr.def;
-  if (w.sizes.length && S.vals.size == null) S.vals.size = 0;
+  const sr = secRange(w); if (sr && S.vals.seconds == null) S.vals.seconds = CFG.len > 0 ? snapSecs(sr, CFG.len) : sr.def;
+  if (w.sizes.length && S.vals.size == null) { const i = CFG.size ? sizeIndex(w, CFG.size) : -1; S.vals.size = i >= 0 ? i : 0; }
   renderCompose();
 }
 function secRange(w) {
@@ -348,7 +635,7 @@ function frameInfo(w, s) {
 function lenText(w, s) { const i = frameInfo(w, s); return i.secs + " s · " + i.frames + " f"; }
 function slider(w, k, p) {
   const out = h("output", {}, S.vals[k]);
-  const inp = h("input", {type: "range", min: p.min, max: p.max, step: p.step || (p.type === "float" ? 0.1 : p.multiple_of || 1), value: S.vals[k], oninput: e => { S.vals[k] = +e.target.value; out.textContent = e.target.value; }});
+  const inp = h("input", {type: "range", min: p.min, max: p.max, step: p.step || (p.type === "float" ? 0.1 : p.multiple_of || 1), value: S.vals[k], "aria-label": p.label || k, oninput: e => { S.vals[k] = +e.target.value; out.textContent = e.target.value; paintReq(); }});
   return h("div", {class: "field"}, h("label", {}, p.label || k.replace(/_/g, " "), out), inp, p.help ? h("div", {class: "help"}, p.help) : null);
 }
 
@@ -405,18 +692,25 @@ async function writeWithQwen(idea, mode, btn, done) {
   idea = (idea || "").trim(); if (!idea) return toast("Write a few words first");
   const was = btn.textContent; btn.disabled = true; btn.textContent = "Writing";
   try { const d = await api("assist", {method: "POST", json: {idea, workflow: S.wf, mode}}); done(d.prompt); }
-  catch (x) { toast(x.message); } finally { btn.disabled = false; btn.textContent = was; }
+  catch (x) { toast(x.message, "err"); } finally { btn.disabled = false; btn.textContent = was; }
+}
+let reqPre = null;
+function paintReq() {
+  if (!reqPre) return; const w = wfNow(); if (!w) return;
+  const r = buildParams(w, S.vals, true);
+  reqPre.textContent = JSON.stringify({workflow: S.wf, params: r.params || r.draft || {}}, null, 1) + (r.error ? "\n(" + r.error + ")" : "");
 }
 function renderCompose() {
-  const w = wfNow(), root = $("#compose"); root.replaceChildren();
-  root.append(h("h2", {}, "Create"));
+  const w = wfNow(), root = $("#compose"); root.replaceChildren(); reqPre = null;
+  root.append(h("div", {class: "hd"}, h("span", {}, "Create")));
   if (!w) return;
   const pr = presetRow(w); if (pr) root.append(pr);
-  root.append(h("div", {class: "wfs"}, S.wfs.map(x => h("button", {class: "wf", "aria-pressed": String(x.name === S.wf), onclick: () => pickWf(x.name)},
+  root.append(h("div", {class: "wfs"}, S.wfs.map(x => h("button", {class: "wf", type: "button", "aria-pressed": String(x.name === S.wf), onclick: () => pickWf(x.name)},
     h("span", {class: "t"}, x.title), h("span", {class: "e"}, x.est_minutes ? "~" + x.est_minutes + " min" : ""), h("span", {class: "m"}, x.description)))));
+  root.lastChild.style.marginBottom = "18px";
   const P = w.params;
   if (P.prompt) {
-    const ta = h("textarea", {id: "prompt", rows: 5, maxlength: P.prompt.max_len || 2000, placeholder: "Describe the shot: who or what, what happens, how the camera moves, the light.", oninput: e => S.vals.prompt = e.target.value}); ta.value = S.vals.prompt || "";
+    const ta = h("textarea", {id: "prompt", rows: 5, maxlength: P.prompt.max_len || 2000, placeholder: "Describe the shot: who or what, what happens, how the camera moves, the light.", oninput: e => { S.vals.prompt = e.target.value; paintReq(); }}); ta.value = S.vals.prompt || "";
     const hint = h("div", {class: "help", id: "modeHelp"});
     const paintHint = () => { hint.textContent = (MODES.find(m => m[0] === S.mode) || MODES[0])[2] + ". A few words are enough; Qwen writes the full description when the GPU is not rendering."; };
     const seg = h("div", {class: "seg", role: "group", "aria-label": "Prompt style"}, MODES.map(m => h("button", {type: "button", "aria-pressed": String(S.mode === m[0]), title: m[2], onclick: e => {
@@ -424,7 +718,7 @@ function renderCompose() {
     paintHint();
     const ai = h("button", {class: "btn sm", type: "button", onclick: e => {
       if (S.mode === "continue" && !S.vals.image) return toast("Add a start image first, then say what happens next");
-      writeWithQwen(S.vals.prompt, S.mode, e.currentTarget, t => { S.vals.prompt = t; ta.value = t; });
+      writeWithQwen(S.vals.prompt, S.mode, e.currentTarget, t => { S.vals.prompt = t; ta.value = t; paintReq(); });
     }}, "Write with Qwen");
     root.append(h("div", {class: "field"}, h("div", {class: "assist"}, h("label", {class: "lab", for: "prompt"}, "Prompt"), ai), seg, ta, hint));
   }
@@ -432,37 +726,43 @@ function renderCompose() {
   const sr = secRange(w);
   if (sr) {
     const out = h("output", {}, lenText(w, S.vals.seconds));
-    root.append(h("div", {class: "field"}, h("label", {}, "Length", out), h("input", {type: "range", min: sr.min, max: sr.max, step: sr.step, value: S.vals.seconds, "aria-label": "Length in seconds", oninput: e => { S.vals.seconds = +e.target.value; out.textContent = lenText(w, S.vals.seconds); }})));
+    root.append(h("div", {class: "field"}, h("label", {}, "Length", out), h("input", {type: "range", min: sr.min, max: sr.max, step: sr.step, value: S.vals.seconds, "aria-label": "Length in seconds", oninput: e => { S.vals.seconds = +e.target.value; out.textContent = lenText(w, S.vals.seconds); paintReq(); }})));
   }
   if (w.sizes.length) root.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Frame"), h("div", {class: "chips"}, w.sizes.map((s, i) =>
     h("button", {class: "chip", type: "button", "aria-pressed": String((S.vals.size || 0) === i), onclick: () => { S.vals.size = i; renderCompose(); }}, s[2] || (s[0] + "×" + s[1]), h("small", {}, s[0] + "×" + s[1]))))));
-  else for (const k of ["width", "height"]) if (P[k]) root.append(slider(w, k, P[k]));
-  const more = h("details", {class: "more"}, h("summary", {}, "More controls"));
-  if (P.negative) { const nt = h("textarea", {rows: 2, style: "min-height:64px", maxlength: P.negative.max_len || 2000, placeholder: "What to keep out of the shot", oninput: e => S.vals.negative = e.target.value}); nt.value = S.vals.negative || ""; more.append(h("div", {class: "field"}, h("label", {}, "Avoid"), nt)); }
+  /* Advanced: every per-job parameter the chosen workflow accepts (the server rejects anything else), plus the exact request */
+  const adv = h("details", {class: "adv"}, h("summary", {}, "Advanced"));
+  if (!w.sizes.length) for (const k of ["width", "height"]) if (P[k]) adv.append(slider(w, k, P[k]));
+  if (P.negative) { const nt = h("textarea", {rows: 2, style: "min-height:64px", maxlength: P.negative.max_len || 2000, placeholder: "What to keep out of the shot", "aria-label": "Avoid", oninput: e => { S.vals.negative = e.target.value; paintReq(); }}); nt.value = S.vals.negative || ""; adv.append(h("div", {class: "field"}, h("label", {}, "Avoid"), nt)); }
   for (const [k, p] of Object.entries(P)) {
     if (["prompt", "negative", "image", "width", "height", "frames", "seed", "seconds"].includes(k)) continue;
-    if (p.choices) { const s = h("select", {onchange: e => S.vals[k] = e.target.value}, p.choices.map(c => h("option", {value: c}, c))); s.value = S.vals[k] ?? p.default ?? p.choices[0]; more.append(h("div", {class: "field"}, h("label", {}, p.label || k), s)); }
-    else if (p.type === "int" || p.type === "float") more.append(slider(w, k, p));
+    if (p.choices) { const s = h("select", {"aria-label": p.label || k, onchange: e => { S.vals[k] = e.target.value; paintReq(); }}, p.choices.map(c => h("option", {value: c}, c))); s.value = S.vals[k] ?? p.default ?? p.choices[0]; adv.append(h("div", {class: "field"}, h("label", {}, p.label || k), s, p.help ? h("div", {class: "help"}, p.help) : null)); }
+    else if (p.type === "int" || p.type === "float") adv.append(slider(w, k, p));
   }
   if (P.seed) {
-    const si = h("input", {type: "number", inputmode: "numeric", "aria-label": "Seed", placeholder: "Random each time", oninput: e => S.vals.seed = e.target.value === "" ? undefined : +e.target.value}); si.value = S.vals.seed ?? "";
-    more.append(h("div", {class: "field"}, h("label", {}, "Seed"), h("div", {class: "row"}, si, h("button", {class: "btn", type: "button", onclick: () => { S.vals.seed = Math.floor(Math.random() * 2147483647); si.value = S.vals.seed; }}, "Pick one"))));
+    const si = h("input", {type: "number", inputmode: "numeric", "aria-label": "Seed", placeholder: "Random each time", oninput: e => { S.vals.seed = e.target.value === "" ? undefined : +e.target.value; paintReq(); }}); si.value = S.vals.seed ?? "";
+    const lk = h("input", {type: "checkbox", checked: CFG.seedLock, onchange: e => { CFG.seedLock = e.target.checked; saveCfg(); if (CFG.seedLock && S.vals.seed == null) { S.vals.seed = Math.floor(Math.random() * 2147483647); si.value = S.vals.seed; paintReq(); } }});
+    adv.append(h("div", {class: "field"}, h("label", {}, "Seed"), h("div", {class: "row"}, si, h("button", {class: "btn", type: "button", onclick: () => { S.vals.seed = Math.floor(Math.random() * 2147483647); si.value = S.vals.seed; paintReq(); }}, "Pick one")),
+      h("label", {class: "toggle", style: "margin-top:8px"}, lk, h("span", {}, "Lock seed", h("small", {}, "Reuse the same seed for every new video until you unlock it.")))));
   }
-  root.append(more);
+  if (sr) { const fi = frameInfo(w, S.vals.seconds), fps = +w.fps || 24; adv.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Frames"), h("div", {class: "help", style: "margin-top:0"}, "LTX makes " + fi.frames + " frames at " + fps + " fps (" + (w.frames_rule || "8n+1") + " rule), so the length snaps to " + fi.secs + " s."))); }
+  reqPre = h("pre", {class: "req", "aria-label": "Request that will be sent"});
+  adv.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Request preview"), reqPre));
+  root.append(adv); paintReq();
   const go = h("button", {class: "btn go", id: "goBtn", type: "button", onclick: generate}, "Make video");
   go.disabled = !S.enabled;
-  root.append(h("div", {class: "dock"}, go, h("div", {class: "acts", style: "margin-top:8px"}, h("button", {class: "btn sm alt", type: "button", onclick: addFromCreate}, "Add to storyboard")), h("div", {class: "err", id: "genErr", hidden: true}),
-    h("p", {class: "fine"}, "Qwen pauses while a clip renders and returns when it is done.")));
+  root.append(h("div", {class: "dock"}, h("div", {class: "row"}, go, h("button", {class: "btn alt", type: "button", "aria-label": "Add to storyboard", title: "Add to storyboard", onclick: addFromCreate}, "+ Shot")), h("div", {class: "err", id: "genErr", hidden: true})),
+    h("p", {class: "fine"}, "Qwen pauses while a clip renders and returns when it is done."));
 }
 function imageField(p) {
   const box = h("div", {class: "drop", tabindex: 0, role: "button", "aria-label": "Choose a start image"});
   const file = h("input", {type: "file", accept: "image/png,image/jpeg,image/webp", hidden: true});
   const cam = h("input", {type: "file", accept: "image/*", capture: "environment", hidden: true});      // phones open the camera; other browsers fall back to the file picker
-  const paint = () => { box.replaceChildren(); if (S.upload) { box.append(h("img", {src: S.upload.url, alt: "Start image"}), h("span", {}, "Click to replace")); } else { box.append(h("b", {}, "Start image"), h("span", {}, "Drop a picture here or choose one")); } };
+  const paint = () => { box.replaceChildren(); if (S.upload) { box.append(h("img", {src: S.upload.url, alt: "Start image"}), h("span", {}, "Tap to replace")); } else { box.append(h("b", {}, "Start image"), h("span", {}, "Drop a picture here or choose one")); } };
   const send = async f => {
     if (!f) return; box.replaceChildren(h("span", {}, "Uploading"));
-    try { const d = await api("upload", {method: "POST", body: f, headers: {"X-Filename": f.name || "image"}}); S.upload = {name: d.name, url: URL.createObjectURL(f), thumb: await thumbOf(f)}; S.vals.image = d.name; }
-    catch (x) { toast(x.message); } paint();
+    try { const d = await api("upload", {method: "POST", body: f, headers: {"X-Filename": f.name || "image"}}); S.upload = {name: d.name, url: URL.createObjectURL(f), thumb: await thumbOf(f)}; S.vals.image = d.name; paintReq(); }
+    catch (x) { toast(x.message, "err"); } paint();
   };
   box.onclick = () => file.click(); box.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } };
   file.onchange = () => send(file.files[0]); cam.onchange = () => send(cam.files[0]);
@@ -473,36 +773,42 @@ function imageField(p) {
     h("div", {class: "acts", style: "margin-top:8px"}, h("button", {class: "btn sm", type: "button", onclick: () => cam.click()}, "Take photo")));
 }
 /* the request a workflow gets from the Create settings plus per-call overrides; null + message when it cannot be made */
-function buildParams(w, v) {
+function buildParams(w, v, soft) {
   const params = {};
   for (const k of Object.keys(w.params)) if (v[k] !== undefined && v[k] !== "") params[k] = v[k];
   if (v.seconds != null && secRange(w)) params.seconds = v.seconds;
   if (w.sizes.length) { const s = w.sizes[v.size || 0] || w.sizes[0]; params.width = s[0]; params.height = s[1]; }
-  if (w.params.prompt && !(params.prompt || "").trim()) return {error: "Write a prompt first."};
-  if (w.params.image && w.params.image.required && !params.image) return {error: "This workflow needs a start image."};
+  if (w.params.prompt && !(params.prompt || "").trim()) return soft ? {error: "a prompt is needed", draft: params} : {error: "Write a prompt first."};
+  if (w.params.image && w.params.image.required && !params.image) return soft ? {error: "a start image is needed", draft: params} : {error: "This workflow needs a start image."};
   return {params};
 }
 async function generate() {
   const w = wfNow(), err = $("#genErr"); err.hidden = true;
+  if (CFG.seedLock && w.params.seed && S.vals.seed == null) { S.vals.seed = Math.floor(Math.random() * 2147483647); }
   const r = buildParams(w, S.vals); if (r.error) { err.textContent = r.error; err.hidden = false; return; }
   const b = $("#goBtn"); b.disabled = true;
   try {
     const d = await api("generate", {method: "POST", json: {workflow: S.wf, params: r.params}});
-    toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); S.sel = d.id;
-    await refresh(); tab("stage");
+    toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); S.sel = d.id;
+    await refresh(); tab("queue");
+    if (CFG.seedLock) renderCompose();
   } catch (x) { err.textContent = x.message; err.hidden = false; } finally { b.disabled = !S.enabled; }
 }
 
-/* ---------- stage ---------- */
+/* ---------- stage: monitor for one clip (used in Queue and in the Gallery viewer) ---------- */
 function clipUrl(j, c, dl) { return B + "studio/api/clip/" + j.id + "/" + encodeURIComponent(c.name) + (dl ? "?dl=1" : ""); }
 function title(j) { return (j.params && j.params.prompt) || (wfByName(j.workflow) || {}).title || j.workflow; }
-function renderStage() {
-  const root = $("#stage"), j = S.jobs.find(x => x.id === S.sel);
-  const keepKey = j ? j.id + ":" + j.state : "";
-  if (root.dataset.key === keepKey && j && j.state === "done") { const sb = root.querySelector('[data-do="fav"]'); if (sb) paintStar(sb, j); return; }          // do not restart playback on every poll
-  root.dataset.key = keepKey; root.replaceChildren(); S.tick = null;
-  const st = h("div", {class: "stage"}); root.append(h("h2", {}, "Preview"), st);
-  if (!j) { st.append(h("div", {class: "screen"}, h("div", {class: "empty"}, h("b", {}, "Nothing on screen yet"), "Describe a shot on the left and press Make video. Finished clips play here and stay in the reel."))); return; }
+function jobNow(id) { return S.jobs.find(x => x.id === id); }
+function renderStage(root, id) {
+  const j = jobNow(id);
+  const key = j ? j.id + ":" + j.state : "";
+  if (root.dataset.key === key && j) {
+    if (j.state === "done") { const sb = root.querySelector('[data-do="fav"]'); if (sb) paintStar(sb, j); }
+    return;                                            // same clip, same state: keep playback and the running clock untouched
+  }
+  root.dataset.key = key; root.replaceChildren(); delete S.ticks[root.id];
+  const st = h("div", {class: "stage"}); root.append(st);
+  if (!j) { st.append(h("div", {class: "screen"}, h("div", {class: "empty"}, h("b", {}, "Nothing on screen yet"), "Describe a shot in Create and press Make video. The render shows here, and finished clips play."))); return; }
   const scr = h("div", {class: "screen"}); st.append(scr);
   if (j.state === "done" && j.clips.length) {
     const c = j.clips[0], u = clipUrl(j, c);
@@ -512,17 +818,22 @@ function renderStage() {
   } else if (j.state === "failed" || j.state === "cancelled") {
     scr.append(h("div", {class: "empty"}, h("b", {}, j.state === "failed" ? "This clip did not finish" : "Cancelled"), j.error || "Nothing was saved."));
   } else {
-    const w = wfByName(j.workflow), est = estSec(w);
-    const t0 = j.started || j.created, clock = h("div", {class: "clock", id: "clock"}, mmss(Date.now() / 1000 - t0)), bar = h("i", {id: "bar"});
-    const eta = h("div", {class: "eta", id: "eta"});
-    scr.append(h("div", {class: "live"}, clock, h("div", {class: "track", role: "progressbar", "aria-label": "Rendering progress"}, bar), eta, h("div", {class: "note"}, noteFor(j)), h("button", {class: "btn warn sm", onclick: () => act("cancel", j.id)}, "Cancel")));
-    S.tick = () => {
-      const s = Date.now() / 1000 - t0; clock.textContent = mmss(s);
-      if (est && j.started) bar.style.width = Math.min(96, s / est * 100) + "%";
-      const label = j.started ? "Rendering " : "Waiting ";
-      eta.textContent = label + mmss(s) + (est && j.started ? " of about " + Math.round(est / 60) + " min" : "") + (est && j.started && s > est ? " · longer than usual" : "");
-      eta.classList.toggle("over", !!est && !!j.started && s > est);
-    }; S.tick();
+    const t0 = () => { const c = jobNow(id) || j; return c.started || c.created; };
+    const clock = h("div", {class: "clock"}, "00:00"), track = h("div", {class: "track ind", role: "progressbar", "aria-label": "Rendering progress", "aria-valuemin": "0", "aria-valuemax": "100"}, h("i")), eta = h("div", {class: "eta"}), note = h("div", {class: "note"});
+    const tag = h("span", {class: "on-air"}, h("i"), "On air");
+    scr.append(h("div", {class: "live"}, tag, clock, track, eta, note, h("button", {class: "btn warn sm", type: "button", onclick: () => act("cancel", id)}, "Cancel")));
+    S.ticks[root.id] = () => {
+      const c = jobNow(id) || j, running = c.state === "running" || c.state === "starting", est = estFor(c), s = Date.now() / 1000 - t0();
+      clock.textContent = mmss(s); tag.lastChild.textContent = running ? "On air" : c.state === "waiting" ? "Standing by" : "In line"; tag.classList.toggle("wait", !running);
+      const real = typeof c.progress === "number", bar = track.firstChild;
+      let pct = null; if (real) pct = c.progress; else if (est && c.state === "running") pct = Math.min(96, s / est * 100);
+      track.classList.toggle("ind", pct == null); bar.style.width = pct == null ? "" : pct + "%";
+      if (pct != null) track.setAttribute("aria-valuenow", String(Math.round(pct))); else track.removeAttribute("aria-valuenow");
+      const sq = S.sys && S.sys.queue && S.sys.queue.running_id === c.id ? S.sys.queue.stage : "";
+      eta.textContent = (c.state === "running" ? "Elapsed " : c.state === "starting" ? "Loading " : "Waiting ") + mmss(s) + (est && c.state === "running" ? " of about " + (est < 90 ? Math.round(est) + " s" : Math.round(est / 60) + " min") : "") + (real ? " · " + Math.round(c.progress) + "%" : "") + (est && c.state === "running" && s > est ? " · longer than usual" : "");
+      eta.classList.toggle("over", !!est && c.state === "running" && s > est);
+      note.textContent = (sq && sq !== c.state ? sq + ". " : "") + noteFor(c);
+    }; S.ticks[root.id]();
   }
   const p = j.params || {}, kv = h("div", {class: "kv"});
   const add = (a, b) => b != null && b !== "" && kv.append(h("span", {}, a + " "), h("b", {}, String(b)));
@@ -532,21 +843,24 @@ function renderStage() {
   if (j.state === "done" && j.clips.length) {
     acts.append(h("a", {class: "btn", href: clipUrl(j, j.clips[0], true), download: j.clips[0].name}, "Download"));
     if (canShareFiles()) acts.append(h("button", {class: "btn", type: "button", onclick: e => shareClip(j, e.currentTarget)}, "Share"));
-    if (j.clips[0].type.startsWith("video")) acts.append(h("button", {class: "btn", onclick: e => continueFrom(j, e.currentTarget)}, "Continue from last frame"));
+    if (j.clips[0].type.startsWith("video")) acts.append(h("button", {class: "btn", type: "button", onclick: e => continueFrom(j, e.currentTarget)}, "Continue from last frame"));
   }
-  acts.append(h("button", {class: "btn", onclick: () => remix(j)}, "Remix"));
+  acts.append(h("button", {class: "btn", type: "button", onclick: () => remix(j)}, "Remix"));
   if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn", type: "button", onclick: e => rerun(j, e.currentTarget)}, "Run again"));
   acts.append(starBtn(j, true));
-  if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn warn", onclick: () => act("delete", j.id)}, "Delete"));
+  if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn warn", type: "button", onclick: () => act("delete", j.id)}, "Delete"));
   st.append(acts);
 }
 function noteFor(j) {
   return {queued: "In line", waiting: "Waiting for Qwen to finish what it is doing", starting: "Handing the GPU over from Qwen, then loading the video model", running: "Rendering"}[j.state] || j.note || j.state;
 }
+function closeViewer() { const d = $("#viewer"); if (d.open) d.close(); }
+function openViewer(id) { S.sel = id; const d = $("#viewer"), b = $("#viewerBody"); b.dataset.key = ""; renderStage(b, id); if (!d.open) d.showModal(); }
+
 /* ---------- favourites, run again, share ---------- */
 function paintStar(b, j) {
   b.setAttribute("aria-pressed", String(!!j.fav));
-  b.textContent = (j.fav ? "\u2605" : "\u2606") + (b.dataset.long ? " Favourite" : "");
+  b.textContent = (j.fav ? "★" : "☆") + (b.dataset.long ? " Favourite" : "");
   b.title = j.fav ? "Starred: kept when old clips are trimmed. Tap to unstar" : "Star this clip to keep it";
 }
 function starBtn(j, long) {
@@ -555,12 +869,12 @@ function starBtn(j, long) {
 }
 async function toggleFav(j) {
   try { const d = await api("fav", {method: "POST", json: {id: j.id, fav: !j.fav}}); j.fav = d.fav; toast(d.fav ? "Starred" : "Unstarred"); await refresh(); }
-  catch (x) { toast(x.message); }
+  catch (x) { toast(x.message, "err"); }
 }
 async function rerun(j, btn) {
   const was = btn && btn.textContent; if (btn) btn.disabled = true;
-  try { const d = await api("rerun", {method: "POST", json: {id: j.id}}); toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); S.sel = d.id; await refresh(); tab("stage"); }
-  catch (x) { toast(x.message); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
+  try { const d = await api("rerun", {method: "POST", json: {id: j.id}}); toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); S.sel = d.id; closeViewer(); await refresh(); tab("queue"); }
+  catch (x) { toast(x.message, "err"); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
 }
 /* the share sheet takes files only where the browser says so (iOS and Android Chrome); everywhere else the Download link is the way */
 function canShareFiles() {
@@ -573,12 +887,12 @@ async function shareClip(j, btn) {
     const f = new File([await r.blob()], c.name, {type: c.type});
     if (!navigator.canShare({files: [f]})) { toast("This clip cannot be shared from here. Use Download."); return; }
     await navigator.share({files: [f], title: "Studio clip"});
-  } catch (x) { if (x && x.name !== "AbortError") toast("Could not open the share sheet. Use Download."); }
+  } catch (x) { if (x && x.name !== "AbortError") toast("Could not open the share sheet. Use Download.", "err"); }
   finally { btn.disabled = false; btn.textContent = was; }
 }
 
 async function act(what, id) {
-  try { await api(what, {method: "POST", json: {id}}); if (what === "delete") S.sel = null; toast(what === "cancel" ? "Stopping" : "Deleted"); await refresh(); } catch (x) { toast(x.message); }
+  try { await api(what, {method: "POST", json: {id}}); if (what === "delete") { S.sel = null; closeViewer(); } toast(what === "cancel" ? "Stopping" : "Deleted"); await refresh(); } catch (x) { toast(x.message, "err"); }
 }
 /* Remix: put a finished (or failed) job's prompt and settings back into Create */
 function remix(j) {
@@ -589,7 +903,7 @@ function remix(j) {
   for (const k of Object.keys(p)) if (w.params[k] && !["image", "frames"].includes(k)) S.vals[k] = p[k];
   if (p.seconds == null && p.frames && secRange(w)) S.vals.seconds = Math.round((p.frames - 1) / (w.fps || 24) * 2) / 2;
   if (w.sizes.length && p.width) { const i = w.sizes.findIndex(s => s[0] === p.width && s[1] === p.height); if (i >= 0) S.vals.size = i; }
-  delete S.vals.image; renderCompose(); tab("create");
+  delete S.vals.image; renderCompose(); closeViewer(); tab("create");
   toast(j.has_image && w.params.image ? "Remixed. Add the start image again." : "Remixed. Change anything and press Make video.");
 }
 
@@ -626,8 +940,8 @@ async function continueFrom(j, btn) {
   const w = S.wfs.find(x => x.params.image); if (!w) return toast("No image-to-video workflow is installed");
   const was = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = "Grabbing frame"; }
   try {
-    S.upload = await uploadFrame(j); S.vals.image = S.upload.name; S.vals.prompt = ""; S.mode = "continue"; pickWf(w.name); tab("create"); toast("Last frame is ready. Say what happens next.");
-  } catch (x) { toast(x.message); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
+    S.upload = await uploadFrame(j); S.vals.image = S.upload.name; S.vals.prompt = ""; S.mode = "continue"; pickWf(w.name); closeViewer(); tab("create"); toast("Last frame is ready. Say what happens next.", "ok");
+  } catch (x) { toast(x.message, "err"); } finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
 }
 
 /* ---------- storyboard ---------- */
@@ -657,26 +971,26 @@ function addShot(init) {
   S.shots.push(s); S.stripOpen = true; saveUi(); renderStrip(); return s;
 }
 function addFromCreate() {
-  const w = wfNow(), up = S.upload;
+  const up = S.upload;
   addShot({prompt: S.vals.prompt || "", seconds: S.vals.seconds != null ? S.vals.seconds : undefined, image: S.vals.image && up ? {name: up.name, thumb: up.thumb || ""} : null,
     lock: S.vals.seed != null, seed: S.vals.seed != null ? S.vals.seed : null});
-  toast("Added to the storyboard"); if (matchMedia("(min-width:981px)").matches) { const b = $("#stripBody"); if (b) b.scrollLeft = b.scrollWidth; }
+  toast("Added to the storyboard", "ok");
 }
 function shotJob(s) { return s.job ? S.jobs.find(j => j.id === s.job) : null; }
 async function makeShot(s, quiet) {
-  const w = shotWf(s); if (!w) { toast("No workflow can make this shot"); return false; }
+  const w = shotWf(s); if (!w) { toast("No workflow can make this shot", "err"); return false; }
   const v = Object.assign({}, S.vals, {prompt: s.prompt, seconds: shotSecs(s), image: s.image ? s.image.name : undefined, seed: s.lock && s.seed != null ? s.seed : undefined, size: sizeFor(w)});
   if (!w.params.image) delete v.image;
-  const r = buildParams(w, v); if (r.error) { toast("Shot " + (S.shots.indexOf(s) + 1) + ": " + r.error); return false; }
-  try { const d = await api("generate", {method: "POST", json: {workflow: w.name, params: r.params}}); s.job = d.id; saveUi(); if (!quiet) { toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued"); await refresh(); } return true; }
-  catch (x) { toast(x.message); return false; }
+  const r = buildParams(w, v); if (r.error) { toast("Shot " + (S.shots.indexOf(s) + 1) + ": " + r.error, "err"); return false; }
+  try { const d = await api("generate", {method: "POST", json: {workflow: w.name, params: r.params}}); s.job = d.id; saveUi(); if (!quiet) { toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); await refresh(); } return true; }
+  catch (x) { toast(x.message, "err"); return false; }
 }
 async function makeAll(btn) {
   const todo = S.shots.filter(s => (s.prompt || "").trim()); if (!todo.length) return toast("Write a prompt in at least one shot");
   btn.disabled = true; let n = 0;
   try { for (const s of todo) { if (await makeShot(s, true)) n++; else break; } }
   finally { btn.disabled = false; saveUi(); await refresh(); }
-  if (n) toast(n + (n === 1 ? " shot" : " shots") + " queued, in order");
+  if (n) toast(n + (n === 1 ? " shot" : " shots") + " queued, in order", "ok");
 }
 async function continueShot(s, btn) {
   const j = shotJob(s); if (!j || j.state !== "done" || !j.clips.length) return toast("Make this shot first");
@@ -684,14 +998,14 @@ async function continueShot(s, btn) {
   try {
     const img = await uploadFrame(j), i = S.shots.indexOf(s);
     S.shots.splice(i + 1, 0, {id: newId(), prompt: "", image: {name: img.name, thumb: img.thumb}, seconds: s.seconds, lock: s.lock, seed: s.seed, job: null});
-    saveUi(); renderStrip(); toast("Next shot starts from the last frame. Say what happens next.");
-    const ta = document.querySelector('[data-shot="' + S.shots[i + 1].id + '"] textarea'); if (ta) { ta.scrollIntoView({inline: "center", block: "nearest"}); ta.focus(); }
-  } catch (x) { toast(x.message); btn.disabled = false; btn.textContent = was; }
+    saveUi(); renderStrip(); toast("Next shot starts from the last frame. Say what happens next.", "ok");
+    const ta = document.querySelector('[data-shot="' + S.shots[i + 1].id + '"] textarea'); if (ta) { ta.scrollIntoView({block: "center"}); ta.focus(); }
+  } catch (x) { toast(x.message, "err"); btn.disabled = false; btn.textContent = was; }
 }
 async function shotImage(s, f) {
   if (!f) return;
   try { const d = await api("upload", {method: "POST", body: f, headers: {"X-Filename": f.name || "image"}}); s.image = {name: d.name, thumb: await thumbOf(f)}; saveUi(); renderStrip(); }
-  catch (x) { toast(x.message); }
+  catch (x) { toast(x.message, "err"); }
 }
 function renderStrip() {
   const root = $("#strip");
@@ -699,8 +1013,8 @@ function renderStrip() {
   root.dataset.open = String(S.stripOpen); root.replaceChildren();
   const mk = h("button", {class: "btn sm", type: "button", disabled: !S.shots.length || !S.enabled, onclick: e => makeAll(e.currentTarget)}, "Make all");
   root.append(h("div", {class: "strip-h"}, h("h2", {}, "Storyboard"), h("span", {class: "n"}, S.shots.length ? S.shots.length + (S.shots.length === 1 ? " shot" : " shots") : "no shots yet"),
-    h("div", {class: "sp"}, h("button", {class: "btn sm", type: "button", onclick: () => addShot()}, "Add shot"), mk,
-      h("button", {class: "btn sm quiet tog", type: "button", "aria-expanded": String(S.stripOpen), onclick: () => { S.stripOpen = !S.stripOpen; saveUi(); renderStrip(); }}, S.stripOpen ? "Hide" : "Show"))));
+    h("div", {class: "spc"}, h("button", {class: "btn sm", type: "button", onclick: () => addShot()}, "Add shot"), mk,
+      h("button", {class: "btn sm quiet", type: "button", "aria-expanded": String(S.stripOpen), onclick: () => { S.stripOpen = !S.stripOpen; saveUi(); renderStrip(); }}, S.stripOpen ? "Hide" : "Show"))));
   const body = h("div", {class: "strip-b", id: "stripBody"});
   if (!S.shots.length) body.append(h("p", {class: "strip-empty"}, "Plan a sequence: add a shot per scene, set each length, then Make all. Use Continue from last frame to chain one shot into the next."));
   S.shots.forEach((s, i) => body.append(shotCard(s, i)));
@@ -716,7 +1030,7 @@ function shotCard(s, i) {
   const lockBox = h("input", {type: "checkbox", checked: s.lock, onchange: e => { s.lock = e.target.checked; if (s.lock && s.seed == null) { s.seed = Math.floor(Math.random() * 2147483647); seed.value = s.seed; } seed.hidden = !s.lock; saveUi(); }});
   const qw = h("button", {class: "btn sm alt", type: "button", onclick: e => writeWithQwen(s.prompt, s.image ? "continue" : "single", e.currentTarget, t => { s.prompt = t; ta.value = t; saveUi(); })}, "Write");
   return h("article", {class: "shot", "data-shot": s.id, "data-s": ""},
-    h("div", {class: "shot-h"}, h("b", {}, "SHOT " + (i + 1)), h("span", {class: "pill"}, ""),
+    h("div", {class: "shot-h"}, h("b", {}, "SHOT " + String(i + 1).padStart(2, "0")), h("span", {class: "pl"}, ""),
       h("button", {class: "btn sm quiet", type: "button", "aria-label": "Remove shot " + (i + 1), onclick: () => { S.shots.splice(S.shots.indexOf(s), 1); saveUi(); renderStrip(); }}, "Remove")),
     ta,
     h("div", {class: "shot-side"}, h("div", {class: "shot-img"}, s.image && s.image.thumb ? h("img", {src: s.image.thumb, alt: "Start image for shot " + (i + 1)}) : "", h("span", {}, s.image ? "Starts from an image" : "Text only"), file,
@@ -727,83 +1041,181 @@ function shotCard(s, i) {
       h("label", {class: "lock"}, lockBox, "Lock seed"), seed)),
     h("div", {class: "acts"}, h("button", {class: "btn go", type: "button", "data-do": "make", onclick: () => makeShot(s)}, "Make this shot"), qw,
       h("button", {class: "btn", type: "button", "data-do": "next", hidden: true, onclick: e => continueShot(s, e.currentTarget)}, "Continue from last frame"),
-      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; renderReel(); renderStage(); tab("stage"); }}, "View"),
+      h("button", {class: "btn quiet", type: "button", "data-do": "view", hidden: true, onclick: () => { S.sel = s.job; tab("queue"); }}, "View"),
       h("button", {class: "btn", type: "button", "data-do": "again", hidden: true, onclick: e => { const j = shotJob(s); if (j) rerun(j, e.currentTarget); }}, "Run again"),
-      h("button", {class: "btn star", type: "button", "data-do": "fav", hidden: true, "aria-label": "Favourite shot " + (i + 1), onclick: () => { const j = shotJob(s); if (j) toggleFav(j); }}, "\u2606")));
+      h("button", {class: "btn star", type: "button", "data-do": "fav", hidden: true, "aria-label": "Favourite shot " + (i + 1), onclick: () => { const j = shotJob(s); if (j) toggleFav(j); }}, "☆")));
 }
 /* in-place status for each card (pill, state colour, continue/view buttons) so typing is never interrupted */
 function syncShots() {
   for (const s of S.shots) {
     const c = document.querySelector('[data-shot="' + s.id + '"]'); if (!c) continue;
-    const j = shotJob(s), pill = c.querySelector(".pill"), st = j ? j.state : "";
+    const j = shotJob(s), pill = c.querySelector(".pl"), st = j ? j.state : "";
     c.dataset.s = st; c.querySelector('[data-do="next"]').hidden = !(j && st === "done" && j.clips.length && j.clips[0].type.startsWith("video"));
     c.querySelector('[data-do="view"]').hidden = !j;
     c.querySelector('[data-do="again"]').hidden = !(j && !ACTIVE.includes(st));
     const sb = c.querySelector('[data-do="fav"]'); sb.hidden = !j; if (j) paintStar(sb, j);
     if (j && ACTIVE.includes(st)) {
-      pill.dataset.t0 = String(st === "running" ? (j.started || j.created) : j.created); pill.dataset.est = String(st === "running" ? estSec(wfByName(j.workflow)) : 0);
+      pill.dataset.t0 = String(st === "running" ? (j.started || j.created) : j.created); pill.dataset.est = String(st === "running" ? estFor(j) : 0);
       pill.dataset.pre = {queued: "In line ", waiting: "Waiting ", starting: "Starting ", running: "Rendering "}[st];
     } else { delete pill.dataset.t0; pill.classList.remove("over"); pill.textContent = j ? {done: "Ready", failed: "Failed", cancelled: "Cancelled"}[st] || st : ""; }
   }
   tickAll();
 }
 
-/* ---------- reel ---------- */
-function renderReel() {
-  const r = $("#reel"); r.replaceChildren();
+/* ---------- queue (call sheet) and gallery (contact sheet) ---------- */
+const LABEL = {queued: "In line", waiting: "Waiting", starting: "Starting", running: "Rendering", done: "Ready", failed: "Failed", cancelled: "Cancelled"};
+function slate(j, n) {
+  const live = ACTIVE.includes(j.state);
+  const tm = live ? h("span", {class: "t", "data-t0": String(j.state === "running" ? (j.started || j.created) : j.created), "data-est": String(j.state === "running" ? estFor(j) : 0)}, "")
+    : j.seconds ? h("span", {class: "t"}, "took " + mmss(j.seconds)) : "";
+  return h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
+    h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderQueue(); if (matchMedia("(max-width:980px)").matches) openViewer(j.id); }},
+      h("span", {class: "no"}, "#" + String(n).padStart(2, "0")), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, LABEL[j.state] || j.state), h("span", {}, ago(j.created)), tm)),
+    h("div", {class: "end"}, live ? h("button", {class: "btn warn sm", type: "button", "aria-label": "Cancel: " + title(j).slice(0, 60), onclick: () => act("cancel", j.id)}, "Cancel")
+      : h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix"), starBtn(j, false)));
+}
+function renderQueue() {
+  const list = $("#qList"); if (!list || S.tab !== "queue") return;
+  if (!S.loaded) { list.replaceChildren(...[0, 1, 2].map(() => h("div", {class: "sk"}))); $("#stage").replaceChildren(h("div", {class: "sk tall"})); $("#stage").dataset.key = ""; return; }
+  const live = S.jobs.filter(j => ACTIVE.includes(j.state)), rest = S.jobs.filter(j => !ACTIVE.includes(j.state)).slice(0, 12);
+  $("#qCount").textContent = live.length ? live.length + " active" : "idle";
+  list.replaceChildren();
+  if (!S.jobs.length) list.append(h("p", {class: "help"}, "Nothing here yet. Make a video and it lines up here."));
+  let n = 0; for (const j of live.concat(rest)) list.append(slate(j, ++n));
+  if (!S.sel && S.jobs.length) S.sel = (live[0] || S.jobs.find(j => j.state === "done") || S.jobs[0]).id;
+  renderStage($("#stage"), S.sel); tickAll();
+}
+const lazyVids = typeof IntersectionObserver === "function" ? new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { const v = e.target; lazyVids.unobserve(v); v.src = v.dataset.src; } }, {rootMargin: "200px"}) : null;
+function renderGallery() {
+  const sheet = $("#sheet"); if (!sheet || S.tab !== "gallery") return;
   const ff = $("#favFilter"); ff.setAttribute("aria-pressed", String(S.favOnly));
-  const list = S.favOnly ? S.jobs.filter(j => j.fav) : S.jobs;
-  if (!list.length) { r.append(h("p", {class: "help"}, S.favOnly ? "No favourites yet. Star a clip and it stays here." : "Your clips will collect here.")); return; }
+  if (!S.loaded) { sheet.replaceChildren(...[0, 1, 2, 3, 4, 5].map(() => h("div", {class: "sk tall"}))); return; }
+  const list = S.jobs.filter(j => j.state === "done" && j.clips.length && (!S.favOnly || j.fav));
+  sheet.replaceChildren();
+  if (!list.length) { sheet.append(h("p", {class: "help", style: "grid-column:1/-1"}, S.favOnly ? "No favourites yet. Star a clip and it stays here." : "Finished clips collect here.")); return; }
   for (const j of list) {
-    const label = {queued: "In line", waiting: "Waiting", starting: "Starting", running: "Rendering", done: "Ready", failed: "Failed", cancelled: "Cancelled"}[j.state] || j.state;
-    const live = ACTIVE.includes(j.state), w = wfByName(j.workflow);
-    const tm = live ? h("span", {class: "t", "data-t0": String(j.state === "running" ? (j.started || j.created) : j.created), "data-est": String(j.state === "running" ? estSec(w) : 0)}, "")
-      : j.seconds ? h("span", {class: "t"}, "took " + mmss(j.seconds)) : "";
-    r.append(h("div", {class: "slate", "data-s": j.state, "aria-current": String(j.id === S.sel)},
-      h("button", {class: "pick", type: "button", onclick: () => { S.sel = j.id; renderReel(); renderStage(); tab("stage"); }},
-        h("i", {class: "dot"}), h("div", {class: "p"}, title(j)), h("div", {class: "s"}, h("span", {}, label), h("span", {}, ago(j.created)), tm)),
-      h("div", {class: "end"}, h("button", {class: "btn sm", type: "button", title: "Load this prompt and its settings into Create", "aria-label": "Remix: " + title(j).slice(0, 60), onclick: () => remix(j)}, "Remix"), starBtn(j, false))));
+    const c = j.clips[0], u = clipUrl(j, c), fr = h("div", {class: "fr"});
+    if (c.type.startsWith("video")) { const v = h("video", {muted: true, playsinline: true, preload: "metadata", "aria-hidden": "true", tabindex: "-1"}); v.muted = true; v.dataset.src = u + "#t=0.1"; if (lazyVids) lazyVids.observe(v); else v.src = v.dataset.src; fr.append(v); }
+    else if (c.type.startsWith("image")) fr.append(h("img", {src: u, alt: "", loading: "lazy"}));
+    else fr.append("AUDIO");
+    const p = j.params || {}, secs = p.seconds || (p.frames ? (p.frames - 1) / 24 : 0);
+    fr.append(secs ? h("span", {class: "tc"}, "00:" + String(Math.round(secs)).padStart(2, "0")) : "", j.fav ? h("span", {class: "fv", "aria-label": "Favourite"}, "★") : "");
+    sheet.append(h("button", {class: "tile", type: "button", "aria-label": "Open clip: " + title(j).slice(0, 80), onclick: () => openViewer(j.id)}, fr, h("div", {class: "cap"}, h("span", {}, title(j)), h("small", {}, ago(j.created) + (p.width ? " · " + p.width + "×" + p.height : "")))));
   }
-  tickAll();
 }
 function tickAll() {
-  if (S.tick) S.tick();
+  for (const f of Object.values(S.ticks)) f();
   document.querySelectorAll("[data-t0]").forEach(el => {
     const s = Date.now() / 1000 - (+el.dataset.t0), est = +el.dataset.est || 0;
-    el.textContent = (el.dataset.pre || "") + mmss(s) + (est ? " / ~" + Math.round(est / 60) + " min" : "") + (est && s > est ? " · long" : "");
+    el.textContent = (el.dataset.pre || "") + mmss(s) + (est ? " / ~" + (est < 90 ? Math.round(est) + " s" : Math.round(est / 60) + " min") : "") + (est && s > est ? " · long" : "");
     el.classList.toggle("over", !!est && s > est);
   });
+  if (S.tab === "system" && S.sysAt) { const e = $("#sysAge"); if (e) e.textContent = "updated " + mmss((Date.now() - S.sysAt) / 1000) + " ago"; }
 }
 
-/* ---------- polling ---------- */
+/* ---------- settings sheet ---------- */
+function toggleRow(label, help, key, after) {
+  return h("label", {class: "toggle"}, h("input", {type: "checkbox", role: "switch", checked: !!CFG[key], onchange: e => { CFG[key] = e.target.checked; saveCfg(); if (after) after(e.target.checked); }}), h("span", {}, label, h("small", {}, help)));
+}
+function renderSettings() {
+  const root = $("#settingsBody"); root.replaceChildren();
+  const w = wfByName(CFG.wf) || S.wfs[0];
+  const wfSel = h("select", {"aria-label": "Default workflow", onchange: e => { CFG.wf = e.target.value; saveCfg(); renderSettings(); }}, h("option", {value: ""}, "First in the list"), S.wfs.map(x => h("option", {value: x.name}, x.title)));
+  wfSel.value = CFG.wf;
+  const sr = w && secRange(w), lenOut = h("output", {}, CFG.len > 0 ? CFG.len + " s" : "Workflow default");
+  const lenIn = sr ? h("input", {type: "range", min: 0, max: sr.max, step: sr.step, value: CFG.len, "aria-label": "Default length in seconds", oninput: e => { const v = +e.target.value; CFG.len = v > 0 ? clamp(v, sr.min, sr.max) : 0; lenOut.textContent = CFG.len > 0 ? CFG.len + " s" : "Workflow default"; saveCfg(); }}) : null;
+  const sizeSel = h("select", {"aria-label": "Default frame size", onchange: e => { CFG.size = e.target.value; saveCfg(); }}, h("option", {value: ""}, "Workflow default"), (w ? w.sizes : []).map(s => h("option", {value: s[0] + "x" + s[1]}, (s[2] ? s[2] + " " : "") + s[0] + "×" + s[1])));
+  sizeSel.value = CFG.size;
+  const motion = h("select", {"aria-label": "Motion", onchange: e => { CFG.motion = e.target.value; saveCfg(); }}, h("option", {value: "system"}, "Follow my device setting"), h("option", {value: "reduce"}, "Reduce motion"), h("option", {value: "full"}, "Full motion")); motion.value = CFG.motion;
+  const poll = h("select", {"aria-label": "Refresh rate", onchange: e => { CFG.poll = e.target.value; saveCfg(); loop(); }}, Object.entries(POLL).map(([k, v]) => h("option", {value: k}, v.label))); poll.value = CFG.poll;
+  root.append(
+    h("div", {class: "hd"}, h("span", {}, "Defaults for new videos")),
+    h("div", {class: "field"}, h("label", {}, "Workflow"), wfSel),
+    sr ? h("div", {class: "field"}, h("label", {}, "Length", lenOut), lenIn, h("div", {class: "help"}, "Drag to the left end for the workflow's own default.")) : null,
+    w && w.sizes.length ? h("div", {class: "field"}, h("label", {}, "Frame size"), sizeSel) : null,
+    h("div", {class: "field"}, toggleRow("Lock seed", "Reuse one seed for every new video, so changes come from your prompt only.", "seedLock", () => { if (S.wf) renderCompose(); })),
+    h("div", {class: "hd", style: "margin-top:22px"}, h("span", {}, "When a clip finishes")),
+    h("div", {class: "field"}, toggleRow("Open the finished clip", "Jump to the Queue monitor when a render completes, unless you are typing.", "autoOpen")),
+    h("div", {class: "field"}, toggleRow("Vibrate", "A short buzz on phones that support it.", "haptics", on => { if (on) buzz(); })),
+    h("div", {class: "field"}, toggleRow("Chime", "A soft two-note tone.", "sound", on => { if (on) chime(); })),
+    h("div", {class: "hd", style: "margin-top:22px"}, h("span", {}, "Display and data")),
+    h("div", {class: "field"}, h("label", {}, "Motion"), motion),
+    h("div", {class: "field"}, h("label", {}, "Refresh rate"), poll, h("div", {class: "help"}, "Studio slows right down when the page is in the background.")),
+    h("div", {class: "hd", style: "margin-top:22px"}, h("span", {}, "Advanced")),
+    h("p", {class: "help", style: "margin-top:0"}, "Per-video options (seed, avoid list, quality and any workflow extras) are under Advanced on the Create tab. They only list what the chosen workflow accepts, and the Request preview shows exactly what will be sent."),
+    h("div", {class: "acts"}, h("button", {class: "btn", type: "button", onclick: () => { Object.assign(CFG, DEFAULTS); saveCfg(); renderSettings(); if (S.wf) renderCompose(); toast("Settings reset"); }}, "Reset settings"),
+      h("button", {class: "btn quiet", type: "button", onclick: () => { S.shots = []; saveUi(); renderStrip(); toast("Storyboard cleared"); }}, "Clear storyboard")));
+}
+function buzz() { try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch (e) { /* not supported */ } }
+function chime() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = new AC(), t = c.currentTime;
+    [[660, 0], [880, .16]].forEach(([f, d]) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.12, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .3); o.connect(g); g.connect(c.destination); o.start(t + d); o.stop(t + d + .32); });
+    setTimeout(() => { try { c.close(); } catch (e) { /* already closed */ } }, 900);
+  } catch (e) { /* audio not allowed */ }
+}
+function finishFx() { if (CFG.haptics) buzz(); if (CFG.sound) chime(); }
+
+/* ---------- GPU pill + polling ---------- */
 function renderGpu() {
-  const s = S.status, g = $("#gpu"), t = $("#gpuText"); if (!s) return;
-  g.dataset.own = s.gpu; t.replaceChildren();
-  const q = s.queued ? " · " + s.queued + " in line" : "", a = s.active && s.active.state;
-  if (!s.enabled) { g.dataset.own = ""; t.append("Video is not set up on this PC"); return; }
-  if (s.gpu === "video" && a === "starting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Switching to Video"), h("span", {class: "long"}, " · Qwen is unloading" + q)); }
-  else if (s.gpu === "video") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · rendering, Qwen is paused" + q));
+  const s = S.status, y = S.sys, g = $("#gpu"), t = $("#gpuText");
+  if (!s && !y) return;
+  t.replaceChildren();
+  const q = s && s.queued ? " · " + s.queued + " in line" : "", a = s && s.active && s.active.state;
+  const own = y ? (y.mode === "llm" ? "llm" : y.mode ? "video" : "") : (s ? s.gpu : "");
+  g.dataset.own = own;
+  if (s && !s.enabled) { g.dataset.own = ""; t.append("Video is not set up on this PC"); return; }
+  if (y && y.comfy && y.comfy.session) { t.append(h("b", {}, "ComfyUI"), h("span", {class: "long"}, y.comfy.idle_s == null ? " · starting" : " · session open")); }
+  else if (a === "starting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Switching to Video"), h("span", {class: "long"}, " · Qwen is unloading" + q)); }
+  else if (a === "running") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · rendering, Qwen is paused" + q));
   else if (a === "waiting") { g.dataset.own = "handoff"; t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, " · finishing up, then your clip starts" + q)); }
-  else t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, (s.active ? " · your clip is next" : " · idle, ready for a clip") + q));
+  else if (own === "video") t.append(h("b", {}, "Video"), h("span", {class: "long"}, " · Qwen unloaded" + q));
+  else if (own === "llm") t.append(h("b", {}, "Qwen"), h("span", {class: "long"}, (y && y.llm_loaded ? " · model loaded" : " · idle") + q));
+  else t.append(h("b", {}, "Unknown"));
+  $("#app").dataset.live = (a === "running" || a === "starting") ? "1" : "0";
 }
 async function refresh() {
   try {
-    const [jobs, st] = await Promise.all([api("jobs"), api("status")]);
-    S.jobs = jobs; S.status = st; S.enabled = st.enabled;
-    for (const j of jobs) { if (S.seen[j.id] && S.seen[j.id] !== j.state && j.state === "done") { toast("Clip ready"); if (!S.sel || S.sel === j.id) { S.sel = j.id; } } S.seen[j.id] = j.state; }
-    if (!S.sel && jobs.length) S.sel = (jobs.find(j => j.state === "done") || jobs[0]).id;
-    renderGpu(); renderReel(); renderStage(); syncShots();
+    const [jobs, st, sys] = await Promise.all([api("jobs"), api("status"), api("system").catch(x => { if (x.message === "signed out") throw x; return null; })]);
+    S.jobs = jobs; S.status = st; S.enabled = st.enabled; if (sys) { S.sys = sys; S.sysAt = Date.now(); }
+    let finished = null;
+    for (const j of jobs) { if (S.seen[j.id] && S.seen[j.id] !== j.state && j.state === "done") finished = j; S.seen[j.id] = j.state; }
+    if (!S.sel && jobs.length) S.sel = (jobs.find(j => ACTIVE.includes(j.state)) || jobs.find(j => j.state === "done") || jobs[0]).id;
+    S.loaded = true;
+    renderGpu(); paintSwitches(); renderBadge(); syncShots();
+    if (S.tab === "queue") renderQueue(); else if (S.tab === "gallery") renderGallery(); else if (S.tab === "system") renderSystem();
+    if (finished) {
+      finishFx();
+      const fj = finished;
+      if (CFG.autoOpen && !isTyping() && !$("#viewer").open) { S.sel = fj.id; tab("queue"); toast("Clip ready", "ok"); }
+      else toast("Clip ready", "ok", {label: "View", fn: () => { S.sel = fj.id; tab("queue"); }});
+    }
     const busy = jobs.some(j => ACTIVE.includes(j.state));
     document.title = busy ? "Rendering · Studio" : "Studio";
     return busy;
   } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; return false; }
 }
+function renderBadge() {
+  const n = S.jobs.filter(j => ACTIVE.includes(j.state)).length, b = $("#qBadge"); if (!b) return;
+  b.hidden = !n; b.textContent = String(n);
+}
 let timer;
-async function loop() { clearTimeout(timer); const busy = await refresh(); timer = setTimeout(loop, busy ? 3000 : 9000); }
-setInterval(tickAll, 1000);
+async function loop() {
+  clearTimeout(timer); const busy = await refresh(), p = POLL[CFG.poll] || POLL.normal;
+  timer = setTimeout(loop, document.hidden ? 60000 : busy ? p.busy : p.idle);
+}
+setInterval(() => { if (!document.hidden) tickAll(); }, 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) loop(); });
 
-$("#favFilter").addEventListener("click", () => { S.favOnly = !S.favOnly; saveFlags(); renderReel(); });
+$("#favFilter").addEventListener("click", () => { S.favOnly = !S.favOnly; saveFlags(); renderGallery(); });
+$("#gpu").addEventListener("click", () => tab("system"));
+$("#openSettings").append(icon("sliders"));
+$("#openSettings").addEventListener("click", () => { renderSettings(); $("#settings").showModal(); });
+$("#closeSettings").addEventListener("click", () => $("#settings").close());
+$("#closeViewer").addEventListener("click", closeViewer);
+$("#viewer").addEventListener("close", () => { const b = $("#viewerBody"); b.replaceChildren(); b.dataset.key = ""; delete S.ticks.viewerBody; });
+for (const d of ["#settings", "#viewer"]) $(d).addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 
 /* iOS has no install prompt: say once how to add the app to the Home Screen, unless it is already running as one */
 (function () {
@@ -816,10 +1228,12 @@ $("#favFilter").addEventListener("click", () => { S.favOnly = !S.favOnly; saveFl
 
 async function boot() {
   try {
-    loadUi();
+    loadUi(); buildNav(); gpuControl($("#gpuRow"));
+    tab(store.get("studio.tab.v3") || "create");
+    setTimeout(() => $("#app").classList.remove("intro"), 1500);
     const d = await api("workflows"); S.wfs = d.workflows; S.enabled = d.enabled;
-    if (!S.wfs.length) { $("#compose").replaceChildren(h("h2", {}, "Create"), h("div", {class: "empty"}, h("b", {}, "No workflows installed"), "Put workflow files in the gateway's video workflows folder.")); }
-    else { if (!S.wf || !S.wfs.some(w => w.name === S.wf)) pickWf(S.wfs[0].name); else renderCompose(); }
+    if (!S.wfs.length) { $("#compose").replaceChildren(h("div", {class: "hd"}, h("span", {}, "Create")), h("div", {class: "empty"}, h("b", {}, "No workflows installed"), "Put workflow files in the gateway's video workflows folder.")); }
+    else { const first = (CFG.wf && wfByName(CFG.wf)) ? CFG.wf : S.wfs[0].name; if (!S.wf || !S.wfs.some(w => w.name === S.wf)) pickWf(first); else renderCompose(); }
     renderStrip(); loop();
   } catch (x) { if (x.message !== "signed out") $("#gpuText").textContent = "Cannot reach the PC"; }
 }

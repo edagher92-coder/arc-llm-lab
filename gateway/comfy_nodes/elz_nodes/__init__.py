@@ -195,3 +195,11 @@ WEB_DIRECTORY = "./web"
 
 NODE_CLASS_MAPPINGS = {"ElzAudioNanGuard": AudioNanGuard, "ElzSaveConditioning": SaveConditioning, "ElzLoadConditioning": LoadConditioning}
 NODE_DISPLAY_NAME_MAPPINGS = {"ElzAudioNanGuard": "Audio NaN guard (Elz)", "ElzSaveConditioning": "Save conditioning (Elz)", "ElzLoadConditioning": "Load conditioning (Elz)"}
+
+# Auto Production (production.py): prompt builder + optional LLM director, driven by cheatsheets/*.json. Failing to import it must never take the guards above down.
+try:
+    from .production import NODE_CLASS_MAPPINGS as _P_CLASSES, NODE_DISPLAY_NAME_MAPPINGS as _P_NAMES
+    NODE_CLASS_MAPPINGS.update(_P_CLASSES)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_P_NAMES)
+except Exception as _ex:   # noqa: BLE001
+    print("ELZ_PRODUCTION_UNAVAILABLE %s: %s" % (type(_ex).__name__, _ex), flush=True)

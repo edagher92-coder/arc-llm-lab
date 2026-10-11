@@ -314,7 +314,8 @@ def build():
     import agent as _agent
     _agent.register(gw, CFG, guard, STATE, HERE, KILL)
     # Local video generation (video.py) and its browser front end (studio.py), opt-in via the "video" config block.
-    # Policy: video_workflows, video_status, video_result and video_queue are "read"; video_generate and video_cancel stay "write" (PIN approval).
+    # Policy: video_workflows, video_status, video_result, video_queue, video_system and video_presets are "read"; video_generate, video_cancel,
+    # video_comfy_session and video_mode stay "write" (PIN approval).
     import video as _video
     def _share_clip(path):
         try:
@@ -323,6 +324,10 @@ def build():
         except Exception:
             return ""
     vq = _video.register(gw, CFG, STATE, HERE, KILL, share_fn=_share_clip)
+    # Agent-facing extras (tools_video_mcp.py): video_system and video_presets are "read"; video_comfy_session and video_mode stay "write" (PIN approval);
+    # it also re-registers video_generate with a `preset` argument. Docs: docs/MCP-VIDEO.md.
+    import tools_video_mcp as _vmcp
+    _vmcp.register(gw, vq, HERE)
     if vq is not None and vq.cfg.enabled:
         import studio as _studio
         _studio.register(approvals, vq, vq.cfg, HERE)

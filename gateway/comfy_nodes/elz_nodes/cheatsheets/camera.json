@@ -1,0 +1,177 @@
+{
+ "schema": 1,
+ "sheet": "camera",
+ "title": "Camera movement",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Describe one main camera move. Place it after the subject and action."
+ ],
+ "entries": [
+  {
+   "id": "dolly-in",
+   "label": "Dolly in",
+   "prompt": "The camera dollies in slowly toward the subject, smoothly tightening the frame.",
+   "keywords": [
+    "dolly in",
+    "push in",
+    "closer",
+    "approach",
+    "reveal",
+    "intimate",
+    "emotional"
+   ],
+   "notes": "Builds intimacy and tension."
+  },
+  {
+   "id": "orbit",
+   "label": "Orbit",
+   "prompt": "The camera orbits smoothly around the subject, revealing it from every side.",
+   "keywords": [
+    "orbit",
+    "around",
+    "360",
+    "turntable",
+    "spin",
+    "product",
+    "statue",
+    "hero shot"
+   ],
+   "notes": "Great for product and hero reveals."
+  },
+  {
+   "id": "crane-up",
+   "label": "Crane up",
+   "prompt": "The camera cranes upward and rises above the scene, revealing the wider environment.",
+   "keywords": [
+    "crane",
+    "rise",
+    "aerial",
+    "reveal",
+    "landscape",
+    "city",
+    "wide",
+    "establishing",
+    "epic"
+   ],
+   "notes": "Ends on a wide reveal."
+  },
+  {
+   "id": "tracking",
+   "label": "Tracking shot",
+   "prompt": "The camera tracks alongside the subject, keeping pace with a smooth, steady follow.",
+   "keywords": [
+    "walks",
+    "walking",
+    "runs",
+    "running",
+    "follow",
+    "tracking",
+    "chase",
+    "street",
+    "stroll",
+    "cycle"
+   ],
+   "notes": "For moving subjects."
+  },
+  {
+   "id": "static-tripod",
+   "label": "Static tripod",
+   "prompt": "The camera is locked off on a tripod, perfectly steady, with the action unfolding within a fixed frame.",
+   "keywords": [
+    "static",
+    "still",
+    "locked",
+    "interview",
+    "portrait",
+    "sit",
+    "talks",
+    "speaks",
+    "conversation",
+    "monologue"
+   ],
+   "notes": "Best for dialogue; reduces motion artefacts.",
+   "default": true
+  },
+  {
+   "id": "fpv",
+   "label": "FPV drone",
+   "prompt": "A fast first-person-view drone flies through the scene, swooping, diving and weaving past obstacles.",
+   "keywords": [
+    "fpv",
+    "drone",
+    "fly through",
+    "swoop",
+    "dive",
+    "canyon",
+    "race",
+    "skate park",
+    "sport",
+    "mountain"
+   ],
+   "notes": "Fast motion; may be harder to hold coherent."
+  },
+  {
+   "id": "macro",
+   "label": "Macro close-up",
+   "prompt": "An extreme macro close-up with a very shallow depth of field, tiny details sharp and the background soft.",
+   "keywords": [
+    "macro",
+    "tiny",
+    "droplet",
+    "texture",
+    "detail",
+    "insect",
+    "jewel",
+    "ingredient",
+    "eye",
+    "closeup"
+   ],
+   "notes": "Pairs with foley sound."
+  },
+  {
+   "id": "handheld-follow",
+   "label": "Handheld follow",
+   "prompt": "The camera follows the subject handheld from behind, with gentle natural sway.",
+   "keywords": [
+    "handheld",
+    "behind",
+    "follow",
+    "walk and talk",
+    "documentary",
+    "vlog"
+   ],
+   "notes": "Pairs with documentary styling."
+  },
+  {
+   "id": "whip-pan",
+   "label": "Whip pan",
+   "prompt": "The camera whip-pans quickly to the side, blurring into the next moment of the scene.",
+   "keywords": [
+    "whip",
+    "snap",
+    "transition",
+    "quick",
+    "energetic",
+    "reaction"
+   ],
+   "notes": "Prompt-level cue."
+  },
+  {
+   "id": "pull-back",
+   "label": "Pull back reveal",
+   "prompt": "The camera pulls back slowly, widening the frame to reveal the full scene around the subject.",
+   "keywords": [
+    "pull back",
+    "reveal",
+    "zoom out",
+    "wider",
+    "big picture",
+    "surprise"
+   ],
+   "notes": "Good ending move."
+  }
+ ]
+}

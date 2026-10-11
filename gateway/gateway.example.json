@@ -144,7 +144,9 @@
    "video_workflows",
    "video_status",
    "video_result",
-   "video_queue"
+   "video_queue",
+   "video_system",
+   "video_presets"
   ],
   "write": [
    "pc_PowerShell",
@@ -403,12 +405,16 @@
    "--whitelist-custom-nodes",
    "ComfyUI-GGUF",
    "elz_nodes",
+   "ComfyUI-LTXVideo",
+   "comfyui-mobile-frontend",
    "--disable-partner-nodes",
    "--disable-metadata"
   ],
   "comfy_env": {
    "SYCL_CACHE_PERSISTENT": "1",
-   "UR_L0_USE_RELAXED_ALLOCATION_LIMITS": "1"
+   "UR_L0_USE_RELAXED_ALLOCATION_LIMITS": "1",
+   "COMFYUI_MOBILE_TELEMETRY": "0",
+   "COMFYUI_MOBILE_CIVITAI_METADATA": "0"
   },
   "comfy_url": "http://127.0.0.1:8188",
   "workflows_dir": "C:\\AI\\video\\workflows",
@@ -420,6 +426,8 @@
   "max_queue": 10,
   "job_timeout_s": 3600,
   "start_timeout_s": 300,
+  "comfy_settle_s": 3,
+  "comfy_stall_s": 45,
   "ntfy_url": "",
   "ntfy_topic": "",
   "ntfy_click_base": "",

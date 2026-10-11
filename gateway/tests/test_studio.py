@@ -446,6 +446,57 @@ def test_workflow_meta_has_est_ref_only_when_valid():
         for n in ("er", "erbad"): os.remove(os.path.join(rig.t, "wf", n + ".json"))
 
 
+def _shell_html():
+    s, body, h = call("GET", T)
+    assert s == 200
+    return body.decode()
+
+
+def test_v3_shell_gpu_mode_switch_wiring():
+    html = _shell_html()
+    assert 'api("mode"' in html and '{mode: m}' in html and 'role: "radiogroup"' in html and '"Video"' in html and '"Qwen"' in html
+    assert "x.status === 409" in html and "A video is rendering; wait or cancel it first" in html          # a refusal is a plain message, not a crash
+
+
+def test_v3_shell_comfy_session_wiring_and_links():
+    html = _shell_html()
+    assert 'api("comfy"' in html and '{action}' in html and "Start session" in html and "Stop session" in html
+    assert "const COMFY_PORT = 8448" in html
+    assert 'comfyUrl("/mobile")' in html and 'comfyUrl("/")' in html and "Open CueForge" in html and "Open ComfyUI" in html
+    assert '"https://" + location.hostname + ":"' in html                                                 # host comes from the page, so any tailnet name works
+    assert 'target: "_blank"' in html and 'rel: "noopener noreferrer"' in html
+
+
+def test_v3_shell_system_poll_and_tabs():
+    html = _shell_html()
+    assert 'api("system")' in html and "visibilitychange" in html and "document.hidden" in html
+    for tab in ("create", "queue", "gallery", "system"):
+        assert '["%s", ' % tab in html, tab
+    assert 'id="v-system"' in html and "Unknown" in html                                                 # missing numbers read as Unknown, never invented
+
+
+def test_v3_shell_settings_sheet_and_storage_guards():
+    html = _shell_html()
+    assert 'id="settings"' in html and "renderSettings" in html and "studio.settings.v3" in html
+    for k in ("seedLock", "autoOpen", "haptics", "sound", "motion", "poll"):
+        assert k in html, k
+    assert "navigator.vibrate" in html and "prefers-reduced-motion" in html and "Request preview" in html
+    i = html.index("const store = {")
+    assert html[i:i + 400].count("try {") >= 2                                                           # every storage access is guarded
+
+
+def test_v3_shell_csp_safe_and_self_contained():
+    html = _shell_html()
+    assert not re.search(r"<script[^>]+src=", html, re.I), "no external or src scripts"
+    assert not re.search(r"<link[^>]+rel=[\"']stylesheet", html, re.I)
+    assert "@import" not in html and "@font-face" not in html
+    assert not re.search(r"(?:src|href)=[\"']https?://", html, re.I), "no external http(s) src or href in markup"
+    assert not re.search(r"url\(\s*[\"']?https?://", html, re.I), "no external url() in CSS"
+    assert not re.search(r"<[a-z][^>]*\son[a-z]+=", html, re.I), "no inline event-handler attributes"
+    assert "eval(" not in html and "new Function" not in html
+    assert "X-Requested-With" in html and '"approvals"' in html
+
+
 if __name__ == "__main__":
     fails = 0
     for n, f in sorted(globals().items()):

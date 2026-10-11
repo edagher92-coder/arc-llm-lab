@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "arc-gw": {
+      "command": "C:\\AI\\gateway\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\AI\\gateway\\gateway.py", "C:\\AI\\gateway\\gateway.json"],
+      "env": { "PYTHONIOENCODING": "utf-8", "GW_APPROVAL_PORT": "8093" }
+    }
+  }
+}

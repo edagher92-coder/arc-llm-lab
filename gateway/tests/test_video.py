@@ -49,7 +49,7 @@ class Rig:
         self.comfy_log = os.path.join(self.t, "comfy-requests.log"); self.img_root = os.path.join(self.t, "shared"); os.makedirs(self.img_root)
         cfg = {"comfy_dir": self.t, "comfy_cmd": [PY, os.path.join(HERE, "mock_comfy.py"), str(self.port), mode, self.comfy_log], "comfy_url": "http://127.0.0.1:%d" % self.port,
                "workflows_dir": os.path.join(self.t, "wf"), "input_dir": os.path.join(self.t, "input"), "allowed_roots": [self.img_root], "job_timeout_s": timeout,
-               "start_timeout_s": 20, "poll_s": 0.1, "tick_s": 0.1, "llm": {"swap_url": "http://127.0.0.1:%d" % self.swap.port, "model_id": "m", "quiet_s": quiet_s,
+               "start_timeout_s": 20, "comfy_settle_s": 0.05, "poll_s": 0.1, "tick_s": 0.1, "llm": {"swap_url": "http://127.0.0.1:%d" % self.swap.port, "model_id": "m", "quiet_s": quiet_s,
                "governor_mode_file": self.mode_file, "unload_timeout_s": 10}}
         cfg.update(ntfy or {})
         self.kill = os.path.join(self.t, "KILL"); self.shared = []; self.cfgd = cfg
@@ -698,6 +698,99 @@ def test_session_watcher_levels_and_copies_cueforge_renders_once():
         jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(1.0)
         assert len([x for x in r.q.jobs if x.get("source") == "comfy"]) == 1, "the queue's own render must not be ingested as a CueForge render"
     finally: r.close()
+
+# ---- self-healing ComfyUI start (stalled spawn after the LLM exits) ----
+class FakeClock:
+    """Stands in for video.time: sleep() just advances the clock, so a 300 s start-up runs in microseconds."""
+    def __init__(self): self.now = 1000.0
+    def time(self): return self.now
+    def sleep(self, s): self.now += s
+class FakeProc:
+    _n = 100
+    def __init__(self): FakeProc._n += 1; self.pid = FakeProc._n; self.dead = False
+    def poll(self): return 1 if self.dead else None
+class StallEnv(video.Env):
+    """plan: one entry per spawn: 'stall' (silent, never answers), 'slow' (writes to the log, answers only after answer_after s), 'ok' (writes, answers at once)."""
+    def __init__(self, plan, clock, answer_after=10 ** 9):
+        self.plan, self.clock, self.answer_after, self.spawns, self.kills, self.slept = list(plan), clock, answer_after, [], [], []
+        self.up_at = None; self.log_path = None; self.write_log = False
+    def http(self, method, url, body=None, headers=None, timeout=10):
+        if "/system_stats" in url:
+            if self.write_log: self.write_log = False; open(self.log_path, "ab").write(b"Starting ComfyUI\n")     # output appears after the spawn, as in real life
+            if self.up_at is not None and self.clock.now >= self.up_at: return {"system": {}}
+            raise OSError("refused")
+        return {}
+    def popen(self, cmd, cwd, env, log_path):
+        kind = self.plan.pop(0); p = FakeProc(); p.kind = kind; self.spawns.append((p, dict(env)))
+        open(log_path, "ab").close(); self.log_path = log_path
+        if kind != "stall":
+            self.write_log = True
+            self.up_at = self.clock.now + (0 if kind == "ok" else self.answer_after)
+        else: self.up_at = None
+        return p
+    def kill_tree(self, proc): proc.dead = True; self.kills.append(proc.pid)
+    def sleep(self, secs): self.slept.append(secs)
+
+def stall_rig(plan, answer_after=10 ** 9, **extra):
+    t = tempfile.mkdtemp(dir=TMP); clock = FakeClock()
+    cfg = dict({"comfy_dir": t, "comfy_cmd": ["x"], "workflows_dir": t, "start_timeout_s": 300, "comfy_stall_s": 45, "poll_s": 1}, **extra)
+    env = StallEnv(plan, clock, answer_after); q = video.Queue(video.Cfg(cfg, t), t, env=env)
+    return q, env, clock
+
+def with_clock(clock, f):
+    real = video.time; video.time = clock
+    try: return f()
+    finally: video.time = real
+
+def test_popen_unbuffered_env():
+    seen = {}
+    class P(video.Env):
+        pass
+    import subprocess
+    real = subprocess.Popen
+    def fake(cmd, cwd=None, env=None, stdout=None, stderr=None): seen.update(env); return object()
+    subprocess.Popen = fake
+    try:
+        log = os.path.join(TMP, "unbuf.log")
+        P().popen(["x"], TMP, {"A": "1"}, log); assert seen["PYTHONUNBUFFERED"] == "1" and seen["A"] == "1", seen
+        seen.clear(); P().popen(["x"], TMP, {"PYTHONUNBUFFERED": "0"}, log); assert seen["PYTHONUNBUFFERED"] == "0", seen      # an explicit value wins
+    finally: subprocess.Popen = real
+
+def test_stalled_spawn_restarts_once():
+    q, env, clock = stall_rig(["stall", "ok"])
+    with_clock(clock, q._start_comfy)
+    assert len(env.spawns) == 2 and env.kills == [env.spawns[0][0].pid], (len(env.spawns), env.kills)
+    assert q.proc is env.spawns[1][0] and q._lock_read()["pid"] == q.proc.pid          # the lock follows the respawned pid
+    log = open(q.log_path).read(); assert "[gateway] ComfyUI produced no output in 45 s; restarting once" in log, log
+    assert 45 <= clock.now - 1000 < 60, clock.now                                      # restarted at the stall mark, not at the deadline
+
+def test_two_stalls_raise_no_third_spawn():
+    q, env, clock = stall_rig(["stall", "stall", "ok"])
+    try: with_clock(clock, q._start_comfy); raise AssertionError("two stalled spawns were accepted")
+    except video.VideoError as e: assert "stalled" in str(e) and q.log_path in str(e), e
+    assert len(env.spawns) == 2 and len(env.kills) == 2 and len(env.plan) == 1, "no third spawn"
+
+def test_slow_but_logging_spawn_not_restarted():
+    q, env, clock = stall_rig(["slow"], answer_after=200)                              # logs at once, answers after 200 s (< start_timeout_s)
+    with_clock(clock, q._start_comfy); assert len(env.spawns) == 1 and env.kills == [] and "restarting" not in open(q.log_path).read()
+    q, env, clock = stall_rig(["slow", "ok"])                                           # logs but never answers: waits the full start_timeout_s, no restart
+    try: with_clock(clock, q._start_comfy); raise AssertionError
+    except video.VideoError as e: assert "did not answer within 300 s" in str(e) and "stalled" not in str(e), e
+    assert len(env.spawns) == 1 and env.kills == [] and clock.now - 1000 >= 300
+
+def test_settle_after_unload_only():
+    class Q(video.Queue):
+        def _start_comfy(self, extra_env=None): self.order.append("start"); raise video.VideoError("stop here")
+    for sess, want in ((False, [3.0]), (True, [])):
+        t = tempfile.mkdtemp(dir=TMP); os.makedirs(os.path.join(t, "wf")); json.dump(WF, open(os.path.join(t, "wf", "t2v.json"), "w"))
+        env = StallEnv([], FakeClock()); env.process_running = lambda n: False; env.http = lambda m, u, b=None, headers=None, timeout=10: {}
+        q = Q(video.Cfg({"comfy_dir": t, "comfy_cmd": ["x"], "workflows_dir": os.path.join(t, "wf"), "llm": {"unload_timeout_s": 5}}, t), t, env=env)
+        q.order = []; q._take_gpu = lambda: None; q._unload_llm = lambda: q.order.append("unload"); q._stop_comfy = lambda: None
+        if sess: q.session = {"state": "ready"}
+        jid, _, _ = q.submit("t2v", {"prompt": "x"}); q.run(jid)
+        assert env.slept == want, (sess, env.slept)
+        assert q.order == ([] if sess else ["unload", "start"]), q.order      # a reused session neither unloads nor starts
+    assert video.Cfg({}).comfy_settle_s == 3.0 and video.Cfg({}).comfy_stall_s == 45.0 and video.Cfg({"comfy_settle_s": "bad"}).comfy_settle_s == 3.0
 
 if __name__ == "__main__":
     fails = 0

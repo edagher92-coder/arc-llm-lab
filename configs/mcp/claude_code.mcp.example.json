@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "arc-gw": {
+      "type": "stdio",
+      "command": "C:\\AI\\gateway\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\AI\\gateway\\gateway.py", "C:\\AI\\gateway\\gateway.json"],
+      "env": { "PYTHONIOENCODING": "utf-8" }
+    },
+    "comfy": {
+      "_comment": "UNVERIFIED, verify before use: install command, tool names and COMFY_URL are unconfirmed (see docs/MCP-VIDEO.md)",
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["comfy-mcp"],
+      "env": { "COMFY_URL": "http://127.0.0.1:8188" }
+    }
+  }
+}
