@@ -480,6 +480,225 @@ def test_unstaged_job_has_no_progress_and_no_cond_env():
         assert "progress" not in j and envs == [{}] and not os.path.exists(r.cond_dir(jid)) and len(r.starts()) == 1, (j, envs)
     finally: r.close()
 
+
+# ---------- Video / LLM mode switch ----------
+def test_mode_switch_video_and_back():
+    r = Rig()
+    try:
+        assert r.q.mode_get()["view"] == "llm" and r.mode() == "MAX"
+        open(r.mode_file, "w").write("BALANCED\n")
+        g = r.q.mode_set("video"); assert g["view"] == "video" and g["hold"] and r.mode() == "OFF", g
+        r.q.mode_set("video"); assert r.mode() == "OFF" and r.q._hold()["prev"] == "BALANCED"       # twice does not overwrite what to return to
+        g = r.q.mode_set("llm", warm=False); assert g["view"] == "llm" and not g["hold"] and r.mode() == "BALANCED" and not os.path.exists(r.q.hold_path), g
+        open(r.mode_file, "w").write("OFF\n"); g = r.q.mode_set("llm", warm=False); assert r.mode() == "MAX"         # nothing remembered: the default LLM mode
+        for bad in ("gpu", "", None):
+            try: r.q.mode_set(bad); assert False, bad
+            except video.VideoError: pass
+    finally: r.close()
+
+def test_mode_switch_refused_while_busy_and_unconfigured():
+    r = Rig(busy=True, quiet_s=3600)                                 # the LLM never goes quiet, so the job stays queued/waiting
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); time.sleep(0.4)
+        for t in ("video", "llm"):
+            try: r.q.mode_set(t); assert False, "switched while a job was pending"
+            except video.VideoError as e: assert "queued or rendering" in str(e), e
+        assert r.mode() == "MAX"
+        r.q.cancel_job(jid); r.wait(jid, ("cancelled",), 10)
+        assert r.q.mode_set("video")["view"] == "video"
+        r.q.cfg.mode_file = ""
+        try: r.q.mode_set("llm"); assert False
+        except video.VideoError as e: assert "not configured" in str(e)
+    finally: r.close()
+
+def test_video_mode_survives_a_job_and_llm_warms():
+    r = Rig()
+    try:
+        open(r.mode_file, "w").write("LEAN\n"); r.q.mode_set("video")
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(0.5)
+        assert r.mode() == "OFF" and r.q.mode_get()["hold"], r.mode()                                 # still in Video mode after the render
+        assert not os.path.exists(r.q.lock_path)
+        posts = []; orig = r.q.env.http
+        r.q.env.http = lambda m, u, b=None, headers=None, timeout=10: (posts.append((u, b)), {})[1] if u.endswith("/v1/chat/completions") else orig(m, u, b, headers, timeout)
+        r.q.mode_set("llm"); end = time.time() + 3
+        while not posts and time.time() < end: time.sleep(0.05)
+        assert r.mode() == "LEAN" and posts and posts[0][1]["max_tokens"] == 1 and posts[0][1]["model"] == "m", (r.mode(), posts)
+    finally: r.close()
+
+def test_manual_governor_change_ends_video_mode():
+    r = Rig()
+    try:
+        r.q.mode_set("video"); open(r.mode_file, "w").write("MAX\n")
+        assert r.q.mode_get()["hold"] is False and not os.path.exists(r.q.hold_path)
+    finally: r.close()
+
+# ---------- Drive copy ----------
+def drive_rig(mode, **kw):
+    d = tempfile.mkdtemp(dir=TMP); return Rig(ntfy=dict({"drive_dir": os.path.join(d, "Drive"), "drive_mode": mode}, **kw)), os.path.join(d, "Drive")
+
+def wait_for(fn, secs=10):
+    end = time.time() + secs
+    while time.time() < end:
+        v = fn()
+        if v: return v
+        time.sleep(0.05)
+    raise AssertionError("condition not reached")
+
+def test_drive_all_copies_clip_and_sidecar_atomically():
+    r, d = drive_rig("all")
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "a fox", "seconds": 2, "seed": 9}); r.wait(jid, ("done",))
+        j = wait_for(lambda: r.q.get(jid).get("drive_path") and r.q.get(jid))
+        month = time.strftime("%Y-%m", time.localtime(j["ended"])); mp4 = os.path.join(d, month, jid + "_clip_00001.mp4")
+        assert j["drive_path"] == mp4 and j["drive_rel"] == "%s/%s_clip_00001.mp4" % (month, jid) and open(mp4, "rb").read() == b"FAKEMP4DATA"
+        side = json.load(open(mp4 + ".json")); assert side["prompt"] == "a fox" and side["seed"] == 9 and side["params"]["frames"] == 49 and side["render_s"] >= 0 and side["job_id"] == jid, side
+        assert not [f for f in os.listdir(os.path.join(d, month)) if f.endswith(".tmp")]
+        t = os.path.getmtime(mp4); assert r.q.drive_sync(jid) is True and os.path.getmtime(mp4) == t          # idempotent: nothing is copied twice
+    finally: r.close()
+
+def test_drive_favourites_only_on_star_and_off_does_nothing():
+    r, d = drive_rig("favourites")
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(0.6)
+        assert not r.q.get(jid).get("drive_path") and not os.path.exists(d), "a non-favourite went to Drive"
+        assert r.q.drive_sync(jid) is False
+        r.q.set_fav(jid, True); j = wait_for(lambda: r.q.get(jid).get("drive_path") and r.q.get(jid))
+        assert os.path.isfile(j["drive_path"]) and json.load(open(j["drive_path"] + ".json"))["fav"] is True
+    finally: r.close()
+    r, d = drive_rig("off")
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(0.6)
+        r.q.set_fav(jid, True); time.sleep(0.4); assert not os.path.exists(d) and r.q.drive_sync(jid) is False
+    finally: r.close()
+    assert video.Cfg({"drive_dir": "x", "drive_mode": "bogus"}).drive_mode == "off" and video.Cfg({}).drive_mode == "off"
+
+def test_drive_failure_never_fails_the_job():
+    t = tempfile.mkdtemp(dir=TMP); blocker = os.path.join(t, "file"); open(blocker, "w").write("x")       # a file where the folder should be
+    r = Rig(ntfy={"drive_dir": os.path.join(blocker, "sub"), "drive_mode": "all"})
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done", "failed"))
+        j = wait_for(lambda: r.q.get(jid).get("drive_error") and r.q.get(jid))
+        assert j["state"] == "done" and not j.get("drive_path") and r.mode() == "MAX", j
+    finally: r.close()
+
+# ---------- sound levelling ----------
+FAKE_FFMPEG = """#!%s
+import sys
+a = sys.argv[1:]
+open(%r, "a").write(" ".join(a) + "\\n")
+if "FAIL" in open(%r).read(): sys.stderr.write("boom"); sys.exit(1)
+open(a[-1], "wb").write(b"LEVELLED")
+"""
+def ffmpeg_rig(fail=False, keep_raw=False):
+    t = tempfile.mkdtemp(dir=TMP); log = os.path.join(t, "ff.log"); flag = os.path.join(t, "flag"); open(flag, "w").write("FAIL" if fail else "ok")
+    exe = os.path.join(t, "ffmpeg"); open(exe, "w").write(FAKE_FFMPEG % (sys.executable, log, flag)); os.chmod(exe, 0o755)
+    return Rig(ntfy={"ffmpeg_path": exe, "loudnorm": True, "keep_raw": keep_raw}), log
+
+def test_loudnorm_replaces_clip_copies_video_and_keeps_raw_only_if_asked():
+    r, log = ffmpeg_rig(keep_raw=True)
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",))
+        p = j["files_out"][0]; assert open(p, "rb").read() == b"LEVELLED" and j["loudnorm"] is True, j
+        assert open(p[:-4] + "_raw.mp4", "rb").read() == b"FAKEMP4DATA"
+        cmd = open(log).read(); assert "-c:v copy" in cmd and "loudnorm=I=-16:TP=-1.5" in cmd, cmd
+        assert not [f for f in os.listdir(os.path.dirname(p)) if f.endswith(".tmp")]
+    finally: r.close()
+    r, log = ffmpeg_rig(keep_raw=False)
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",)); p = j["files_out"][0]
+        assert open(p, "rb").read() == b"LEVELLED" and not os.path.exists(p[:-4] + "_raw.mp4")
+    finally: r.close()
+
+def test_loudnorm_failure_is_soft_and_unset_means_untouched():
+    r, log = ffmpeg_rig(fail=True)
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",)); p = j["files_out"][0]
+        assert j["state"] == "done" and open(p, "rb").read() == b"FAKEMP4DATA" and not j.get("loudnorm") and os.path.exists(log)
+    finally: r.close()
+    r = Rig(ntfy={"ffmpeg_path": "/nonexistent/ffmpeg", "loudnorm": True})                                    # cannot even start
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",))
+        assert open(j["files_out"][0], "rb").read() == b"FAKEMP4DATA"
+    finally: r.close()
+    r = Rig()
+    try:
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done",)); assert "loudnorm" not in j
+    finally: r.close()
+
+# ---------- interactive ComfyUI session ----------
+def post_prompt(port, marker="ui"):
+    """What ComfyUI's own UI (CueForge) does: submit a prompt straight to ComfyUI. Returns the prompt id."""
+    import urllib.request
+    g = {"1": {"class_type": "CLIPTextEncode", "inputs": {"text": "UI shot " + marker}}, "2": {"class_type": "RandomNoise", "inputs": {"noise_seed": 4242}}}
+    req = urllib.request.Request("http://127.0.0.1:%d/prompt" % port, json.dumps({"prompt": g, "client_id": "ui-" + marker}).encode(), {"Content-Type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=5))["prompt_id"]
+
+def session_up(r, secs=20):
+    r.q.session_start(); wait_for(lambda: r.q.session_info()["state"] == "ready", secs)
+
+def test_session_lease_reuse_by_queue_jobs_and_stop():
+    r = Rig()
+    try:
+        session_up(r)
+        assert r.mode() == "OFF" and r.swap.unloads == 1 and r.comfy_up() and r.q.session_info()["active"], "the session must take the GPU like a job"
+        for fn in (lambda: r.q.session_start(), lambda: r.q.mode_set("llm")):
+            try: fn(); raise AssertionError("accepted during a session")
+            except video.VideoBusy: pass
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); j = r.wait(jid, ("done", "failed"))
+        assert j["state"] == "done" and len(r.starts()) == 1 and r.comfy_up() and r.mode() == "OFF", "a queue job must reuse ComfyUI and leave it running"
+        assert r.q.session_info()["active"] and r.q.session_info()["idle_s"] is not None
+        r.q.session_stop()
+        assert not r.q.session_info()["active"] and r.mode() == "MAX" and not os.path.exists(r.q.lock_path)
+        wait_for(lambda: not r.comfy_up(), 10)
+    finally: r.close()
+
+def test_session_refused_while_a_job_runs_and_stop_without_session_is_noop():
+    r = Rig(mode="slow", quiet_s=0)
+    try:
+        assert r.q.session_stop()["active"] is False
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("starting", "running"))
+        try: r.q.session_start(); raise AssertionError("session started during a job")
+        except video.VideoBusy: pass
+        r.wait(jid, ("done",))
+    finally: r.close()
+
+def test_session_auto_stops_when_idle_and_restores_llm():
+    r = Rig(ntfy={"comfy_session_idle_min": 0.03, "comfy_session_watch_s": 0.1})
+    try:
+        session_up(r); assert r.mode() == "OFF"
+        wait_for(lambda: not r.q.session_info()["active"], 15)
+        assert r.mode() == "MAX" and not os.path.exists(r.q.lock_path)
+    finally: r.close()
+
+def test_session_activity_keeps_it_alive():
+    r = Rig(ntfy={"comfy_session_idle_min": 0.05, "comfy_session_watch_s": 0.1})       # 3 s idle limit
+    try:
+        session_up(r); end = time.time() + 6
+        while time.time() < end:
+            post_prompt(r.port, str(time.time())); time.sleep(0.7)                        # history keeps growing: not idle
+        assert r.q.session_info()["active"], "activity must reset the idle timer"
+    finally: r.close()
+
+def watcher_rig(**extra):
+    t = tempfile.mkdtemp(dir=TMP); drive = os.path.join(t, "drive"); log = os.path.join(t, "ff.log"); flag = os.path.join(t, "flag"); open(flag, "w").write("ok")
+    exe = os.path.join(t, "ffmpeg"); open(exe, "w").write(FAKE_FFMPEG % (sys.executable, log, flag)); os.chmod(exe, 0o755)
+    cfg = {"comfy_session_watch_s": 0.2, "comfy_session_idle_min": 5, "ffmpeg_path": exe, "loudnorm": True, "drive_dir": drive, "drive_mode": "all"}; cfg.update(extra)
+    return Rig(ntfy=cfg), drive
+
+def test_session_watcher_levels_and_copies_cueforge_renders_once():
+    r, drive = watcher_rig()
+    try:
+        session_up(r); pid = post_prompt(r.port, "a")
+        j = wait_for(lambda: next((x for x in r.q.jobs if x.get("comfy_pid") == pid and x.get("drive_path")), None), 20)
+        assert j["state"] == "done" and j["source"] == "comfy" and j["loudnorm"] is True and j["params"]["prompt"] == "UI shot a" and j["params"]["seed"] == 4242, j
+        p = j["files_out"][0]; assert open(p, "rb").read() == b"LEVELLED" and p.startswith(r.q.out_dir)
+        side = json.load(open(j["drive_path"] + ".json")); assert side["prompt"] == "UI shot a" and side["workflow_graph"]["2"]["inputs"]["noise_seed"] == 4242 and open(j["drive_path"], "rb").read() == b"LEVELLED"
+        time.sleep(1.5); n = len([x for x in r.q.jobs if x.get("comfy_pid") == pid]); ff = open(os.path.join(os.path.dirname(drive), "ff.log")).read().count("\n")
+        assert n == 1 and ff == 1, "a prompt id must be ingested once (jobs %d, ffmpeg runs %d)" % (n, ff)
+        jid, _, _ = r.q.submit("t2v", {"prompt": "x", "seconds": 2}); r.wait(jid, ("done",)); time.sleep(1.0)
+        assert len([x for x in r.q.jobs if x.get("source") == "comfy"]) == 1, "the queue's own render must not be ingested as a CueForge render"
+    finally: r.close()
+
 if __name__ == "__main__":
     fails = 0
     for n, f in sorted(globals().items()):

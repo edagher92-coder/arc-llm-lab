@@ -56,9 +56,9 @@ def test_shell_public_api_private():
     s, body, h = call("GET", T)
     assert s == 200 and b"<title>Studio</title>" in body and "text/html" in h["Content-Type"], s
     assert call("GET", T + "/")[0] == 200
-    for p in ("/api/workflows", "/api/jobs", "/api/status", "/api/clip/abcdef12/x.mp4"):
+    for p in ("/api/workflows", "/api/jobs", "/api/status", "/api/system", "/api/clip/abcdef12/x.mp4"):
         assert call("GET", T + p)[0] == 401, p
-    for p in ("generate", "cancel", "delete", "upload", "assist", "fav", "rerun"):
+    for p in ("generate", "cancel", "delete", "upload", "assist", "fav", "rerun", "mode"):
         assert call("POST", T + "/api/" + p, {})[0] == 401, p
         assert call("POST", T + "/api/" + p, {}, cookie, xrw=False)[0] == 403, p       # the CSRF header is still required
 
@@ -331,6 +331,119 @@ def test_status_while_rendering():
         assert s["gpu"] == "video" and s["active"]["id"] == "bbbbbbbb"
     finally:
         with rig.q.lock: rig.q.jobs[:] = [x for x in rig.q.jobs if x["id"] != "bbbbbbbb"]
+
+
+def test_system_snapshot_shape_cache_and_privacy():
+    end = time.time() + 20
+    while rig.q.busy() and time.time() < end: time.sleep(0.1)
+    time.sleep(2.1)
+    s = js(call("GET", T + "/api/system", cookie=cookie))
+    assert s["version"] == "studio-v3" and s["mode"] in ("video", "llm") and s["llm_loaded"] in (True, False), s
+    assert set(s) >= {"mode", "llm_loaded", "comfy", "queue", "ram", "disk", "vram", "last", "drive", "ntfy", "loudnorm", "version"}, s
+    assert s["comfy"]["running"] is False and s["comfy"]["session"] is False and s["comfy"]["idle_s"] is None and "port" in s["comfy"]
+    assert s["queue"] == {"len": 0, "running_id": None, "stage": None, "progress": None}, s["queue"]
+    assert s["ram"]["total_mb"] >= s["ram"]["avail_mb"] >= 0 and s["disk"]["out_free_gb"] > 0 and s["vram"] is None
+    assert s["drive"]["mode"] == "off" and s["drive"]["dir_ok"] is False and s["drive"]["last_path"] is None and s["loudnorm"] is False
+    assert rig.t not in json.dumps(s), "a server path reached the browser"
+    assert call("GET", T + "/api/system")[0] == 401
+    s2 = js(call("GET", T + "/api/system", cookie=cookie)); assert s2 == s, "second call within 2 s should come from the cache"
+
+
+def test_system_shows_stage_last_speed_and_fails_soft():
+    jid, _, _ = rig.q.submit("t2v", {"prompt": "speed", "seconds": 2}); rig.wait(jid, ("done",))
+    with rig.q.lock: rig.q.jobs.append(dict(id="dddddddd", workflow="t2v", params={"prompt": "p"}, files={}, state="running", created=time.time(), started=time.time(), note="stage 2 of 2: sampling", progress=55.5))
+    try:
+        time.sleep(2.1); s = js(call("GET", T + "/api/system", cookie=cookie))
+        assert s["mode"] == "busy" and s["queue"]["running_id"] == "dddddddd" and s["queue"]["stage"].startswith("stage 2") and s["queue"]["progress"] == 55.5 and s["queue"]["len"] == 1, s
+        assert s["last"]["seconds"] > 0 and s["last"]["out_seconds"] > 0, s["last"]
+        orig = studio.host_ram; studio.host_ram = lambda: (_ for _ in ()).throw(RuntimeError("probe broke"))
+        try:
+            time.sleep(2.1); s = js(call("GET", T + "/api/system", cookie=cookie)); assert "error" in s and s["version"] == "studio-v3"       # a broken probe is an answer, not a 500
+        finally: studio.host_ram = orig
+    finally:
+        with rig.q.lock: rig.q.jobs[:] = [x for x in rig.q.jobs if x["id"] != "dddddddd"]
+        time.sleep(2.1)
+    assert studio.last_speed([]) is None and studio._out_secs({"params": {"frames": 49}}) == 2.0
+    open(os.path.join(rig.t, "mi"), "w").write("MemTotal: 1000 kB\nMemAvailable: 400 kB\n")
+    assert studio._meminfo(os.path.join(rig.t, "mi")) == (1024000, 409600)
+
+
+def test_mode_endpoint():
+    m = lambda body, **kw: call("POST", T + "/api/mode", body, cookie, **kw)
+    assert call("POST", T + "/api/mode", {"mode": "video"})[0] == 401 and m({"mode": "video"}, xrw=False)[0] == 403
+    for bad in ({}, {"mode": "gpu"}, {"mode": 1}, {"mode": None}): assert m(bad)[0] == 400, bad
+    orig = rig.q._warm_llm; rig.q._warm_llm = lambda: None
+    try:
+        s, b, _ = m({"mode": "video"}); d = json.loads(b); assert s == 200 and d == {"ok": True, "mode": "video"} and rig.mode() == "OFF", (s, b)
+        time.sleep(2.1); assert js(call("GET", T + "/api/system", cookie=cookie))["mode"] == "video"
+        with rig.q.lock: rig.q.jobs.append(dict(id="eeeeeeee", workflow="t2v", params={}, files={}, state="running", created=time.time()))
+        try:
+            s, b, _ = m({"mode": "llm"}); assert s == 409 and "error" in json.loads(b) and rig.mode() == "OFF", (s, b)       # refused while busy, governor untouched
+        finally:
+            with rig.q.lock: rig.q.jobs[:] = [x for x in rig.q.jobs if x["id"] != "eeeeeeee"]
+        s, b, _ = m({"mode": "llm"}); assert s == 200 and json.loads(b) == {"ok": True, "mode": "llm"} and rig.mode() == "MAX", (s, b)
+        mf = rig.q.cfg.mode_file; rig.q.cfg.mode_file = ""
+        try: assert m({"mode": "video"})[0] == 503
+        finally: rig.q.cfg.mode_file = mf
+    finally: rig.q._warm_llm = orig
+
+
+def test_comfy_session_endpoint():
+    c = lambda body, **kw: call("POST", T + "/api/comfy", body, cookie, **kw)
+    assert call("POST", T + "/api/comfy", {"action": "start"})[0] == 401 and c({"action": "start"}, xrw=False)[0] == 403
+    for bad in ({}, {"action": "restart"}, {"action": 1}): assert c(bad)[0] == 400, bad
+    end = time.time() + 20
+    while rig.q.busy() and time.time() < end: time.sleep(0.1)
+    vc.tailnet_port = 8448
+    with rig.q.lock: rig.q.jobs.append(dict(id="ffffffff", workflow="t2v", params={}, files={}, state="running", created=time.time()))
+    try:
+        s, b, _ = c({"action": "start"}); assert s == 409 and "error" in json.loads(b) and not rig.q.session_info()["active"], (s, b)       # refused while a job runs
+    finally:
+        with rig.q.lock: rig.q.jobs[:] = [x for x in rig.q.jobs if x["id"] != "ffffffff"]
+    try:
+        s, b, _ = c({"action": "start"}); assert s == 200 and json.loads(b)["ok"] is True and json.loads(b)["session"] is True, (s, b)
+        tv.wait_for(lambda: rig.q.session_info()["state"] == "ready", 20)
+        assert c({"action": "start"})[0] == 409                                      # a second start is refused
+        s2 = call("POST", T + "/api/mode", {"mode": "llm"}, cookie)
+        assert s2[0] == 409, s2                                                      # mode switch refused during a session
+        time.sleep(2.1); sysd = js(call("GET", T + "/api/system", cookie=cookie))
+        assert sysd["mode"] == "busy" and sysd["comfy"]["session"] is True and sysd["comfy"]["running"] is True and sysd["comfy"]["port"] == 8448 and isinstance(sysd["comfy"]["idle_s"], int), sysd["comfy"]
+        assert rig.mode() == "OFF"
+    finally:
+        s, b, _ = c({"action": "stop"}); assert s == 200 and json.loads(b) == {"ok": True, "session": False}, (s, b)
+    assert rig.mode() == "MAX" and not rig.q.session_info()["active"]
+    time.sleep(2.1); sysd = js(call("GET", T + "/api/system", cookie=cookie)); assert sysd["comfy"]["session"] is False and sysd["comfy"]["idle_s"] is None and sysd["mode"] == "llm", sysd
+
+
+def test_system_reports_drive_and_loudnorm_settings():
+    old = (vc.drive_dir, vc.drive_mode, vc.loudnorm)
+    d = tempfile.mkdtemp(dir=tv.TMP)
+    try:
+        vc.drive_dir, vc.drive_mode, vc.loudnorm = d, "favourites", True
+        time.sleep(2.1); s = js(call("GET", T + "/api/system", cookie=cookie))
+        assert s["drive"]["mode"] == "favourites" and s["drive"]["dir_ok"] is True and s["loudnorm"] is True and d not in json.dumps(s), s
+        vc.drive_dir = os.path.join(d, "missing")
+        time.sleep(2.1); assert js(call("GET", T + "/api/system", cookie=cookie))["drive"]["dir_ok"] is False
+    finally:
+        vc.drive_dir, vc.drive_mode, vc.loudnorm = old; time.sleep(2.1)
+
+
+def test_drive_status_in_job_list_is_relative_only():
+    jid, _, _ = rig.q.submit("t2v", {"prompt": "d", "seconds": 2}); rig.wait(jid, ("done",))
+    rig.q._set(jid, drive_path="/secret/Drive/2026-10/x.mp4", drive_rel="2026-10/x.mp4")
+    pj = next(x for x in js(call("GET", T + "/api/jobs", cookie=cookie)) if x["id"] == jid)
+    assert pj["drive"] == "2026-10/x.mp4" and "drive_path" not in pj and "/secret" not in json.dumps(pj), pj
+
+
+def test_workflow_meta_has_est_ref_only_when_valid():
+    wf = json.loads(json.dumps(tv.WF)); wf["meta"]["est_ref"] = [768, 512, 2]; wf["meta"]["order"] = 201
+    bad = json.loads(json.dumps(tv.WF)); bad["meta"]["est_ref"] = [768, "x", 2]; bad["meta"]["order"] = 202
+    for n, w in (("er", wf), ("erbad", bad)): json.dump(w, open(os.path.join(rig.t, "wf", n + ".json"), "w"))
+    try:
+        ws = {w["name"]: w for w in js(call("GET", T + "/api/workflows", cookie=cookie))["workflows"]}
+        assert ws["er"]["est_ref"] == [768.0, 512.0, 2.0] and "est_ref" not in ws["erbad"] and "est_ref" not in ws["t2v"]
+    finally:
+        for n in ("er", "erbad"): os.remove(os.path.join(rig.t, "wf", n + ".json"))
 
 
 if __name__ == "__main__":

@@ -10,23 +10,28 @@
   "sizes": [
    [
     768,
-    416,
+    512,
     "Draft"
    ],
    [
-    960,
-    544,
+    1024,
+    576,
     "Daily"
    ],
    [
     1280,
     704,
-    "720p wide"
+    "Hero"
+   ],
+   [
+    576,
+    1024,
+    "Vertical"
    ],
    [
     704,
     1280,
-    "Vertical"
+    "Vertical HD"
    ],
    [
     1024,
@@ -40,30 +45,32 @@
     "label": "Draft",
     "params": {
      "width": 768,
-     "height": 416,
-     "seconds": 3
+     "height": 512,
+     "seconds": 2,
+     "quality": "fast"
     },
-    "note": "Fast check: 768x416, about 73 frames (8n+1)."
+    "note": "Fast check: 768x512, 2 s (49 frames). Measured: about 3.5 min on this PC."
    },
    {
     "name": "daily",
     "label": "Daily",
     "params": {
-     "width": 960,
-     "height": 544,
+     "width": 1024,
+     "height": 576,
      "seconds": 4
     },
-    "note": "Stage 1 at 960x544, 97 frames. Final 1920x1088 needs the x2 latent upscale stage in the graph."
+    "note": "1024x576, 4 s (97 frames). Estimate, not measured yet."
    },
    {
     "name": "hero",
     "label": "Hero",
     "params": {
-     "width": 960,
-     "height": 544,
-     "seconds": 5
+     "width": 1280,
+     "height": 704,
+     "seconds": 5,
+     "quality": "best"
     },
-    "note": "As Daily with 121 frames (8n+1)."
+    "note": "1280x704, 5 s (121 frames). Estimate, not measured yet."
    }
   ],
   "seconds": {
@@ -90,14 +97,14 @@
     "default": 768,
     "min": 384,
     "max": 1280,
-    "multiple_of": 32
+    "multiple_of": 64
    },
    "height": {
     "type": "int",
     "default": 512,
     "min": 384,
     "max": 1280,
-    "multiple_of": 32
+    "multiple_of": 64
    },
    "seconds": {
     "type": "int",
@@ -109,8 +116,24 @@
    "seed": {
     "type": "int",
     "label": "Seed"
+   },
+   "quality": {
+    "type": "str",
+    "choices": [
+     "fast",
+     "standard",
+     "best"
+    ],
+    "default": "standard",
+    "label": "Quality",
+    "help": "Fast, Standard or Best. Accepted and stored with the job; the sigma-schedule mapping is not wired into the graph yet, so all three render the same today."
    }
-  }
+  },
+  "est_ref": [
+   768,
+   512,
+   2
+  ]
  },
  "set": {
   "405:364.text": [

@@ -20,6 +20,9 @@ class H(BaseHTTPRequestHandler):
             if h and h["mode"] == "slow" and time.time() < h["ready"]: return self.send({})
             if h and h["mode"] in ("hang", "crash"): return self.send({})
             return self.send({pid: h["entry"]} if h else {})
+        if self.path.startswith("/history"):                                   # the whole history (what a session watcher polls); finished prompts only
+            return self.send({p: h["entry"] for p, h in HIST.items() if h["mode"] not in ("hang", "crash") and time.time() >= h["ready"]})
+        if self.path.startswith("/queue"): return self.send({"queue_running": [], "queue_pending": []})
         if self.path.startswith("/view"): return self.send(None, raw=b"FAKEMP4DATA")
         self.send({}, 404)
     def do_POST(self):
@@ -36,7 +39,7 @@ class H(BaseHTTPRequestHandler):
                 HIST[pid] = {"mode": mode, "ready": 0, "entry": {"status": {"status_str": "error", "messages": [["execution_error", {"exception_message": "OOM on XPU"}]]}, "outputs": {}}}
             else:
                 HIST[pid] = {"mode": mode, "ready": time.time() + 2, "entry": {"status": {"status_str": "success", "messages": []},
-                             "outputs": {"9": {"videos": [{"filename": "clip_00001.mp4", "subfolder": "", "type": "output"}]}}}}
+                             "outputs": {"9": {"videos": [{"filename": "clip_%05d.mp4" % (len(HIST) + 1), "subfolder": "", "type": "output"}]}}, "prompt": [len(HIST) + 1, pid, body["prompt"], {}, []]}}
             if mode == "crash": threading.Timer(0.3, lambda: __import__("os")._exit(3)).start()
             return self.send({"prompt_id": pid, "node_errors": {}})
         self.send({}, 404)

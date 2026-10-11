@@ -1,0 +1,2434 @@
+{
+ "ic_lora_name_map": {
+  "alpha-gen": {
+   "file": "ltx-2.5-22b-ic-lora-alpha-gen-0.9.safetensors",
+   "status": "VERIFIED"
+  },
+  "clean-plate": {
+   "file": "ltx-2.5-22b-ic-lora-clean-plate-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "colorization": {
+   "file": "ltx-2.5-22b-ic-lora-colorization-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "day-to-night": {
+   "file": "ltx-2.5-22b-ic-lora-day-to-night-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "deblur": {
+   "file": "ltx-2.5-22b-ic-lora-deblur-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "decompression": {
+   "file": "ltx-2.5-22b-ic-lora-decompression-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "ingredients": {
+   "file": "ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "layout-to-render": {
+   "file": "ltx-2.5-22b-ic-lora-layout-to-render-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "pixel-spatial-upscaler": {
+   "file": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "refine-details": {
+   "file": "ltx-2.5-22b-ic-lora-refine-details-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "restore": {
+   "file": "ltx-2.5-22b-ic-lora-restore-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "sdr-to-hdr": {
+   "file": "ltx-2.5-22b-ic-lora-sdr-to-hdr-0.9.safetensors",
+   "status": "INFERRED"
+  },
+  "water-simulation": {
+   "file": "ltx-2.5-22b-ic-lora-water-simulation-0.9.safetensors",
+   "status": "INFERRED"
+  }
+ },
+ "node_types_by_pack": {
+  "ComfyUI-GGUF": [
+   "UnetLoaderGGUF"
+  ],
+  "ComfyUI-LTXVideo": [
+   "GemmaAPITextEncode",
+   "LTXAddVideoICLoRAGuide",
+   "LTXAddVideoICLoRAGuideAdvanced",
+   "LTXFloatToInt",
+   "LTXICLoRALoaderModelOnly",
+   "LTXVAudioOnlyEmptyVideoLatent",
+   "LTXVAudioOnlyModel",
+   "LTXVDilateVideoMask",
+   "LTXVDrawTracks",
+   "LTXVGetTilingSizes",
+   "LTXVHDRDecodePostprocess",
+   "LTXVImgToVideoConditionOnly",
+   "LTXVInpaintPreprocess",
+   "LTXVLaplacianPyramidBlend",
+   "LTXVLoadConditioning",
+   "LTXVLoadEXRSequence",
+   "LTXVSDRToHDRWorkingSpace",
+   "LTXVSaveHLG",
+   "LTXVSetAudioRefTokens",
+   "LTXVSparseTrackEditor",
+   "LTXVTiledFusionSampler",
+   "LTXVVAEForceFloat32"
+  ],
+  "ComfyUI-VideoDepthAnything": [
+   "LoadVideoDepthAnythingModel",
+   "VideoDepthAnythingOutput",
+   "VideoDepthAnythingProcess"
+  ],
+  "comfyui_controlnet_aux": [
+   "CannyEdgePreprocessor",
+   "DWPreprocessor"
+  ]
+ },
+ "node_types_used": {
+  "CFGGuider": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "CLIPLoader": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "CLIPTextEncode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "CannyEdgePreprocessor": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled"
+  ],
+  "ComfyMathExpression": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "ComfyNotNode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "ComfySwitchNode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "CreateVideo": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "DWPreprocessor": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled"
+  ],
+  "EmptyImage": [
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled"
+  ],
+  "EmptyLTXVLatentVideo": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "GemmaAPITextEncode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "GetImageSize": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "GetVideoComponents": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "ImagePadForOutpaintTargetSize": [
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "ImageScale": [
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "ImageToMask": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled"
+  ],
+  "KSamplerSelect": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXAddVideoICLoRAGuide": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXAddVideoICLoRAGuideAdvanced": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "LTXFloatToInt": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled"
+  ],
+  "LTXICLoRALoaderModelOnly": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVAudioOnlyEmptyVideoLatent": [
+   "LTX-2.5_T2A_Single_Stage_Distilled"
+  ],
+  "LTXVAudioOnlyModel": [
+   "LTX-2.5_T2A_Single_Stage_Distilled"
+  ],
+  "LTXVAudioVAEDecode": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVAudioVAEEncode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled"
+  ],
+  "LTXVConcatAVLatent": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "LTXVConditioning": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVCropGuides": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "LTXVDilateVideoMask": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled"
+  ],
+  "LTXVDrawTracks": [
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled"
+  ],
+  "LTXVEmptyLatentAudio": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVGetTilingSizes": [
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVHDRDecodePostprocess": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVImgToVideoConditionOnly": [
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "LTXVImgToVideoInplace": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "LTXVInpaintPreprocess": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "LTXVLaplacianPyramidBlend": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "LTXVLatentUpsampler": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVLoadConditioning": [
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVLoadEXRSequence": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR"
+  ],
+  "LTXVPreprocess": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR"
+  ],
+  "LTXVSDRToHDRWorkingSpace": [
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVSaveHLG": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LTXVSeparateAVLatent": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "LTXVSetAudioRefTokens": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVSparseTrackEditor": [
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled"
+  ],
+  "LTXVTiledFusionSampler": [
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LTXVVAEForceFloat32": [
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LatentUpscaleModelLoader": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR"
+  ],
+  "LoadAudio": [
+   "LTX-2.5_A2V_Two_Stage_Distilled"
+  ],
+  "LoadImage": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "LoadVideo": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "LoadVideoDepthAnythingModel": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled"
+  ],
+  "ManualSigmas": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "MarkdownNote": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "Note": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "PreviewAny": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "PreviewAudio": [
+   "LTX-2.5_T2A_Single_Stage_Distilled"
+  ],
+  "PrimitiveBoolean": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "PrimitiveFloat": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR"
+  ],
+  "PrimitiveInt": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled"
+  ],
+  "PrimitiveString": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "PrimitiveStringMultiline": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "RandomNoise": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "RepeatImageBatch": [
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR"
+  ],
+  "RepeatLatentBatch": [
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "Reroute": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "ResizeImageMaskNode": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "SamplerCustomAdvanced": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled"
+  ],
+  "SaveAudioAdvanced": [
+   "LTX-2.5_T2A_Single_Stage_Distilled"
+  ],
+  "SaveVideo": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "SetLatentNoiseMask": [
+   "LTX-2.5_A2V_Two_Stage_Distilled"
+  ],
+  "SolidMask": [
+   "LTX-2.5_A2V_Two_Stage_Distilled"
+  ],
+  "StringContains": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "TextGenerateLTX2Prompt": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "TrimAudioDuration": [
+   "LTX-2.5_A2V_Two_Stage_Distilled"
+  ],
+  "UnetLoaderGGUF": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "VAEDecodeTiled": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "VAEEncodeAudio": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "VAEEncodeTiled": [
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled"
+  ],
+  "VAELoader": [
+   "LTX-2.5_A2V_Two_Stage_Distilled",
+   "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "LTX-2.5_T2A_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "LTX-2.5_V2V_TiledFusion_Upscale"
+  ],
+  "VideoDepthAnythingOutput": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled"
+  ],
+  "VideoDepthAnythingProcess": [
+   "LTX-2.5_ICLoRA_Union_Control_Distilled"
+  ]
+ },
+ "our_models": {
+  "audio_vae": "ltx-2.5-audio-vae-bf16.safetensors",
+  "spatial_upscaler": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+  "text_encoder": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+  "transformer_gguf": "LTX-2.5-Distilled-Q4_K_M.gguf",
+  "video_vae": "ltx-2.5-video-vae-bf16.safetensors"
+ },
+ "presets": [
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "KSamplerSelect",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVHDRDecodePostprocess",
+    "LTXVImgToVideoInplace",
+    "LTXVLatentUpsampler",
+    "LTXVLoadEXRSequence",
+    "LTXVPreprocess",
+    "LTXVSaveHLG",
+    "LTXVSeparateAVLatent",
+    "LTXVVAEForceFloat32",
+    "LatentUpscaleModelLoader",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveFloat",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5569 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_I2V_HDR_Two_Stage_Distilled.json",
+   "ic_loras": [],
+   "name": "LTX-2.5_I2V_HDR_Two_Stage_Distilled",
+   "needs_ic_lora_download": false,
+   "purpose": "HDR still → HDR video: EXR still → float32 VAE → EXR + HLG out.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLoadEXRSequence",
+    "LTXVSaveHLG",
+    "LTXVVAEForceFloat32",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": true,
+   "source_file": "example_workflows/2.5/HDR_workflows/LTX-2.5_I2V_HDR_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImageToMask",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVDilateVideoMask",
+    "LTXVHDRDecodePostprocess",
+    "LTXVImgToVideoInplace",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVLoadEXRSequence",
+    "LTXVPreprocess",
+    "LTXVSaveHLG",
+    "LTXVSeparateAVLatent",
+    "LTXVSetAudioRefTokens",
+    "LTXVVAEForceFloat32",
+    "LatentUpscaleModelLoader",
+    "LoadImage",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveInt",
+    "PrimitiveString",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAEEncodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-in-outpainting-0.9.safetensors",
+     "name_status": "INFERRED (no mapping; use the embedded name)",
+     "our_expected_name": null,
+     "short": "in-outpainting"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Same inpaint, but HDR→HDR: EXR sequence + mask video → EXR + HLG out.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVDilateVideoMask",
+    "LTXVHDRDecodePostprocess",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVLoadEXRSequence",
+    "LTXVSaveHLG",
+    "LTXVSetAudioRefTokens",
+    "LTXVVAEForceFloat32",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/HDR_workflows/LTX-2.5_ICLoRA_Inpaint_HDR_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "ComfyMathExpression",
+    "CreateVideo",
+    "EmptyImage",
+    "EmptyLTXVLatentVideo",
+    "GetImageSize",
+    "GetVideoComponents",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVEmptyLatentAudio",
+    "LTXVHDRDecodePostprocess",
+    "LTXVImgToVideoInplace",
+    "LTXVLoadConditioning",
+    "LTXVSDRToHDRWorkingSpace",
+    "LTXVSaveHLG",
+    "LTXVSeparateAVLatent",
+    "LTXVVAEForceFloat32",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "RandomNoise",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.5-22b-ic-lora-sdr-to-hdr-1.0.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-sdr-to-hdr-0.9.safetensors",
+     "short": "sdr-to-hdr"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_SDR_to_HDR_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "SDR→HDR: SDR MP4 → ACEScct IDT → HDR IC-LoRA → EXR + HLG.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLoadConditioning",
+    "LTXVSDRToHDRWorkingSpace",
+    "LTXVSaveHLG",
+    "LTXVVAEForceFloat32",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/HDR_workflows/LTX-2.5_ICLoRA_SDR_to_HDR_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": []
+  },
+  {
+   "all_node_types": [
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "ImageScale",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVGetTilingSizes",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLatentUpsampler",
+    "LTXVLoadEXRSequence",
+    "LTXVPreprocess",
+    "LTXVSaveHLG",
+    "LTXVTiledFusionSampler",
+    "LTXVVAEForceFloat32",
+    "LatentUpscaleModelLoader",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveFloat",
+    "PrimitiveStringMultiline",
+    "RepeatImageBatch",
+    "RepeatLatentBatch",
+    "Reroute",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_V2V_TiledFusion_HDR_to_HDR.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx25_general_refine.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-refine-details-0.9.safetensors",
+     "short": "refine-details"
+    }
+   ],
+   "name": "LTX-2.5_V2V_TiledFusion_HDR_to_HDR",
+   "needs_ic_lora_download": true,
+   "purpose": "Native HDR→HDR refine. EXR still (ACEScct, float32 VAE, `img_compression` 0) with the detail refiner instead of the HDR IC-LoRA. Same 4K/8K tiled ladder; EXR + HLG out.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVGetTilingSizes",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLoadEXRSequence",
+    "LTXVSaveHLG",
+    "LTXVTiledFusionSampler",
+    "LTXVVAEForceFloat32",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/HDR_workflows/LTX-2.5_V2V_TiledFusion_HDR_to_HDR.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "ComfyMathExpression",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImageScale",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVGetTilingSizes",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLatentUpsampler",
+    "LTXVLoadConditioning",
+    "LTXVSDRToHDRWorkingSpace",
+    "LTXVSaveHLG",
+    "LTXVTiledFusionSampler",
+    "LTXVVAEForceFloat32",
+    "LatentUpscaleModelLoader",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "RepeatLatentBatch",
+    "SaveVideo",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_V2V_TiledFusion_SDR_to_HDR.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.5-22b-ic-lora-sdr-to-hdr-1.0.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-sdr-to-hdr-0.9.safetensors",
+     "short": "sdr-to-hdr"
+    }
+   ],
+   "name": "LTX-2.5_V2V_TiledFusion_SDR_to_HDR",
+   "needs_ic_lora_download": true,
+   "purpose": "Same recipe as Native, with the HDR IC-LoRA. SDR MP4 → ACEScct, then `LTXVHDRDecodePostprocess` (EXR + HLG).",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVGetTilingSizes",
+    "LTXVHDRDecodePostprocess",
+    "LTXVLoadConditioning",
+    "LTXVSDRToHDRWorkingSpace",
+    "LTXVSaveHLG",
+    "LTXVTiledFusionSampler",
+    "LTXVVAEForceFloat32",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/HDR_workflows/LTX-2.5_V2V_TiledFusion_SDR_to_HDR.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": []
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "KSamplerSelect",
+    "LTXVAudioVAEEncode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVImgToVideoInplace",
+    "LTXVLatentUpsampler",
+    "LTXVPreprocess",
+    "LTXVSeparateAVLatent",
+    "LatentUpscaleModelLoader",
+    "LoadAudio",
+    "LoadImage",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "SetLatentNoiseMask",
+    "SolidMask",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "TrimAudioDuration",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5569 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_A2V_Two_Stage_Distilled.json",
+   "ic_loras": [],
+   "name": "LTX-2.5_A2V_Two_Stage_Distilled",
+   "needs_ic_lora_download": false,
+   "purpose": "Audio-to-video. Encodes an input clip (with start + duration trim), freezes those tokens in both stages, and muxes the original waveform into the output (no audio decode). Optional first-frame image.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": true,
+   "source_file": "example_workflows/2.5/LTX-2.5_A2V_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVEmptyLatentAudio",
+    "LTXVSeparateAVLatent",
+    "LoadImage",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "RepeatImageBatch",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors",
+     "short": "ingredients"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Generate from a reference sheet (characters, props, wardrobe, location laid out in one image). Describe each element in the prompt by its place on the sheet.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": []
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImageToMask",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVDilateVideoMask",
+    "LTXVImgToVideoInplace",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVPreprocess",
+    "LTXVSeparateAVLatent",
+    "LTXVSetAudioRefTokens",
+    "LatentUpscaleModelLoader",
+    "LoadImage",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveInt",
+    "PrimitiveString",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAEEncodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-in-outpainting-0.9.safetensors",
+     "name_status": "INFERRED (no mapping; use the embedded name)",
+     "our_expected_name": null,
+     "short": "in-outpainting"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Fill masked regions of a reference video (two-stage). Source audio can stay frozen.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVDilateVideoMask",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVSetAudioRefTokens",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_ICLoRA_Inpaint_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVDrawTracks",
+    "LTXVEmptyLatentAudio",
+    "LTXVImgToVideoInplace",
+    "LTXVSeparateAVLatent",
+    "LTXVSparseTrackEditor",
+    "LoadImage",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Motion_Track_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-motion-track-control-ref0.5.safetensors",
+     "name_status": "INFERRED (no mapping; use the embedded name)",
+     "our_expected_name": null,
+     "short": "motion-track"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Motion_Track_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Image-to-video with sparse motion tracks you draw on the first frame. Optional still as the opening frame.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVDrawTracks",
+    "LTXVSparseTrackEditor",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_ICLoRA_Motion_Track_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImagePadForOutpaintTargetSize",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVImgToVideoConditionOnly",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVPreprocess",
+    "LTXVSeparateAVLatent",
+    "LTXVSetAudioRefTokens",
+    "LatentUpscaleModelLoader",
+    "LoadImage",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveInt",
+    "PrimitiveString",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAEEncodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-in-outpainting-0.9.safetensors",
+     "name_status": "INFERRED (no mapping; use the embedded name)",
+     "our_expected_name": null,
+     "short": "in-outpainting"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Extend the canvas of a reference video (two-stage). Same in/outpaint LoRA as inpaint.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVImgToVideoConditionOnly",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVSetAudioRefTokens",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_ICLoRA_Outpaint_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "CannyEdgePreprocessor",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "DWPreprocessor",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXFloatToInt",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVEmptyLatentAudio",
+    "LTXVImgToVideoInplace",
+    "LTXVLatentUpsampler",
+    "LTXVSeparateAVLatent",
+    "LatentUpscaleModelLoader",
+    "LoadImage",
+    "LoadVideo",
+    "LoadVideoDepthAnythingModel",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader",
+    "VideoDepthAnythingOutput",
+    "VideoDepthAnythingProcess"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "CannyEdgePreprocessor",
+     "reason": "controlnet_aux; CPU-capable, low risk"
+    },
+    {
+     "node_type": "DWPreprocessor",
+     "reason": "controlnet_aux pose models often use onnxruntime-gpu (CUDA); verify on XPU or run CPU"
+    },
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    },
+    {
+     "node_type": "LoadVideoDepthAnythingModel",
+     "reason": "Video-Depth-Anything pack; may assume CUDA/xformers, verify on XPU"
+    },
+    {
+     "node_type": "VideoDepthAnythingProcess",
+     "reason": "Video-Depth-Anything pack; may assume CUDA, verify on XPU"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_ICLoRA_Union_Control_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+     "name_status": "INFERRED (no mapping; use the embedded name)",
+     "our_expected_name": null,
+     "short": "union-control"
+    }
+   ],
+   "name": "LTX-2.5_ICLoRA_Union_Control_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Video-to-video from a depth / canny / pose annotator on a reference clip. Depth is wired by default; switch the annotator inside the graph.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "CannyEdgePreprocessor",
+    "DWPreprocessor",
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXFloatToInt",
+    "LTXICLoRALoaderModelOnly",
+    "LoadVideoDepthAnythingModel",
+    "UnetLoaderGGUF",
+    "VideoDepthAnythingOutput",
+    "VideoDepthAnythingProcess"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo",
+    "ComfyUI-VideoDepthAnything",
+    "comfyui_controlnet_aux"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_ICLoRA_Union_Control_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfySwitchNode",
+    "GemmaAPITextEncode",
+    "KSamplerSelect",
+    "LTXFloatToInt",
+    "LTXVAudioOnlyEmptyVideoLatent",
+    "LTXVAudioOnlyModel",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVSeparateAVLatent",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PreviewAudio",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "SamplerCustomAdvanced",
+    "SaveAudioAdvanced",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 28 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_T2A_Single_Stage_Distilled.json",
+   "ic_loras": [],
+   "name": "LTX-2.5_T2A_Single_Stage_Distilled",
+   "needs_ic_lora_download": false,
+   "purpose": "Text-to-audio only. No video VAE or upscaler.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXFloatToInt",
+    "LTXVAudioOnlyEmptyVideoLatent",
+    "LTXVAudioOnlyModel",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": true,
+   "source_file": "example_workflows/2.5/LTX-2.5_T2A_Single_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": []
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "KSamplerSelect",
+    "LTXFloatToInt",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVImgToVideoInplace",
+    "LTXVPreprocess",
+    "LTXVSeparateAVLatent",
+    "LoadImage",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5569 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_T2V_I2V_Single_Stage_Distilled.json",
+   "ic_loras": [],
+   "name": "LTX-2.5_T2V_I2V_Single_Stage_Distilled",
+   "needs_ic_lora_download": false,
+   "purpose": "Same text / image inputs, one distilled pass, no upscaler. Faster and lighter; lower spatial detail than two-stage.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXFloatToInt",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": true,
+   "source_file": "example_workflows/2.5/LTX-2.5_T2V_I2V_Single_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "KSamplerSelect",
+    "LTXFloatToInt",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVEmptyLatentAudio",
+    "LTXVImgToVideoInplace",
+    "LTXVLatentUpsampler",
+    "LTXVPreprocess",
+    "LTXVSeparateAVLatent",
+    "LatentUpscaleModelLoader",
+    "LoadImage",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5569 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_T2V_I2V_Two_Stage_Distilled.json",
+   "ic_loras": [],
+   "name": "LTX-2.5_T2V_I2V_Two_Stage_Distilled",
+   "needs_ic_lora_download": false,
+   "purpose": "Start here. Text-to-video, optional first-frame image. Stage 1 at base resolution, 2× spatial upscale, then a 3-step refine. Generates video and audio together.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXFloatToInt",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": true,
+   "source_file": "example_workflows/2.5/LTX-2.5_T2V_I2V_Two_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CFGGuider",
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfyNotNode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVCropGuides",
+    "LTXVImgToVideoInplace",
+    "LTXVSeparateAVLatent",
+    "LTXVSetAudioRefTokens",
+    "LoadImage",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveBoolean",
+    "PrimitiveStringMultiline",
+    "RandomNoise",
+    "Reroute",
+    "ResizeImageMaskNode",
+    "SamplerCustomAdvanced",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.3-22b-ic-lora-deblur-0.9.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-deblur-0.9.safetensors",
+     "short": "deblur"
+    }
+   ],
+   "name": "LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled",
+   "needs_ic_lora_download": true,
+   "purpose": "Video-to-video using the source frames as IC-LoRA guides. Ships with the Instant Shave LoRA as the example; swap the LoRA for other identity/edit LoRAs. Original audio is frozen through.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVSetAudioRefTokens",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_V2V_ICLoRA_Single_Stage_Distilled.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImageScale",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConditioning",
+    "LTXVGetTilingSizes",
+    "LTXVLatentUpsampler",
+    "LTXVSetAudioRefTokens",
+    "LTXVTiledFusionSampler",
+    "LatentUpscaleModelLoader",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveStringMultiline",
+    "RepeatLatentBatch",
+    "Reroute",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_V2V_TiledFusion_Native_4K_8K.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.5-22b-ic-lora-day-to-night-0.9.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-day-to-night-0.9.safetensors",
+     "short": "day-to-night"
+    },
+    {
+     "graph_embedded_name": "ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-refine-details-0.9.safetensors",
+     "short": "refine-details"
+    }
+   ],
+   "name": "LTX-2.5_V2V_TiledFusion_Native_4K_8K",
+   "needs_ic_lora_download": true,
+   "purpose": "V2V native / dynamic 4K/8K. Stage 1 at `initial_canvas_size` FullHD (8 steps, Day-To-Night IC-LoRA). Latent ×2 (×4 when `output_size` is 8K), then 3 fused steps with a fresh prompt and the original clip resized to output. Optional second IC-LoRA on stage 2.",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVGetTilingSizes",
+    "LTXVSetAudioRefTokens",
+    "LTXVTiledFusionSampler",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_V2V_TiledFusion_Native_4K_8K.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  },
+  {
+   "all_node_types": [
+    "CLIPLoader",
+    "CLIPTextEncode",
+    "ComfySwitchNode",
+    "CreateVideo",
+    "EmptyLTXVLatentVideo",
+    "GemmaAPITextEncode",
+    "GetImageSize",
+    "GetVideoComponents",
+    "ImageScale",
+    "KSamplerSelect",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVAudioVAEDecode",
+    "LTXVConditioning",
+    "LTXVGetTilingSizes",
+    "LTXVSetAudioRefTokens",
+    "LTXVTiledFusionSampler",
+    "LoadVideo",
+    "ManualSigmas",
+    "MarkdownNote",
+    "Note",
+    "PreviewAny",
+    "PrimitiveStringMultiline",
+    "RepeatLatentBatch",
+    "Reroute",
+    "SaveVideo",
+    "StringContains",
+    "TextGenerateLTX2Prompt",
+    "UnetLoaderGGUF",
+    "VAEDecodeTiled",
+    "VAEEncodeAudio",
+    "VAELoader"
+   ],
+   "arc_review_flags": [
+    {
+     "node_type": "GemmaAPITextEncode",
+     "reason": "cloud LTX API path; inert unless the ckpt name contains 'ltxv_'; needs an API key, not used locally"
+    }
+   ],
+   "converted": [
+    "loader 5602 UNETLoader -> UnetLoaderGGUF"
+   ],
+   "file": "LTX-2.5_V2V_TiledFusion_Upscale.json",
+   "ic_loras": [
+    {
+     "graph_embedded_name": "ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors",
+     "name_status": "INFERRED",
+     "our_expected_name": "ltx-2.5-22b-ic-lora-refine-details-0.9.safetensors",
+     "short": "refine-details"
+    }
+   ],
+   "name": "LTX-2.5_V2V_TiledFusion_Upscale",
+   "needs_ic_lora_download": true,
+   "purpose": "V2V upscale. Preprocess resizes the guide to `output_size` (FullHD / 4K / 8K), then 8 fused steps with the detail refiner. Tiles come from `tile_size` (HD).",
+   "required_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf",
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "gemma4_e2b_it_bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "required_node_types": [
+    "GemmaAPITextEncode",
+    "LTXAddVideoICLoRAGuide",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVGetTilingSizes",
+    "LTXVSetAudioRefTokens",
+    "LTXVTiledFusionSampler",
+    "UnetLoaderGGUF"
+   ],
+   "required_packs": [
+    "ComfyUI-GGUF",
+    "ComfyUI-LTXVideo"
+   ],
+   "runnable_now": false,
+   "source_file": "example_workflows/2.5/LTX-2.5_V2V_TiledFusion_Upscale.json",
+   "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f",
+   "unconfirmed_models": [
+    "gemma4_e2b_it_bf16.safetensors"
+   ]
+  }
+ ],
+ "source_path": "example_workflows/2.5",
+ "source_repo": "https://github.com/Lightricks/ComfyUI-LTXVideo",
+ "source_sha": "3bf3ca62595f1764c47d01c35c8e5dfe47e1a88f"
+}

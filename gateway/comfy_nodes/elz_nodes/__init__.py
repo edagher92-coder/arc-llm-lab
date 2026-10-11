@@ -190,5 +190,8 @@ class LoadConditioning:
         return out
 
 
+# Front-end extension (web/elz_studio.js): Studio link, queue/elapsed badge, Release GPU hint, node colours. Serves no HTTP routes of its own.
+WEB_DIRECTORY = "./web"
+
 NODE_CLASS_MAPPINGS = {"ElzAudioNanGuard": AudioNanGuard, "ElzSaveConditioning": SaveConditioning, "ElzLoadConditioning": LoadConditioning}
 NODE_DISPLAY_NAME_MAPPINGS = {"ElzAudioNanGuard": "Audio NaN guard (Elz)", "ElzSaveConditioning": "Save conditioning (Elz)", "ElzLoadConditioning": "Load conditioning (Elz)"}

@@ -14,6 +14,9 @@ security headers and the Tailscale publishing already done by tts_server (it app
   POST /approvals/studio/api/delete            {"id"}
   POST /approvals/studio/api/fav               {"id", "fav": true|false} -> star a job; starred jobs (and their start images) are never trimmed
   POST /approvals/studio/api/rerun             {"id"} -> queue a new job from an earlier job's settings (same seed), validated again like any new job
+  GET  /approvals/studio/api/system            GPU mode, queue, current stage, last speed, host RAM, disk free, VRAM when cheap (cached 2 s, fails soft)
+  POST /approvals/studio/api/comfy             {"action": "start"|"stop"} -> interactive ComfyUI session (GPU lease, auto-stops when idle); start refused (409) while a job runs
+  POST /approvals/studio/api/mode              {"mode": "video"|"llm"} -> hand the GPU to video or back to Qwen; refused (409) while a job is queued or running
   POST /approvals/studio/api/upload            raw image body (header X-Filename) -> {"name"}
   POST /approvals/studio/api/assist            {"idea", "workflow", "mode"} -> a prompt written by Qwen. mode: "single" (default), "multi" (2-4 shots
                                                with named cuts) or "continue" (only what happens next, from the start image); unknown -> "single"
@@ -21,7 +24,7 @@ security headers and the Tailscale publishing already done by tts_server (it app
 Nothing here takes a file path from the browser: images are referred to by the name the upload returned, clips by job id + file name, and both
 are checked against the folders this module owns.
 """
-import json, os, re, secrets, time
+import ctypes, json, os, re, secrets, shutil, time
 
 import video
 
@@ -79,6 +82,9 @@ def _public_job(j):
     d = {"id": j["id"], "workflow": j.get("workflow"), "state": j.get("state"), "note": j.get("note", ""), "created": j.get("created"),
          "started": j.get("started"), "ended": j.get("ended"), "seconds": j.get("seconds"), "error": j.get("error", ""),
          "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files")), "fav": bool(j.get("fav"))}
+    if isinstance(j.get("progress"), (int, float)) and not isinstance(j.get("progress"), bool): d["progress"] = max(0.0, min(100.0, float(j["progress"])))   # staged workflows report a real percentage
+    if j.get("drive_rel"): d["drive"] = j["drive_rel"]                 # "2026-10/<job>_<clip>.mp4": a path inside the Drive folder, never the folder itself
+    if j.get("drive_error"): d["drive_error"] = str(j["drive_error"])[:120]
     d["clips"] = [{"name": os.path.basename(p), "type": CLIP_TYPES.get(os.path.splitext(p)[1].lower(), "application/octet-stream")}
                   for p in (j.get("files_out") or [])]
     return d
@@ -108,8 +114,10 @@ def clean_presets(raw, allowed):
             else: v = _scalar(v)
             params[k] = v
         if params:
-            out.append({"name": re.sub(r"[^\w-]+", "-", str(p.get("name") or label).strip().lower())[:32] or "preset", "label": label,
-                        "hint": str(p.get("hint") or "")[:80], "params": params})
+            item = {"name": re.sub(r"[^\w-]+", "-", str(p.get("name") or label).strip().lower())[:32] or "preset", "label": label,
+                    "hint": str(p.get("hint") or "")[:80], "params": params}
+            if isinstance(p.get("note"), str) and p["note"].strip(): item["note"] = p["note"].strip()[:200]      # the measured-time / what-it-does line, shown under the chips
+            out.append(item)
     return out
 
 
@@ -118,10 +126,72 @@ def _meta_for_ui(name, w):
     out = {"name": name, "title": m.get("title") or name.replace("_", " "), "description": m.get("description", ""),
            "est_minutes": video.est_minutes_num(m.get("est_minutes")), "kind": m.get("kind", ""), "fps": m.get("fps", 24), "audio": bool(m.get("audio")),
            "seconds": m.get("seconds") or None, "order": m.get("order", 100), "sizes": m.get("sizes") or [], "frames_rule": m.get("frames_rule") or "8n+1", "presets": [], "params": {}}
+    er = m.get("est_ref")                                                    # [width, height, seconds] the est_minutes figure was measured at; lets the UI scale the ETA
+    if isinstance(er, list) and len(er) == 3 and all(isinstance(x, (int, float)) and not isinstance(x, bool) and x > 0 for x in er): out["est_ref"] = [float(x) for x in er]
     for k, p in (m.get("params") or {}).items():
         out["params"][k] = {kk: vv for kk, vv in p.items() if kk in UI_KEYS}
     out["presets"] = clean_presets(m.get("presets"), out["params"])
     return out
+
+
+# ---------- host numbers for the System tab (all best effort: a failed probe is None, never an error) ----------
+def host_ram():
+    """(total, available) bytes of host RAM, or (None, None). Windows: GlobalMemoryStatusEx; elsewhere /proc/meminfo."""
+    try:
+        if os.name == "nt":
+            class MS(ctypes.Structure):
+                _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong), ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong), ("ullTotalVirtual", ctypes.c_ulonglong),
+                            ("ullAvailVirtual", ctypes.c_ulonglong), ("sullAvailExtendedVirtual", ctypes.c_ulonglong)]
+            m = MS(); m.dwLength = ctypes.sizeof(MS)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+                return int(m.ullTotalPhys), int(m.ullAvailPhys)
+            return None, None
+    except Exception:
+        pass
+    try:
+        return _meminfo("/proc/meminfo")
+    except Exception:
+        return None, None
+
+
+def _meminfo(path):
+    kb = {}
+    with open(path) as f:
+        for line in f:
+            k, _, v = line.partition(":")
+            n = re.match(r"\s*(\d+)", v)
+            if n: kb[k] = int(n.group(1)) * 1024
+    if "MemTotal" not in kb: return None, None
+    return kb["MemTotal"], kb.get("MemAvailable", kb.get("MemFree"))
+
+
+def disk_free(path):
+    try:
+        u = shutil.disk_usage(path)
+        return {"free": u.free, "total": u.total}
+    except Exception:
+        return None
+
+
+def _out_secs(j):
+    """Seconds of film a job made: params.seconds, else (frames - 1) / fps."""
+    p = j.get("params") or {}
+    try:
+        if p.get("seconds"): return float(p["seconds"])
+        if p.get("frames"): return (float(p["frames"]) - 1) / 24.0
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def last_speed(jobs):
+    """Newest finished render: {"seconds": render wall time, "per_output_s": render seconds per second of film, "job": id}, or None."""
+    for j in reversed(jobs):
+        if j.get("state") == "done" and isinstance(j.get("seconds"), (int, float)) and j["seconds"] > 0:
+            o = _out_secs(j)
+            return {"seconds": round(float(j["seconds"]), 1), "out_seconds": round(o, 2) if o else None, "per_output_s": round(j["seconds"] / o, 1) if o else None, "job": j["id"]}
+    return None
 
 
 def routes(q, vc, here, env=None):
@@ -184,7 +254,88 @@ def routes(q, vc, here, env=None):
             pass
         owner = "video" if (active and active[0]["state"] in ("starting", "running")) or os.path.exists(q.lock_path) else "llm"
         return _j(200, {"gpu": owner, "llm": llm, "active": _public_job(active[0]) if active else None, "queued": len(queued) + len(
-            [j for j in active if j["state"] == "waiting"]), "now": time.time(), "enabled": vc.enabled})
+            [j for j in active if j["state"] == "waiting"]), "now": time.time(), "enabled": vc.enabled,
+                                "ntfy": bool(vc.ntfy_url and vc.ntfy_topic)})                 # on/off only: never the server address or topic
+
+    sys_cache = {"t": 0.0, "v": None}
+
+    def system_snapshot():
+        recent = q.recent(200)
+        active = next((j for j in recent if j["state"] in video.ACTIVE), None)
+        running = next((j for j in recent if j["state"] in ("starting", "running")), None)
+        queued = [j for j in recent if j["state"] in ("queued", "waiting")]
+        mg = q.mode_get()
+        sess = q.session_info()
+        llm = False
+        try:
+            h = {"Authorization": "Bearer " + vc.api_key()} if vc.api_key() else {}
+            llm = bool((env.http("GET", vc.swap_url + "/running", headers=h, timeout=2) or {}).get("running"))
+        except Exception:
+            pass
+        tot, avail = host_ram()
+        du = disk_free(q.out_dir)
+        proc = q.proc
+        last = last_speed(recent)
+        stage, prog = None, None
+        if running or active:
+            a = running or active
+            stage = str(a.get("note") or a.get("state") or "")[:120]
+            prog = float(a["progress"]) if isinstance(a.get("progress"), (int, float)) and not isinstance(a.get("progress"), bool) else None
+        dj = next((j for j in recent if j.get("drive_path") or j.get("drive_error")), None)
+        d_ok = False
+        try:
+            d_ok = bool(vc.drive_dir) and os.path.isdir(vc.drive_dir) and os.access(vc.drive_dir, os.W_OK)
+        except Exception:
+            pass
+        return {"mode": "busy" if (q.busy() or sess["active"]) else mg["view"], "llm_loaded": llm,
+                "comfy": {"running": bool(proc is not None and proc.poll() is None), "session": sess["active"], "idle_s": sess["idle_s"], "port": vc.tailnet_port},
+                "queue": {"len": len(queued) + len([j for j in recent if j["state"] in ("starting", "running")]), "running_id": running["id"] if running else None,
+                          "stage": stage, "progress": prog},
+                "ram": {"total_mb": int(tot // 2 ** 20) if tot else 0, "avail_mb": int(avail // 2 ** 20) if avail else 0},
+                "disk": {"out_free_gb": round(du["free"] / 2 ** 30, 1) if du else 0.0},
+                "vram": None,
+                "last": {"seconds": last["seconds"] if last else None, "out_seconds": last.get("out_seconds") if last else None},
+                "drive": {"mode": vc.drive_mode if vc.drive_dir else "off", "dir_ok": d_ok, "last_path": (dj.get("drive_path") or None) if dj else None,
+                          "last_error": (str(dj.get("drive_error"))[:200] or None) if dj else None},
+                "ntfy": bool(vc.ntfy_url and vc.ntfy_topic), "loudnorm": bool(vc.loudnorm), "version": "studio-v3"}
+
+    def system(req):
+        bad = need(req)
+        if bad: return bad
+        now = time.time()
+        if sys_cache["v"] is None or now - sys_cache["t"] > 2.0:
+            try:
+                sys_cache["v"] = system_snapshot()
+            except Exception as e:                                   # fail soft: the tab shows what it has
+                sys_cache["v"] = {"mode": "busy", "llm_loaded": False, "error": type(e).__name__, "version": "studio-v3"}
+            sys_cache["t"] = now
+        return _j(200, sys_cache["v"])
+
+    def mode(req):
+        m = req["body"].get("mode")
+        if m not in ("video", "llm"): return _j(400, {"error": "mode must be video or llm"})
+        try:
+            q.mode_set(m)
+        except video.VideoBusy as e:
+            return _j(409, {"error": str(e)})
+        except video.VideoError as e:
+            msg = str(e)
+            return _j(503 if "not configured" in msg else 500, {"error": msg})
+        sys_cache["v"] = None
+        return _j(200, {"ok": True, "mode": m})
+
+    def comfy(req):
+        act = req["body"].get("action")
+        if act not in ("start", "stop"): return _j(400, {"error": "action must be start or stop"})
+        try:
+            if act == "start": q.session_start()
+            else: q.session_stop()
+        except video.VideoBusy as e:
+            return _j(409, {"error": str(e)})
+        except video.VideoError as e:
+            return _j(503, {"error": str(e)})
+        sys_cache["v"] = None
+        return _j(200, {"ok": True, "session": q.session_info()["active"]})
 
     def clip(req):
         bad = need(req)
@@ -286,7 +437,8 @@ def routes(q, vc, here, env=None):
     table = {"GET " + T: shell, "GET " + T + "/api/workflows": workflows, "GET " + T + "/api/jobs": jobs, "GET " + T + "/api/status": status,
              "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": generate, "POST " + T + "/api/cancel": cancel,
              "POST " + T + "/api/delete": delete, "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
-             "POST " + T + "/api/fav": fav, "POST " + T + "/api/rerun": rerun}
+             "POST " + T + "/api/fav": fav, "POST " + T + "/api/rerun": rerun, "GET " + T + "/api/system": system, "POST " + T + "/api/mode": mode,
+             "POST " + T + "/api/comfy": comfy}
     table.update({"GET %s/%s" % (T, n): pwa_file(n) for n in PWA_FILES})
     return table, {"POST " + T + "/api/upload": MAX_UPLOAD + 4096}
 

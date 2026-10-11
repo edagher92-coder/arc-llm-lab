@@ -27,10 +27,17 @@ ACTIVE = ("waiting", "starting", "running")
 PH = re.compile(r"\{\{(\w+)\}\}")
 FULL_PH = re.compile(r"^\{\{(\w+)\}\}$")
 MEDIA_KEYS = ("videos", "gifs", "images", "audio")
+DRIVE_MODES = ("all", "favourites", "off")
+LLM_MODE = "MAX"                                   # the governor mode the LLM runs in when nothing overrides it (what _take_gpu falls back to)
+VIDEO_MODE = "OFF"                                 # the governor mode that keeps the LLM off the GPU
 
 
 class VideoError(Exception):
     pass
+
+
+class VideoBusy(VideoError):
+    """The request clashes with a queued/running job or an active ComfyUI session (HTTP 409)."""
 
 
 class Cfg:
@@ -63,6 +70,24 @@ class Cfg:
         self.ntfy_topic = str(c.get("ntfy_topic") or "").strip()
         self.ntfy_click_base = str(c.get("ntfy_click_base") or "").strip()  # base URL of the gateway, for the notification's tap target
         self.ntfy_include_prompt = bool(c.get("ntfy_include_prompt", False))
+        self.drive_dir = str(c.get("drive_dir") or "").strip()                 # finished clips are copied here (a synced Google Drive folder); empty = off
+        dm = str(c.get("drive_mode") or "off").strip().lower()
+        self.drive_mode = dm if dm in DRIVE_MODES else "off"                    # "all" | "favourites" | "off"
+        self.ffmpeg = str(c.get("ffmpeg_path") or c.get("ffmpeg") or "").strip()      # path to ffmpeg (bare "ffmpeg" = from PATH when loudnorm is on)
+        self.loudnorm = bool(c.get("loudnorm", False))                         # level every clip's sound to -16 LUFS after the render
+        if self.loudnorm and not self.ffmpeg:
+            self.ffmpeg = "ffmpeg"
+        self.loudnorm = self.loudnorm and bool(self.ffmpeg)
+        try:
+            self.session_idle_s = max(1.0, float(c.get("comfy_session_idle_min", 20)) * 60)       # interactive ComfyUI session: stop after this long with no activity
+        except (TypeError, ValueError):
+            self.session_idle_s = 1200.0
+        self.tailnet_port = int(c["comfy_tailnet_port"]) if isinstance(c.get("comfy_tailnet_port"), int) and not isinstance(c.get("comfy_tailnet_port"), bool) else None
+        try:
+            self.session_watch_s = max(0.05, float(c.get("comfy_session_watch_s", 5)))      # how often a session looks at ComfyUI's /history for renders made in its own UI
+        except (TypeError, ValueError):
+            self.session_watch_s = 5.0
+        self.keep_raw = bool(c.get("keep_raw", False))                          # keep the un-levelled original next to the clip as <name>_raw.mp4
         self.enabled = bool(self.comfy_cmd and self.comfy_dir)
 
     def api_key(self):
@@ -115,6 +140,11 @@ class Env:
                 os.kill(int(pid), 9)
         except Exception:
             pass
+
+    def run_cmd(self, cmd, timeout=600):
+        """Run a helper program (ffmpeg). Returns (exit code, last of its stderr)."""
+        r = subprocess.run(cmd, capture_output=True, timeout=timeout, stdin=subprocess.DEVNULL)
+        return r.returncode, (r.stderr or b"").decode("utf-8", "replace")[-400:]
 
     def fetch(self, url, timeout=300):
         with urllib.request.urlopen(url, timeout=timeout) as r:
@@ -234,6 +264,8 @@ def _resolve(wf, raw, cfg):
         else:
             s = str(v)
             vals[name] = s[: int(p.get("max_len", 2000))]
+            if p.get("choices") and vals[name] not in [str(c) for c in p["choices"]]:      # an enum param (quality): refuse anything not listed
+                raise VideoError("%s must be one of: %s" % (name, ", ".join(str(c) for c in p["choices"])))
     if isinstance(vals.get("seed"), int):
         vals["seed"] = max(0, min(2 ** 32 - 1, vals["seed"]))
     if meta.get("fps") and "seconds" in vals and "frames" not in spec:     # seconds feeds a graph node directly: keep fps*seconds = 8n
@@ -285,6 +317,9 @@ class Queue:
         self.jobs = self._load()
         self._stop = threading.Event()
         self.thread = None
+        self.session = None                                   # the interactive ComfyUI session, or None (see session_start)
+        self._sess_thread = None
+        self.own_pids = set()                                 # ComfyUI prompt ids the queue itself submitted (the session watcher must not ingest those twice)
         self._recover()
 
     # -- persistence
@@ -353,7 +388,7 @@ class Queue:
         if not os.path.exists(self.lock_path):                        # never overwrite the first-recorded mode
             prev = self._read_mode() or "MAX"
             if prev.upper() == "OFF":
-                prev = "MAX"
+                prev = (self._hold() or {}).get("prev") or "MAX"
             self._lock_set(mode=prev)
         open(self.cfg.mode_file, "w").write("OFF\n")
 
@@ -363,10 +398,90 @@ class Queue:
             return
         try:
             if self.cfg.mode_file and d.get("mode"):
-                open(self.cfg.mode_file, "w").write(str(d["mode"]) + "\n")
+                open(self.cfg.mode_file, "w").write((VIDEO_MODE if self._hold() else str(d["mode"])) + "\n")      # Video mode stays on until the owner switches back
             os.remove(self.lock_path)
         except OSError:
             pass
+
+    # -- Video / LLM mode (the Studio's one-tap switch)
+    @property
+    def hold_path(self):
+        return os.path.join(self.dir, "video_hold.json")
+
+    def _hold(self):
+        try:
+            d = json.load(open(self.hold_path, encoding="utf-8"))
+            return d if isinstance(d, dict) else None
+        except (OSError, ValueError):
+            return None
+
+    def busy(self):
+        """True while any job is queued or active, or ComfyUI holds the GPU lease."""
+        with self.lock:
+            return os.path.exists(self.lock_path) or any(j["state"] in ("queued",) + ACTIVE for j in self.jobs)
+
+    def mode_get(self):
+        """{"mode": raw governor mode or None, "view": "video" | "llm", "hold": bool}: what the governor file says right now."""
+        m = self._read_mode()
+        if self._hold() and (m or "").upper() != VIDEO_MODE and not os.path.exists(self.lock_path):
+            try:
+                os.remove(self.hold_path)                          # the owner changed the governor by hand: Video mode is over
+            except OSError:
+                pass
+        return {"mode": m, "view": "video" if (m or "").upper() == VIDEO_MODE or os.path.exists(self.lock_path) else "llm", "hold": bool(self._hold())}
+
+    def mode_set(self, target, warm=True):
+        """Switch the GPU between Video and the LLM. Returns the new mode_get(); raises VideoError when it cannot be done.
+        video: governor mode OFF (the LLM is released), remembering the mode to return to. llm: that mode is written back (MAX if there was none)
+        and the model is warmed in the background. Refused while a job is queued or running, because a render owns the governor file then."""
+        if target not in ("video", "llm"):
+            raise VideoError("mode must be video or llm")
+        if not self.cfg.mode_file:
+            raise VideoError("the governor mode file is not configured (llm.governor_mode_file), so the GPU cannot be switched from here")
+        with self.lock:
+            if self.session:
+                raise VideoBusy("a ComfyUI session is active; stop it first")
+            if self.busy():
+                raise VideoBusy("a video job is queued or rendering; wait for it to finish or cancel it first")
+            cur = (self._read_mode() or LLM_MODE).upper()
+            try:
+                if target == "video":
+                    if not self._hold():
+                        with open(self.hold_path, "w", encoding="utf-8") as f:
+                            json.dump({"prev": cur if cur != VIDEO_MODE else LLM_MODE, "t": time.time()}, f)
+                    open(self.cfg.mode_file, "w").write(VIDEO_MODE + "\n")
+                else:
+                    h = self._hold() or {}
+                    back = h.get("prev") if isinstance(h.get("prev"), str) and h.get("prev") else (LLM_MODE if cur == VIDEO_MODE else cur)
+                    open(self.cfg.mode_file, "w").write(str(back).upper() + "\n")
+                    try:
+                        os.remove(self.hold_path)
+                    except OSError:
+                        pass
+            except OSError as ex:
+                raise VideoError("could not write the governor mode file (%s)" % (ex.strerror or ex))
+        if target == "llm" and warm:
+            threading.Thread(target=self._warm_llm, name="llm-warm", daemon=True).start()
+        if target == "video":                                  # unload now, so the next job does not wait for it
+            threading.Thread(target=self._preunload, name="llm-unload", daemon=True).start()
+        return self.mode_get()
+
+    def _preunload(self):
+        try:
+            self._unload_llm()
+        except Exception as ex:
+            sys.stderr.write("video: LLM pre-unload failed (%r)\n" % (ex,))
+
+    def _warm_llm(self):
+        """Ask the LLM for one token so llama-swap loads it now rather than on the first chat. Best effort."""
+        c = self.cfg
+        if not c.model_id:
+            return
+        try:
+            h = {"Authorization": "Bearer " + c.api_key()} if c.api_key() else {}
+            self.env.http("POST", c.swap_url + "/v1/chat/completions", {"model": c.model_id, "max_tokens": 1, "messages": [{"role": "user", "content": "hi"}]}, headers=h, timeout=240)
+        except Exception as ex:
+            sys.stderr.write("video: LLM warm-up failed (%r)\n" % (ex,))
 
     # -- public API
     def submit(self, workflow, raw, files_ok=True):
@@ -406,10 +521,11 @@ class Queue:
                     return dict(j)
         return None
 
-    def _sidecars(self, j, files, t0, ended):
+    def _sidecars(self, j, files, t0, ended, extra=None):
         """Write <clip>.json (seed, workflow, params, timings) next to each clip. Once, when the job completes; never fails the job."""
         meta = {"job_id": j["id"], "workflow": j["workflow"], "params": j["params"], "seed": j["params"].get("seed"), "fav": bool((self.get(j["id"]) or j).get("fav")),
                 "created": j["created"], "started": t0, "ended": ended, "queued_s": round(t0 - j["created"], 1), "render_s": round(ended - t0, 1)}
+        meta.update(extra or {})
         for p in files:
             try:
                 with open(p + ".json", "w", encoding="utf-8") as f:
@@ -477,6 +593,8 @@ class Queue:
             j["fav"] = bool(fav)
             self._save()
             clips = list(j.get("files_out") or [])
+        if fav and self.cfg.drive_mode == "favourites" and j.get("state") == "done":
+            threading.Thread(target=self.drive_sync, args=(jid,), name="drive-sync", daemon=True).start()
         for p in clips:                                          # best effort, like the sidecar itself
             try:
                 with open(p + ".json", encoding="utf-8") as f:
@@ -530,6 +648,11 @@ class Queue:
         self._stop.set()
         if self.thread:
             self.thread.join(timeout=15)
+        if self.session:
+            try:
+                self.session_stop(force=True)
+            except Exception:
+                pass
 
     def _killed(self):
         return bool(self.kill_path and os.path.exists(self.kill_path))
@@ -570,6 +693,9 @@ class Queue:
             nxt = next((j for j in self.jobs if j["state"] in ("queued", "waiting")), None)
             if nxt is None:
                 return
+            sess = self.session
+            if sess is not None and sess["state"] != "ready":
+                return                                           # the session is still starting or stopping: the job waits for it
             if self._killed():
                 nxt["state"], nxt["error"], nxt["ended"] = "failed", "KILLED: the gateway kill switch is on", time.time()
                 self._save()
@@ -579,10 +705,11 @@ class Queue:
                 nxt["state"], nxt["ended"], nxt["note"] = "cancelled", time.time(), ""
                 self._save()
                 return
-            nxt["state"] = "waiting"
-            nxt["note"] = "waiting for the LLM to be quiet for %d s" % self.cfg.quiet_s
-            self._save()
-        if not self.llm_quiet():
+            if sess is None:
+                nxt["state"] = "waiting"
+                nxt["note"] = "waiting for the LLM to be quiet for %d s" % self.cfg.quiet_s
+                self._save()
+        if sess is None and not self.llm_quiet():
             return
         self.run(nxt["id"])
 
@@ -597,20 +724,26 @@ class Queue:
         c, e = self.cfg, self.env
         j = self.get(jid)
         t0 = time.time()
-        self._set(jid, state="starting", started=t0, note="taking the GPU from the LLM")
+        with self.lock:
+            sess = self.session if (self.session and self.session["state"] == "ready") else None      # an interactive session already holds the GPU and ComfyUI
+        self._set(jid, state="starting", started=t0, note="using the running ComfyUI session" if sess else "taking the GPU from the LLM")
         try:
             wf = load_workflows(c.workflows_dir).get(j["workflow"])
             if wf is None:
                 raise VideoError("workflow %r is no longer installed" % j["workflow"])
             stages = stage_names(wf)
-            self._take_gpu()
-            self._unload_llm()
-            self._set(jid, note="starting the video engine")
+            if not sess:
+                self._take_gpu()
+                self._unload_llm()
+                self._set(jid, note="starting the video engine")
             if stages:
                 cond = self._cond_dir(jid)
                 os.makedirs(cond, exist_ok=True)
+                if sess:                                          # the stage hand-over needs ELZ_COND_DIR in ComfyUI's environment: restart it once, inside the session
+                    self._stop_comfy()
+                    self.proc = None
                 self._start_comfy({"ELZ_COND_DIR": cond})
-            else:
+            elif not sess:
                 self._start_comfy()
             if jid in self.cancel:
                 raise _Cancelled()
@@ -625,6 +758,7 @@ class Queue:
             files = self._collect(jid, outputs)
             if not files:
                 raise VideoError("finished with no output files")
+            self._level_sound(jid, files)
             links = [self.share(p) for p in files] if self.share else []
             ended = time.time()
             self._sidecars(j, files, t0, ended)
@@ -636,15 +770,302 @@ class Queue:
         finally:
             with self.lock:
                 self.cancel.discard(jid)
+            if sess:                                              # the session owns ComfyUI and the GPU lease: leave both running
+                with self.lock:
+                    sess["last_active"] = time.time()
+                self._drop_cond(jid)
+                self._notify(jid)
+            else:
+                try:
+                    self._stop_comfy()
+                except Exception:
+                    pass
+                finally:
+                    self.proc = None
+                    self._drop_cond(jid)                          # the hand-over file never outlives the job, whatever happened
+                    self._restore_mode()                          # the governor prewarms the LLM again
+                    self._notify(jid)
+        if self.cfg.drive_mode == "all":                          # the GPU is free again; the copy to Drive runs in the background and can take its time
+            threading.Thread(target=self._drive_after_done, args=(jid,), name="drive-sync", daemon=True).start()
+
+    # -- interactive ComfyUI session (the owner uses ComfyUI's own UI; queue jobs may run on it meanwhile)
+    def session_info(self):
+        """{"active": bool, "state": "starting"|"ready"|"stopping"|None, "idle_s": int|None, "error": str}"""
+        with self.lock:
+            s = self.session
+            if not s:
+                return {"active": False, "state": None, "idle_s": None, "error": ""}
+            return {"active": True, "state": s["state"], "idle_s": int(time.time() - s["last_active"]) if s["state"] == "ready" else None, "error": s.get("error", "")}
+
+    def session_start(self):
+        """Take the GPU like a job (the LLM is unloaded), start ComfyUI and keep it up until session_stop or comfy_session_idle_min without
+        activity. Returns at once; the session is "starting" until ComfyUI answers. Raises VideoBusy while a session exists or a job is active."""
+        c = self.cfg
+        if not c.enabled:
+            raise VideoError("video generation is not set up on this PC")
+        with self.lock:
+            if self.session:
+                raise VideoBusy("a ComfyUI session is already active")
+            if any(j["state"] in ACTIVE for j in self.jobs) or os.path.exists(self.lock_path):
+                raise VideoBusy("a video job is running; wait for it to finish or cancel it first")
+            if self._killed():
+                raise VideoError("the gateway kill switch is on")
+            sess = {"state": "starting", "started": time.time(), "last_active": time.time(), "hist_n": None, "ev": threading.Event(), "seen": set(), "last_watch": 0.0}
+            self.session = sess
+            self._sess_thread = threading.Thread(target=self._session_main, args=(sess,), name="comfy-session", daemon=True)
+        self._sess_thread.start()
+        return self.session_info()
+
+    def session_stop(self, force=False):
+        """Kill ComfyUI and give the GPU back to the LLM. Raises VideoBusy while a queue job is running on the session (unless force)."""
+        with self.lock:
+            sess = self.session
+            if sess is None:
+                return {"active": False, "state": None, "idle_s": None, "error": ""}
+            if not force and any(j["state"] in ACTIVE for j in self.jobs):
+                raise VideoBusy("a video job is running on the session; cancel it first")
+            sess["state"] = "stopping"
+            sess["ev"].set()
+        if self.proc is not None:
+            self.env.kill_tree(self.proc)                          # also unblocks a start that is still waiting for ComfyUI
+        t = self._sess_thread
+        if t and t is not threading.current_thread():
+            t.join(timeout=35)
+        self._session_end(sess)
+        return self.session_info()
+
+    def _session_end(self, sess):
+        with self.lock:
+            if self.session is not sess:
+                return
+            sess["state"] = "stopping"
+        try:
+            self._stop_comfy()
+        except Exception:
+            pass
+        self.proc = None
+        self._restore_mode()                                       # the governor prewarms the LLM again
+        with self.lock:
+            if self.session is sess:
+                self.session = None
+
+    def _session_main(self, sess):
+        c, e = self.cfg, self.env
+        try:
+            self._take_gpu()
+            self._unload_llm()
+            if sess["ev"].is_set():
+                raise _Cancelled()
+            self._start_comfy()
+            if sess["ev"].is_set():
+                raise _Cancelled()
+        except BaseException as ex:
+            if not isinstance(ex, _Cancelled):
+                sess["error"] = str(ex)[:300]
+                sys.stderr.write("video: ComfyUI session failed to start (%r)\n" % (ex,))
+            self._session_end(sess)
+            return
+        with self.lock:
+            if sess["ev"].is_set():
+                return                                             # session_stop is finishing the clean-up
+            sess["state"], sess["last_active"] = "ready", time.time()
+        while not sess["ev"].wait(min(c.poll_s, 2.0)):
             try:
-                self._stop_comfy()
+                with self.lock:
+                    if any(j["state"] in ACTIVE for j in self.jobs):          # a queue job is using ComfyUI (it may restart it between stages)
+                        sess["last_active"] = time.time()
+                        continue
+                if self.proc is None or self.proc.poll() is not None:
+                    sess["error"] = "ComfyUI exited"
+                    break
+                if self._session_activity(sess):
+                    with self.lock:
+                        sess["last_active"] = time.time()
+                if time.time() - sess["last_watch"] >= c.session_watch_s:
+                    sess["last_watch"] = time.time()
+                    self._watch_outputs(sess)
+                with self.lock:
+                    idle = time.time() - sess["last_active"]
+                if idle >= c.session_idle_s:
+                    break
+            except Exception as ex:
+                sys.stderr.write("video: session watcher error: %r\n" % (ex,))
+        if not sess["ev"].is_set():
+            self._session_end(sess)
+
+    def _session_activity(self, sess):
+        """True when a prompt is running or pending in ComfyUI, history grew, or a queue job is active. Unknown counts as quiet."""
+        if any(j["state"] in ACTIVE for j in self.jobs):
+            return True
+        c, e = self.cfg, self.env
+        busy = False
+        try:
+            q = e.http("GET", c.comfy_url + "/queue", timeout=3) or {}
+            busy = bool(q.get("queue_running") or q.get("queue_pending"))
+        except Exception:
+            pass
+        try:
+            h = e.http("GET", c.comfy_url + "/history", timeout=5)
+            if isinstance(h, dict):
+                n = len(h)
+                if sess["hist_n"] is not None and n != sess["hist_n"]:
+                    busy = True
+                sess["hist_n"] = n
+        except Exception:
+            pass
+        return busy
+
+    # -- renders made in ComfyUI's own UI (CueForge) during a session get the same after-care as queue jobs
+    VIDEO_EXT = (".mp4", ".webm", ".mov", ".mkv")
+
+    def _watch_outputs(self, sess):
+        """Look at ComfyUI's /history; every finished prompt that is not ours and not seen yet and has video output is ingested on its own thread
+        (copied into the outputs folder, levelled, sidecar written, copied to Drive). Idempotent: each prompt id is handled once. Never raises."""
+        try:
+            h = self.env.http("GET", self.cfg.comfy_url + "/history?max_items=64", timeout=5)
+        except Exception:
+            return
+        if not isinstance(h, dict):
+            return
+        for pid, ent in h.items():
+            with self.lock:
+                if pid in sess["seen"] or pid in self.own_pids or not isinstance(ent, dict):
+                    continue
+                if any(x.get("comfy_pid") == pid for x in self.jobs):
+                    sess["seen"].add(pid)
+                    continue
+                sess["seen"].add(pid)
+                sess["last_active"] = time.time()
+            outs = {}
+            for node, o in (ent.get("outputs") or {}).items():
+                vids = [f for key in MEDIA_KEYS for f in ((o or {}).get(key) or [])
+                        if isinstance(f, dict) and f.get("filename") and f.get("type") != "temp" and os.path.splitext(str(f["filename"]))[1].lower() in self.VIDEO_EXT]
+                if vids:
+                    outs[node] = {"videos": vids}
+            if outs and (ent.get("status") or {}).get("status_str") != "error":
+                threading.Thread(target=self._ingest, args=(pid, ent, outs), name="comfy-ingest", daemon=True).start()
+
+    def _ingest(self, pid, ent, outs):
+        try:
+            jid = secrets.token_hex(4)
+            graph = ent.get("prompt")[2] if isinstance(ent.get("prompt"), (list, tuple)) and len(ent["prompt"]) > 2 and isinstance(ent["prompt"][2], dict) else {}
+            text, seed = "", None
+            for n in graph.values():
+                ins = (n or {}).get("inputs") or {} if isinstance(n, dict) else {}
+                if not text and isinstance(ins.get("text"), str) and ins["text"].strip():
+                    text = ins["text"].strip()
+                for k in ("noise_seed", "seed"):
+                    if seed is None and isinstance(ins.get(k), int) and not isinstance(ins.get(k), bool):
+                        seed = ins[k]
+            ts = {m[0]: m[1].get("timestamp") for m in ((ent.get("status") or {}).get("messages") or []) if isinstance(m, (list, tuple)) and len(m) == 2 and isinstance(m[1], dict)}
+            now = time.time()
+            t1 = ts.get("execution_success") or ts.get("execution_error")
+            t0 = (ts.get("execution_start") or 0) / 1000.0 or now
+            t1 = t1 / 1000.0 if isinstance(t1, (int, float)) else now
+            files = self._collect(jid, outs)
+            if not files:
+                return
+            params = {"prompt": text[:1500]}
+            if seed is not None:
+                params["seed"] = seed
+            j = dict(id=jid, workflow="comfyui", params=params, files={}, state="done", created=t0, started=t0, ended=t1, seconds=round(max(0.0, t1 - t0), 1),
+                     files_out=files, links=[], note="", source="comfy", comfy_pid=pid)
+            with self.lock:
+                self.jobs.append(j)
+                self._save()
+            self._level_sound(jid, files)
+            self._set(jid, note="", links=[self.share(p) for p in files] if self.share else [])
+            self._sidecars(j, files, t0, t1, extra={"graph": graph, "source": "comfy", "comfy_prompt_id": pid})
+            if self.cfg.drive_mode == "all":
+                self.drive_sync(jid)
+        except Exception as ex:
+            sys.stderr.write("video: could not ingest ComfyUI output %s (%r)\n" % (pid, ex))
+
+    # -- sound levelling (optional: needs "ffmpeg" in the video config)
+    def _level_sound(self, jid, files):
+        """ffmpeg loudnorm to -16 LUFS / -1.5 dBTP on each mp4, video stream copied untouched. The result replaces the clip atomically; the original
+        is kept as <name>_raw.mp4 only with keep_raw. Single pass. Any failure leaves the clip as ffmpeg-free rendering made it; never raises."""
+        c = self.cfg
+        if not (c.loudnorm and c.ffmpeg):
+            return
+        for p in files:
+            if os.path.splitext(p)[1].lower() != ".mp4":
+                continue
+            tmp = os.path.splitext(p)[0] + ".tmp.mp4"
+            self._set(jid, loudnorm=False)
+            try:
+                self._set(jid, note="levelling the sound")
+                cmd = [c.ffmpeg, "-y", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", p, "-c:v", "copy",
+                       "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "192k", tmp]
+                code, err = self.env.run_cmd(cmd, timeout=120)
+                if code != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
+                    raise VideoError("ffmpeg exit %s: %s" % (code, err.strip()[-200:]))
+                if c.keep_raw:
+                    raw = os.path.splitext(p)[0] + "_raw.mp4"
+                    shutil.copyfile(p, raw + ".tmp")
+                    os.replace(raw + ".tmp", raw)
+                os.replace(tmp, p)
+                self._set(jid, loudnorm=True)
+            except Exception as ex:
+                sys.stderr.write("video: sound levelling skipped for %s (%r)\n" % (os.path.basename(p), ex))
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+
+    # -- Google Drive copy (a synced folder; optional)
+    def _drive_after_done(self, jid):
+        j = self.get(jid)
+        if j and j["state"] == "done" and self.cfg.drive_mode == "all":
+            self.drive_sync(jid)
+
+    def drive_sync(self, jid):
+        """Copy a done job's clips and one JSON sidecar each into drive_dir/YYYY-MM/, atomically (name.tmp then os.replace). Safe to call twice: files
+        already there with the same size are left alone. Records drive_path on the job. Never raises; returns True when everything is in place."""
+        c = self.cfg
+        try:
+            j = self.get(jid)
+            if not c.drive_dir or c.drive_mode == "off" or not j or j["state"] != "done" or not j.get("files_out"):
+                return False
+            if c.drive_mode == "favourites" and not j.get("fav"):
+                return False
+            month = time.strftime("%Y-%m", time.localtime(j.get("ended") or j["created"]))
+            dest = os.path.join(c.drive_dir, month)
+            os.makedirs(dest, exist_ok=True)
+            first = None
+            for p in j["files_out"]:
+                if not os.path.isfile(p):
+                    continue
+                name = "%s_%s" % (jid, os.path.basename(p))
+                target = os.path.join(dest, name)
+                if not (os.path.isfile(target) and os.path.getsize(target) == os.path.getsize(p)):
+                    shutil.copyfile(p, target + ".tmp")
+                    os.replace(target + ".tmp", target)
+                side = {"job_id": jid, "clip": name, "workflow": j["workflow"], "prompt": (j.get("params") or {}).get("prompt"), "params": j.get("params"),
+                        "seed": (j.get("params") or {}).get("seed"), "fav": bool(j.get("fav")), "created": j["created"], "started": j.get("started"), "ended": j.get("ended"),
+                        "render_s": j.get("seconds"), "queued_s": round(j["started"] - j["created"], 1) if j.get("started") else None}
+                try:                                                  # the full ComfyUI graph of a CueForge render lives in the clip's own sidecar
+                    with open(p + ".json", encoding="utf-8") as sf:
+                        g = json.load(sf).get("graph")
+                    if g:
+                        side["workflow_graph"] = g
+                except (OSError, ValueError, AttributeError):
+                    pass
+                with open(target + ".json.tmp", "w", encoding="utf-8") as f:
+                    json.dump(side, f, indent=1)
+                os.replace(target + ".json.tmp", target + ".json")
+                first = first or target
+            if not first:
+                raise VideoError("no clip file to copy")
+            self._set(jid, drive_path=first, drive_rel=month + "/" + os.path.basename(first), drive_error="")
+            return True
+        except Exception as ex:
+            sys.stderr.write("video: Drive copy failed for %s (%r)\n" % (jid, ex))
+            try:
+                self._set(jid, drive_error=str(ex)[:200])
             except Exception:
                 pass
-            finally:
-                self.proc = None
-                self._drop_cond(jid)                              # the hand-over file never outlives the job, whatever happened
-                self._restore_mode()                              # the governor prewarms the LLM again
-                self._notify(jid)
+            return False
 
     def _stop_comfy(self):
         e = self.env
@@ -664,6 +1085,8 @@ class Queue:
         pid = r.get("prompt_id")
         if not pid:
             raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
+        with self.lock:
+            self.own_pids.add(pid)
         return self._wait(jid, pid, span, expect_s, deadline)
 
     # -- two-process split

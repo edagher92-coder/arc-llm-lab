@@ -145,6 +145,22 @@ def test_staged_spec_rules():
         try: b.build(dict(bad, meta={}), api, Q6_INFO); raise AssertionError("accepted %r" % bad)
         except c.ConvertError: pass
 
+
+def test_ltx25g_specs_use_multiples_of_64_and_the_new_presets():
+    for name in ("ltx25g_t2v", "ltx25g_i2v"):
+        m = spec_file(name)["meta"]
+        assert [tuple(s) for s in m["sizes"]] == [(768, 512, "Draft"), (1024, 576, "Daily"), (1280, 704, "Hero"), (576, 1024, "Vertical"), (704, 1280, "Vertical HD"), (1024, 1024, "Square")], name
+        assert all(s[0] % 64 == 0 and s[1] % 64 == 0 for s in m["sizes"])
+        assert m["params"]["width"]["multiple_of"] == 64 and m["params"]["height"]["multiple_of"] == 64
+        assert m["params"]["width"]["default"] % 64 == 0 and m["params"]["height"]["default"] % 64 == 0 and m["params"]["width"]["min"] % 64 == 0
+        pr = {p["name"]: p for p in m["presets"]}
+        assert [(p["params"]["width"], p["params"]["height"], p["params"]["seconds"]) for p in m["presets"]] == [(768, 512, 2), (1024, 576, 4), (1280, 704, 5)], name
+        assert "3.5" in pr["draft"]["note"] and "measured" in pr["draft"]["note"].lower() and "estimate" in pr["daily"]["note"].lower() and "estimate" in pr["hero"]["note"].lower()
+        import video
+        wf = {"meta": m}
+        raw = {"prompt": "x", "width": 1000, "height": 700}; raw.update({"image": "i.png"} if "image" in m["params"] else {}); v, _ = video.resolve_params(wf, raw, None); assert (v["width"], v["height"]) == (960, 640)      # snapped down to 64
+
+
 if __name__ == "__main__":
     sys.path.insert(0, D)
     fails = 0

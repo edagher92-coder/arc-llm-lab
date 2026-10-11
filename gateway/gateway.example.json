@@ -424,6 +424,13 @@
   "ntfy_topic": "",
   "ntfy_click_base": "",
   "ntfy_include_prompt": false,
+  "drive_dir": "",
+  "drive_mode": "off",
+  "ffmpeg_path": "",
+  "loudnorm": false,
+  "comfy_session_idle_min": 20,
+  "comfy_tailnet_port": 8448,
+  "keep_raw": false,
   "llm": {
    "swap_url": "http://127.0.0.1:8090",
    "api_key_file": "C:\\AI\\llama-swap\\api-key.txt",
