@@ -30,12 +30,15 @@ What it does, in order:
    `elz_nodes` copies) and writes `restore.ps1` there.
 4. Installs `gateway/<x>` to `C:\AI\gateway\<x>`; `gateway/comfy_nodes/elz_nodes/*` also to
    `...\ComfyUI\custom_nodes\elz_nodes`.
-5. Restarts the `Local MCP hub (mcpo)` task in a detached process (stop task, taskkill /T owners of 8100 and 8093,
-   start task) and polls up to 120 s for both ports plus `GET /approvals/studio` == 200.
-6. If that fails (or the install fails), runs the backup's `restore.ps1`, restarts again, exits 1.
-7. Appends one JSON line to `C:\AI\gateway\deploy.log` (time, to, zip_sha256, files, ok, seconds, backup, rolled_back).
+5. Restarts the `Local MCP hub (mcpo)` task in a hidden helper powershell (stop task, taskkill /T owners of 8100 and 8093,
+   start task); deploy.ps1 itself then polls up to 150 s for both ports plus `GET /approvals/studio` == 200.
+6. If that fails (or the install fails), runs the backup's `restore.ps1`, restarts the hub again and verifies it (log fields rollback_healthy, hub_down), exits 1.
+7. Always appends one JSON line (dry runs too, `dry_run:true`) to `C:\AI\gateway\deploy.log` (time, to, zip_sha256, files, ok, seconds, backup, rolled_back).
 
 Exit codes: 0 ok, 1 failed and rolled back, 2 aborted (busy), 3 bad input/bundle.
+
+Check the helper path without touching the hub: `deploy.ps1 -HelperSelfTest`.
+Run deploys from a normal shell, not a process spawned by the hub: the restart kills the hub's process tree.
 
 ## Rollback by hand
 

@@ -14,7 +14,8 @@
 
   Never touched: gateway.json, anything under state/, secrets, .env files, backups, deploy.log.
   -ApplyDeletes also removes files listed under "deleted" in the manifest (backed up first).
-  -RestartHubOnly / -ResultFile are internal (used for the detached restart helper).
+  -RestartHubOnly / -ResultFile / -Poll are internal (restart helper; -Poll also waits for health).
+  -HelperSelfTest launches the helper the same way a deploy does but only reports (no hub restart).
 #>
 param(
   [string]$Zip,
@@ -22,6 +23,8 @@ param(
   [switch]$DryRun,
   [switch]$ApplyDeletes,
   [switch]$RestartHubOnly,
+  [switch]$Poll,
+  [switch]$HelperSelfTest,
   [string]$ResultFile
 )
 
@@ -41,7 +44,7 @@ $HubPorts    = @(8100, 8093)
 $ComfyPort   = 8188
 $ActiveStates = @('queued', 'waiting', 'starting', 'running')
 $SelfPath    = $MyInvocation.MyCommand.Path
-$HealthSeconds = 120
+$HealthSeconds = 150
 
 # ---- helpers -------------------------------------------------------------------------------------
 function Get-Sha([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower() }
@@ -81,16 +84,31 @@ function Write-TextNoBom([string]$Path, [string]$Text) {
   [System.IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding($false)))
 }
 
-# Restart the hub task and poll until both ports + Studio 200, or timeout. Returns a result object.
-function Invoke-HubRestart {
-  $sw = [Diagnostics.Stopwatch]::StartNew()
+# Kill a process tree. Native stderr must never become a terminating error: under $ErrorActionPreference
+# 'Stop', "taskkill ... 2>&1" throws when the PID is already gone (e.g. a child killed by its parent's /T),
+# which is what killed the first restart helper. cmd.exe swallows it.
+function Stop-ProcTree([int]$ProcId) {
+  if ($ProcId -le 4) { return }
+  & cmd.exe /c "taskkill /PID $ProcId /T /F >nul 2>&1"
+  $global:LASTEXITCODE = 0
+}
+
+# Stop task, kill hub owners, start task. Does NOT wait for health.
+function Invoke-HubRestartCore {
+  $ErrorActionPreference = 'Continue'
   $owners = @(Get-NetTCPConnection -State Listen -LocalPort $HubPorts -ErrorAction SilentlyContinue |
     Select-Object -ExpandProperty OwningProcess -Unique)
   Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-  foreach ($o in $owners) { if ($o -gt 4) { & taskkill /PID $o /T /F 2>&1 | Out-Null } }
+  foreach ($o in $owners) { Stop-ProcTree $o }
   Start-Sleep -Seconds 3
-  Start-ScheduledTask -TaskName $TaskName
-  $deadline = (Get-Date).AddSeconds($HealthSeconds)
+  Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+  return ('owners killed: ' + ($owners -join ',') + '; task started')
+}
+
+# Poll until both hub ports listen and Studio answers 200, or timeout. Returns a result object.
+function Wait-HubHealthy([int]$Seconds) {
+  $sw = [Diagnostics.Stopwatch]::StartNew()
+  $deadline = (Get-Date).AddSeconds($Seconds)
   $ports = @(); $code = 0
   while ((Get-Date) -lt $deadline) {
     $ports = Get-ListenPorts $HubPorts
@@ -104,28 +122,60 @@ function Invoke-HubRestart {
   return [ordered]@{ ok = $ok; ports = ($ports -join ','); studio = $code; seconds = [math]::Round($sw.Elapsed.TotalSeconds, 1) }
 }
 
-# ---- internal mode: detached restart helper ------------------------------------------------------
+# ---- internal modes: restart helper / self-test (run as a separate hidden powershell) ------------
+if ($HelperSelfTest -and $RestartHubOnly) {
+  # Same launch path as a real restart, but harmless: reports environment, restarts nothing.
+  $o = [ordered]@{ ok = $true; selftest = $true; user = (whoami); session = [Diagnostics.Process]::GetCurrentProcess().SessionId }
+  try { $o.task_state = [string](Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop).State } catch { $o.ok = $false; $o.task_error = $_.Exception.Message }
+  $o.hub_ports = ((Get-ListenPorts $HubPorts) -join ',')
+  $o.studio = Get-StudioCode
+  $ErrorActionPreference = 'Stop'
+  try { Stop-ProcTree 99999999; $o.taskkill_dead_pid_safe = $true } catch { $o.ok = $false; $o.taskkill_dead_pid_safe = $false; $o.taskkill_error = $_.Exception.Message }
+  Write-TextNoBom $ResultFile ($o | ConvertTo-Json -Compress)
+  exit 0
+}
+
 if ($RestartHubOnly) {
-  $res = Invoke-HubRestart
+  $res = [ordered]@{ ok = $true; detail = ''; error = ''; seconds = 0 }
+  $sw0 = [Diagnostics.Stopwatch]::StartNew()
+  try { $res.detail = Invoke-HubRestartCore } catch { $res.ok = $false; $res.error = $_.Exception.Message }
+  if ($Poll -and $res.ok) {
+    $h = Wait-HubHealthy $HealthSeconds
+    $res.ok = $h.ok; $res.ports = $h.ports; $res.studio = $h.studio
+  }
+  $res.seconds = [math]::Round($sw0.Elapsed.TotalSeconds, 1)
   $json = $res | ConvertTo-Json -Compress
   if ($ResultFile) { Write-TextNoBom $ResultFile $json } else { $json }
   if ($res.ok) { exit 0 } else { exit 1 }
 }
 
-# Start the restart helper fully detached from this process tree (WMI Create), so killing the hub's
-# process tree cannot take the helper (or this script) with it. Waits for the helper's result file.
-function Restart-HubDetached {
-  $rf = Join-Path $StageRoot ('restart-' + [guid]::NewGuid().ToString('N') + '.json')
-  $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + $SelfPath + '" -RestartHubOnly -ResultFile "' + $rf + '"'
-  $r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd }
-  if ($r.ReturnValue -ne 0) { return [ordered]@{ ok = $false; ports = ''; studio = 0; seconds = 0; error = ('detached start failed, code ' + $r.ReturnValue) } }
-  $limit = (Get-Date).AddSeconds($HealthSeconds + 45)
-  while ((Get-Date) -lt $limit -and -not (Test-Path -LiteralPath $rf)) { Start-Sleep -Seconds 2 }
-  if (-not (Test-Path -LiteralPath $rf)) { return [ordered]@{ ok = $false; ports = ''; studio = 0; seconds = 0; error = 'restart helper produced no result' } }
-  Start-Sleep -Milliseconds 300
+# Launch a hidden helper powershell (same approach as video\deploy\restart.ps1) and wait for it to exit.
+# Returns the helper's result object (or an error object).
+function Start-Helper([string[]]$ExtraArgs, [int]$WaitSeconds) {
+  New-Item -ItemType Directory -Force $StageRoot | Out-Null
+  $rf = Join-Path $StageRoot ('helper-' + [guid]::NewGuid().ToString('N') + '.json')
+  $args2 = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $SelfPath, '-RestartHubOnly', '-ResultFile', $rf) + $ExtraArgs
+  $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $args2 -WindowStyle Hidden -PassThru
+  if (-not $p.WaitForExit($WaitSeconds * 1000)) { return [pscustomobject]@{ ok = $false; error = "helper still running after $WaitSeconds s (pid $($p.Id))" } }
+  if (-not (Test-Path -LiteralPath $rf)) { return [pscustomobject]@{ ok = $false; error = ('helper exited (code ' + $p.ExitCode + ') without writing a result') } }
   $out = Get-Content -LiteralPath $rf -Raw | ConvertFrom-Json
   Remove-Item -LiteralPath $rf -Force -ErrorAction SilentlyContinue
-  return [ordered]@{ ok = [bool]$out.ok; ports = [string]$out.ports; studio = [int]$out.studio; seconds = [double]$out.seconds }
+  return $out
+}
+
+# Restart the hub and verify it from THIS script (not the helper): returns ok/ports/studio/seconds/error.
+function Restart-Hub {
+  $h = Start-Helper @() 90
+  if (-not $h.ok) {
+    $err = [string]$h.error
+    'restart helper failed: ' + $err
+    # one more try to bring the task up, then still poll below
+    try { Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue } catch { }
+  } else { 'restart helper: ' + $h.detail }
+  $w = Wait-HubHealthy $HealthSeconds
+  $r = [ordered]@{ ok = $w.ok; ports = $w.ports; studio = $w.studio; seconds = $w.seconds }
+  if (-not $h.ok) { $r.error = [string]$h.error }
+  return $r
 }
 
 # restore.ps1 written into every backup folder. Reads restore.json beside it.
@@ -148,11 +198,19 @@ foreach ($e in @($plan.entries)) {
 }
 if ($Restart) {
   $rf = Join-Path $env:TEMP ('hub-restart-' + [guid]::NewGuid().ToString('N') + '.json')
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\AI\deploy\deploy.ps1' -RestartHubOnly -ResultFile $rf
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\AI\deploy\deploy.ps1' -RestartHubOnly -Poll -ResultFile $rf
   if (Test-Path -LiteralPath $rf) { 'hub restart result: ' + (Get-Content -LiteralPath $rf -Raw) }
 }
 'restore complete'
 '@
+
+# ---- self-test: harmless, restarts nothing ----------------------------------------------------
+if ($HelperSelfTest) {
+  'helper self-test (same launch path as a real restart; hub is NOT restarted) ...'
+  $r = Start-Helper @('-HelperSelfTest') 60
+  $r | ConvertTo-Json -Compress
+  if ($r.ok) { exit 0 } else { exit 1 }
+}
 
 # ---- main ----------------------------------------------------------------------------------------
 $total = [Diagnostics.Stopwatch]::StartNew()
@@ -161,6 +219,8 @@ $toShort = ''
 $zipSha = ''
 $fileCount = 0
 $stage = $null
+$installed = $false
+$backupDir = $null
 
 function Finish([bool]$Ok, [int]$Code, [hashtable]$Extra) {
   $entry = [ordered]@{
@@ -168,7 +228,8 @@ function Finish([bool]$Ok, [int]$Code, [hashtable]$Extra) {
     ok = $Ok; seconds = [math]::Round($total.Elapsed.TotalSeconds, 1)
   }
   foreach ($k in $Extra.Keys) { $entry[$k] = $Extra[$k] }
-  if (-not $DryRun) { Write-DeployLog $entry }
+  if ($DryRun) { $entry['dry_run'] = $true }
+  try { Write-DeployLog $entry } catch { 'WARNING: could not write deploy.log: ' + $_.Exception.Message }
   if ($stage -and (Test-Path -LiteralPath $stage)) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
   exit $Code
 }
@@ -260,7 +321,7 @@ try {
   'never     : gateway.json, secrets, state/, .env, backups/'
   if ($busy.Count -gt 0) { 'BUSY     : ' + ($busy -join '; ') } else { 'busy guard: clear (no active video jobs, nothing on :8188)' }
 
-  if ($DryRun) { '=== DRY RUN: nothing changed, hub not restarted ==='; Finish $true 0 @{ dry_run = $true } }
+  if ($DryRun) { '=== DRY RUN: nothing changed, hub not restarted ==='; Finish $true 0 @{ busy = ($busy.Count -gt 0) } }
 
   if ($busy.Count -gt 0) { 'ABORT: video busy. Nothing changed.'; Finish $false 2 @{ aborted = 'busy'; detail = ($busy -join '; ') } }
 
@@ -297,6 +358,7 @@ try {
       if ((Get-Sha $p.live) -ne (Get-Sha $p.src)) { throw "post-copy hash mismatch: $($p.live)" }
     }
     if ($ApplyDeletes) { foreach ($d in $delPlan) { if (Test-Path -LiteralPath $d.live) { Remove-Item -LiteralPath $d.live -Force } } }
+    $installed = $true
     'installed ' + $plan.Count + ' file(s)'
   } catch {
     $err = $_.Exception.Message
@@ -305,22 +367,34 @@ try {
   }
 
   # 7. restart + health
-  'restarting hub (detached), polling up to ' + $HealthSeconds + ' s ...'
-  $res = Restart-HubDetached
+  'restarting hub (helper process), polling up to ' + $HealthSeconds + ' s ...'
+  $res = Restart-Hub
   'result: ok=' + $res.ok + ' ports=' + $res.ports + ' studio=' + $res.studio + ' (' + $res.seconds + ' s)'
   if ($res.ok) {
     'DEPLOY OK (' + [math]::Round($total.Elapsed.TotalSeconds, 1) + ' s). Backup: ' + $backupDir
     Finish $true 0 @{ backup = $backupDir; ports = $res.ports; studio = $res.studio }
   }
 
-  # 8. automatic rollback
+  # 8. automatic rollback: restore files, restart the hub and verify it
   & $restoreFiles 'health check failed'
   'restarting hub on restored files ...'
-  $res2 = Restart-HubDetached
+  $res2 = Restart-Hub
   'rollback restart: ok=' + $res2.ok + ' ports=' + $res2.ports + ' studio=' + $res2.studio
+  if (-not $res2.ok) { '!! HUB STILL DOWN after rollback. Start it by hand: Start-ScheduledTask -TaskName "' + $TaskName + '"' }
   'DEPLOY FAILED, ROLLED BACK. Backup: ' + $backupDir
-  Finish $false 1 @{ rolled_back = $true; rollback_healthy = $res2.ok; backup = $backupDir; error = ('health: ports=' + $res.ports + ' studio=' + $res.studio) }
+  Finish $false 1 @{ rolled_back = $true; rollback_healthy = $res2.ok; hub_down = (-not $res2.ok); backup = $backupDir; error = ('health: ports=' + $res.ports + ' studio=' + $res.studio + $(if ($res.error) { ' ' + $res.error } else { '' })) }
 } catch {
-  'ERROR: ' + $_.Exception.Message
-  Finish $false 3 @{ error = $_.Exception.Message }
+  $msg = $_.Exception.Message
+  'ERROR: ' + $msg
+  if ($installed -and $backupDir) {
+    # something blew up after files were installed: put the old files back and bring the hub up on them
+    try {
+      '!! unexpected error after install -> restoring and restarting'
+      & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $backupDir 'restore.ps1')
+      $res3 = Restart-Hub
+      'recovery restart: ok=' + $res3.ok
+      Finish $false 1 @{ rolled_back = $true; rollback_healthy = $res3.ok; hub_down = (-not $res3.ok); backup = $backupDir; error = $msg }
+    } catch { Finish $false 1 @{ rolled_back = $true; hub_down = $true; backup = $backupDir; error = ($msg + ' / recovery failed: ' + $_.Exception.Message) } }
+  }
+  Finish $false 3 @{ error = $msg }
 }
