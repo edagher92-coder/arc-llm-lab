@@ -18,6 +18,19 @@ the unit the governor writes. A value the PC cannot measure is `null`, never a g
 - `401 {"error": ...}` = no tier for this route. The page then shows the PIN form; after login the same page is `pin`.
 - `Tailscale-User-*` headers are read only on the identity socket and only from a 127.0.0.1/::1 peer, exactly one header, RFC 2047-decoded, trimmed, lower-cased, exact match against `allow_logins`. On 8093 they are never read and are stripped from `req["headers"]`. `tailscale serve` adds them for tailnet users, strips client-supplied copies, and adds none for Funnel or tagged devices (https://tailscale.com/kb/1312/serve), so those fall back to the PIN.
 
+## Remembered devices (gwd)
+
+Enter the PIN once per device; that device then stays logged in for 90 days while its Tailscale IP stays the same.
+
+- `POST /approvals/login` with `{"pin": ..., "remember": true}` also sets `gwd`: 32 random bytes as hex, `Path=/; Max-Age=7776000; HttpOnly; Secure; SameSite=Strict`. Without `remember: true` no `gwd` is set (the approvals page sends it, checked by default).
+- Store `gateway/trusted-devices.json` (git-ignored, next to `approval-pin.json`): `sha256(token)` -> `{ip, created, expires, last_seen, ua[:120]}`. The raw token is never stored. At most 10 devices (oldest created is evicted), expired entries pruned on load and save, atomic write (temp + `os.replace`), survives restarts.
+- Client IP = first `X-Forwarded-For` hop (added by `tailscale serve`) only when the TCP peer is loopback, otherwise the peer address.
+- Device tier: a request with no live `gwa` but a `gwd` whose hash matches an unexpired entry bound to the current client IP gets a fresh normal `gwa` session (same cookie and SESSION_TTL), so every existing path works and `req["tier"]` is `"pin"`. IP mismatch, unknown token or malformed cookie: not authenticated, entry kept, not counted as a PIN failure (the next PIN login rebinds the entry to the new IP).
+- Device-minted sessions are flagged. They may use everything (Studio, Code tab, stats, video jobs, mode) except `POST /approvals/<id>/approve|allow|deny` and `POST /approvals/devices/revoke`, which answer `401 {"error":"enter your PIN to approve actions","pin_required":true}`; the approvals page then shows the PIN box.
+- `GET /approvals/devices` (any session): `[{id (first 8 hex of the hash), ip, created, expires, last_seen, ua, current}]`. `POST /approvals/devices/revoke {id}` (PIN session). `POST /approvals/devices/forget` (any session, CSRF header): removes this device's entry and clears `gwa` and `gwd` (`Max-Age=0`).
+- `GET /approvals/pending.json` adds `X-Device-Until` (epoch seconds) while the session is device-minted; the page shows "This device is remembered until <date> - Forget".
+- Studio's own PIN gate (`studio/index.html`) posts only `{pin}`, so it does not request `gwd`; a `gwd` set from the approvals page works on Studio too (same origin, `Path=/`).
+
 Config (gateway.json, all optional):
 
 ```json

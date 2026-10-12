@@ -66,6 +66,7 @@ BALANCED's idle model unload moved from 30 to 120 minutes, so the first message 
 2. Copy `gateway.example.json` to `gateway.json`. Fix the paths, and put tokens such as `PLAYWRIGHT_MCP_EXTENSION_TOKEN` in the copy only, never in git.
 3. Point mcpo at the gateway alone; see [`mcpo.config.json`](../gateway/mcpo.config.json) and [`start-mcpo.ps1`](../gateway/start-mcpo.ps1).
 4. Run `set-approval-pin.ps1` on the PC to set the approval PIN. With no PIN set, nothing can be approved.
+   On the approvals page, leave "Remember this device for 90 days" ticked and that device stays logged in for 90 days while its Tailscale IP is unchanged. Approving or denying a tool call still asks for the PIN on a remembered device; Studio and the rest do not. "Forget" on the page removes a device.
 5. In Open WebUI, add the tool server and use Native function calling. `connect_gw_openwebui.py` does this from the command line.
 6. Run the tests from `gateway/`: `python tests/test_gateway.py` (11 checks) and `python -m unittest tests/test_outbox.py` (27 tests).
 

@@ -18,6 +18,7 @@ evalsuite/results/summary.json
 # tool gateway: local config with tokens, PIN hash, audit state
 gateway/gateway.json
 gateway/approval-pin.json
+gateway/trusted-devices.json
 gateway/state/
 gateway/KILL
 gateway/gateway.agent.json

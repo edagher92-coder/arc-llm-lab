@@ -441,6 +441,7 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
     <h1>Studio</h1>
     <p>Enter your gateway PIN to make video on this PC.</p>
     <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN">
+    <label style="display:block;margin:.6em 0;font-size:.9rem"><input id="rem" type="checkbox" checked style="width:auto;margin-right:.4em;vertical-align:middle"> Remember this device for 90 days</label>
     <button class="btn go" type="submit">Open Studio</button>
     <div class="err" id="gateErr" hidden></div>
   </form>
@@ -828,7 +829,7 @@ async function loadStats() {                                                   /
 /* ---------- sign in ---------- */
 $("#gateForm").addEventListener("submit", async e => {
   e.preventDefault();
-  const r = await fetch(B + "login", {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-Requested-With": "approvals"}, body: JSON.stringify({pin: $("#pin").value})});
+  const r = await fetch(B + "login", {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-Requested-With": "approvals"}, body: JSON.stringify({pin: $("#pin").value, remember: !!($("#rem") && $("#rem").checked)})});
   if (r.ok) { $("#gate").hidden = true; $("#pin").value = ""; $("#gateErr").hidden = true; boot(); }
   else { const m = $("#gateErr"); m.textContent = r.status === 429 ? "Too many wrong PINs. Wait a few minutes." : "That PIN is not right."; m.hidden = false; }
 });

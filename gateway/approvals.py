@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PIN_FILE = os.path.join(HERE, "approval-pin.json")
+DEVICES_FILE = os.path.join(HERE, "trusted-devices.json")   # "Remember this device": sha256(gwd token) -> binding; never the raw token
 PORT = int(os.environ.get("GW_APPROVAL_PORT", "8093"))
 # Where the user approves. The phone instance (behind mcpo) is published on the tailnet; a desktop agent instance runs its
 # own page on another port, e.g. GW_APPROVAL_PORT=8094 and GW_APPROVAL_URL=http://127.0.0.1:8094/approvals
@@ -23,6 +24,8 @@ _bound = {"ok": False, "err": ""}
 PENDING_TTL = 15 * 60        # an unanswered request expires after 15 minutes
 APPROVED_TTL = 10 * 60       # an approval must be used within 10 minutes
 SESSION_TTL = 12 * 3600      # PIN login lasts 12 hours on that phone
+DEVICE_TTL = 90 * 24 * 3600  # a remembered device (cookie gwd) lasts 90 days, while its Tailscale IP stays the same
+DEVICE_MAX = 10
 MAX_FAILS, LOCK_S = 5, 15 * 60
 sys.path.insert(0, HERE)
 import outbox
@@ -60,6 +63,8 @@ _lock = threading.Lock()
 _pending = {}    # id -> {id, key, tool, args, why, created, state: pending|approved|denied, decided}
 _allow = {}      # tool name -> expiry (allow this tool for a while)
 _sessions = {}   # token -> expiry
+_dev_sess = set()  # gwa tokens minted from a remembered device (not from a PIN entry): they may not approve/deny tool calls or revoke devices
+_dev = {"loaded": False, "d": {}}   # trusted-devices store cache: sha256 hex -> {ip, created, expires, last_seen, ua}
 _ts_sessions = {}  # gws token -> (expiry, login): Studio-only sessions minted from a Tailscale identity on the identity listener
 TS_TTL = 12 * 3600
 TS_COOKIE_PATH = "/approvals/studio"
@@ -99,6 +104,7 @@ def _gc(now):
         _allow.pop(k, None)
     for k in [k for k, v in _sessions.items() if v < now]:
         _sessions.pop(k, None)
+    _dev_sess.intersection_update(_sessions)
     for k in [k for k, v in _ts_sessions.items() if v[0] < now]:
         _ts_sessions.pop(k, None)
 
@@ -142,6 +148,62 @@ def _pin_ok(pin):
         return hmac.compare_digest(h, j["hash"])
     except Exception:
         return False
+
+
+# ---------------- Remembered devices (gwd) ----------------
+def _client_ip(peer, xff):
+    """The client IP: the first X-Forwarded-For hop (added by `tailscale serve`) only when the TCP peer is loopback, else the peer itself."""
+    peer = peer or ""
+    if peer in LOOPBACK + ("::ffff:127.0.0.1",):
+        first = (xff or "").split(",")[0].strip()
+        if first: return first
+    return peer
+
+
+def _dev_prune(d, now):
+    for k in [k for k, v in d.items() if not isinstance(v, dict) or float(v.get("expires", 0)) <= now]:
+        d.pop(k, None)
+
+
+def _dev_load():
+    """Caller holds _lock. Reads the store once per process (or after _dev["loaded"] is reset), pruning expired entries."""
+    if _dev["loaded"]: return _dev["d"]
+    d = {}
+    try:
+        j = json.load(open(DEVICES_FILE, encoding="utf-8-sig"))
+        raw = j.get("devices") if isinstance(j, dict) else None
+        if isinstance(raw, dict):
+            d = {k: v for k, v in raw.items() if isinstance(k, str) and re.fullmatch(r"[0-9a-f]{64}", k) and isinstance(v, dict)}
+    except (OSError, ValueError): pass
+    _dev_prune(d, time.time())
+    _dev.update(loaded=True, d=d)
+    return d
+
+
+def _dev_save(d):
+    """Caller holds _lock. Prune, cap at DEVICE_MAX (evict the oldest by creation), write atomically."""
+    _dev_prune(d, time.time())
+    for k in sorted(d, key=lambda k: float(d[k].get("created", 0)))[:max(0, len(d) - DEVICE_MAX)]: d.pop(k, None)
+    try: _atomic_write(DEVICES_FILE, json.dumps({"v": 1, "devices": d}, indent=1))
+    except OSError as e: sys.stderr.write("approvals: could not save trusted devices (%s)\n" % e)
+
+
+def _dev_hash(tok):
+    return hashlib.sha256(tok.encode()).hexdigest() if re.fullmatch(r"[0-9a-f]{64}", tok or "") else ""   # malformed cookies are ignored without hashing
+
+
+def _dev_add(tok, ip, ua, now):
+    """Remember this token for this IP (a PIN was just entered). Caller holds _lock."""
+    d = _dev_load(); h = _dev_hash(tok)
+    old = d.get(h)
+    d[h] = {"ip": ip, "created": old["created"] if old else now, "expires": now + DEVICE_TTL, "last_seen": now, "ua": (ua or "")[:120]}
+    _dev_save(d)
+
+
+def _dev_rebind(h, ip, now):
+    """A PIN entry from a device that already has an entry: move its binding to the new IP. Caller holds _lock."""
+    d = _dev_load()
+    if h in d: d[h]["ip"] = ip; d[h]["last_seen"] = now; _dev_save(d)
 
 
 # ---------------- Control Centre: shared helpers ----------------
@@ -563,19 +625,26 @@ h1{font-size:1.25rem;margin:.2em 0 .8em}.card{background:var(--card);border:1px 
 .t{font-weight:600}.why{color:var(--mute);font-size:.9rem;margin:.2em 0 .5em}pre{white-space:pre-wrap;word-break:break-word;font-size:.85rem;margin:0 0 10px;max-height:40vh;overflow:auto}
 button{font:inherit;border:0;border-radius:10px;padding:10px 14px;margin:0 6px 6px 0;color:#fff;cursor:pointer}.ok{background:var(--ok)}.no{background:var(--no)}.alt{background:#44506a}
 input{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);width:10em;background:var(--card);color:var(--ink)}.m{color:var(--mute)}
+input[type=checkbox]{width:auto;padding:0;margin-right:.4em;vertical-align:middle}#dv{font-size:.85rem}#dv button{background:none;color:var(--mute);padding:0;margin:0;text-decoration:underline;font-size:inherit}
 </style></head><body><main><h1>Tool approvals</h1><div id="login" hidden><p>Enter your approval PIN.</p>
-<form id="f"><input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" aria-label="Approval PIN"> <button class="ok">Unlock</button></form><p id="lm" class="m"></p></div>
+<form id="f"><input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" aria-label="Approval PIN"> <button class="ok">Unlock</button>
+<p><label><input id="rem" type="checkbox" checked> Remember this device for 90 days</label></p></form><p id="lm" class="m" role="status"></p></div>
+<p id="dv" class="m" hidden></p>
 <div id="list"></div><p class="m">Approve once runs that exact call once. Allow 15 min lets that tool run without asking for 15 minutes.</p></main>
 <script>
-const $=s=>document.querySelector(s);const H={'Content-Type':'application/json','X-Requested-With':'approvals'};
+let need=false;const $=s=>document.querySelector(s);const H={'Content-Type':'application/json','X-Requested-With':'approvals'};
 async function load(){const r=await fetch('approvals/pending.json',{headers:H});if(r.status===401){$('#login').hidden=false;$('#list').innerHTML='';return;}
-$('#login').hidden=true;const j=await r.json();const L=$('#list');L.innerHTML=j.length?'':'<p class="m">Nothing waiting.</p>';
+$('#login').hidden=!need;const u=r.headers.get('X-Device-Until'),dv=$('#dv');
+if(u){dv.textContent='This device is remembered until '+new Date(u*1000).toLocaleDateString()+' \u00b7 ';const fb=document.createElement('button');fb.type='button';fb.textContent='Forget';
+fb.onclick=async()=>{await fetch('approvals/devices/forget',{method:'POST',headers:H});location.reload();};dv.appendChild(fb);dv.hidden=false;}else dv.hidden=true;
+const j=await r.json();const L=$('#list');L.innerHTML=j.length?'':'<p class="m">Nothing waiting.</p>';
 for(const p of j){const d=document.createElement('div');d.className='card';d.innerHTML='<div class="t"></div><div class="why"></div><pre></pre>';
 d.querySelector('.t').textContent=p.tool+'  (request '+p.id+', '+p.age+'s ago)';d.querySelector('.why').textContent=p.why;d.querySelector('pre').textContent=p.args;
 for(const [a,c,l] of [['approve','ok','Approve once'],['allow','alt','Allow 15 min'],['deny','no','Deny']]){const b=document.createElement('button');b.className=c;b.textContent=l;
-b.onclick=async()=>{await fetch('approvals/'+p.id+'/'+a,{method:'POST',headers:H});load();};d.appendChild(b);}L.appendChild(d);}}
-$('#f').onsubmit=async e=>{e.preventDefault();const r=await fetch('approvals/login',{method:'POST',headers:H,body:JSON.stringify({pin:$('#pin').value})});
-$('#pin').value='';$('#lm').textContent=r.ok?'':(await r.text());load();};
+b.onclick=async()=>{const x=await fetch('approvals/'+p.id+'/'+a,{method:'POST',headers:H});
+if(x.status===401){let e={};try{e=await x.json();}catch(_){}if(e.pin_required){need=true;$('#login').hidden=false;$('#lm').textContent='Enter your PIN to approve actions.';$('#pin').focus();return;}}load();};d.appendChild(b);}L.appendChild(d);}}
+$('#f').onsubmit=async e=>{e.preventDefault();const r=await fetch('approvals/login',{method:'POST',headers:H,body:JSON.stringify({pin:$('#pin').value,remember:$('#rem').checked})});
+$('#pin').value='';$('#lm').textContent=r.ok?'':(await r.text());if(r.ok)need=false;load();};
 load();setInterval(load,3000);
 </script></body></html>"""
 
@@ -596,10 +665,35 @@ class _H(BaseHTTPRequestHandler):
         c = self.headers.get("Cookie", "")
         return next((p.split("=", 1)[1].strip() for p in c.split(";") if p.strip().startswith(name + "=")), "")
 
+    def _gwa_tok(self):
+        return self._cookie("gwa") or getattr(self, "_gwa_new", "")
+
+    def _ip(self):
+        return _client_ip((self.client_address or ("",))[0], self.headers.get("X-Forwarded-For", ""))
+
     def _authed(self):
-        tok = self._cookie("gwa")
+        """A live gwa session, or (device tier) a remembered gwd cookie bound to this client IP, which is traded for a fresh gwa session.
+        An unknown or mismatched gwd is ignored: it never counts as a PIN failure and never deletes the entry."""
+        tok = self._gwa_tok()
         with _lock:
-            return bool(tok) and _sessions.get(tok, 0) > time.time()
+            if tok and _sessions.get(tok, 0) > time.time(): return True
+            h = _dev_hash(self._cookie("gwd"))
+            if not h: return False
+            now = time.time(); d = _dev_load(); e = d.get(h)
+            if not e or float(e.get("expires", 0)) <= now or e.get("ip") != self._ip(): return False
+            tok = secrets.token_urlsafe(32); _sessions[tok] = now + SESSION_TTL; _dev_sess.add(tok)
+            e["last_seen"] = now; _dev_save(d)
+        self._gwa_new = tok
+        getattr(self, "_xh", []).append(("Set-Cookie", "gwa=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict" % (tok, SESSION_TTL)))
+        return True
+
+    def _pin_authed(self):
+        """A session that came from an actual PIN entry (not minted by a remembered device)."""
+        if not self._authed(): return False
+        with _lock: return self._gwa_tok() not in _dev_sess
+
+    def _need_pin(self):
+        return self._send(401, '{"error":"enter your PIN to approve actions","pin_required":true}')
 
     def _ts_login(self):
         """The Tailscale login of this request, or "": only on the identity listener, only from a loopback peer, exactly one header."""
@@ -685,7 +779,7 @@ class _H(BaseHTTPRequestHandler):
             shutil.copyfileobj(f, self.wfile, 1 << 20)
 
     def do_GET(self):
-        self._xh, self._login = [], None
+        self._xh, self._login, self._gwa_new = [], None, ""
         r = self._route()
         if r.startswith("/outbox/"):
             return self._outbox(r)
@@ -697,7 +791,20 @@ class _H(BaseHTTPRequestHandler):
             with _lock:
                 _gc(now)
                 out = [_card(v, now) for v in sorted(_pending.values(), key=lambda v: v["created"]) if v["state"] == "pending"]
-            return self._send(200, json.dumps(out), headers=[("X-Session-Expires", str(self._session_exp()))])
+            hd = [("X-Session-Expires", str(self._session_exp()))]
+            with _lock:
+                if self._gwa_tok() in _dev_sess:      # logged in through the remembered-device tier: tell the page until when
+                    e = _dev_load().get(_dev_hash(self._cookie("gwd")))
+                    if e: hd.append(("X-Device-Until", str(int(e["expires"]))))
+            return self._send(200, json.dumps(out), headers=hd)
+        if r == "/approvals/devices":
+            if not self._authed(): return self._send(401, '{"error":"log in with your PIN first"}')
+            cur = _dev_hash(self._cookie("gwd")); now = time.time()
+            with _lock:
+                d = _dev_load(); _dev_prune(d, now)
+                out = [dict(id=h[:8], ip=e.get("ip"), created=e.get("created"), expires=e.get("expires"), last_seen=e.get("last_seen"),
+                            ua=e.get("ua", ""), current=bool(cur) and h == cur) for h, e in sorted(d.items(), key=lambda kv: kv[1].get("created", 0))]
+            return self._send(200, json.dumps(out))
         if r == "/approvals/history.json":      # the decisions log, read back from audit.jsonl (session only: it carries tool arguments)
             if not self._authed(): return self._send(401, "[]")
             return self._send(200, json.dumps(history()))
@@ -714,9 +821,7 @@ class _H(BaseHTTPRequestHandler):
         self._send(404, "{}")
 
     def _session_exp(self):
-        c = self.headers.get("Cookie", "")
-        tok = next((p.split("=", 1)[1] for p in c.split(";") if p.strip().startswith("gwa=")), "")
-        with _lock: return int(_sessions.get(tok, 0))
+        with _lock: return int(_sessions.get(self._gwa_tok(), 0))
 
     def _extra(self, h, r, body, key=None, tier=None):
         q = parse_qs(self.path.split("?", 1)[1]) if "?" in self.path else {}
@@ -790,7 +895,7 @@ class _H(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError, OSError): pass
 
     def do_POST(self):
-        self._xh, self._login = [], None
+        self._xh, self._login, self._gwa_new = [], None, ""
         r = self._route()
         if self.headers.get("X-Requested-With") != "approvals":   # blocks plain cross-site form posts
             return self._send(403, "{}")
@@ -814,8 +919,39 @@ class _H(BaseHTTPRequestHandler):
                 if _fails["n"] >= MAX_FAILS: _fails.update(n=0, until=now + LOCK_S)
                 return self._send(401, "Wrong PIN.", "text/plain")
             _fails["n"] = 0; tok = secrets.token_urlsafe(32)
-            with _lock: _sessions[tok] = now + SESSION_TTL
-            return self._send(200, "{}", headers=[("Set-Cookie", "gwa=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict" % (tok, SESSION_TTL))])
+            try: remember = json.loads(body or b"{}").get("remember") is True
+            except Exception: remember = False
+            hdrs = [("Set-Cookie", "gwa=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict" % (tok, SESSION_TTL))]
+            ip, ua = self._ip(), self.headers.get("User-Agent", "")
+            with _lock:
+                _sessions[tok] = now + SESSION_TTL
+                cur = self._cookie("gwd"); ch = _dev_hash(cur); known = bool(ch) and ch in _dev_load()
+                if remember:
+                    dt = cur if known else secrets.token_hex(32)
+                    _dev_add(dt, ip, ua, now)
+                    hdrs.append(("Set-Cookie", "gwd=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=Strict" % (dt, DEVICE_TTL)))
+                elif known:
+                    _dev_rebind(ch, ip, now)       # a PIN entry refreshes the IP binding of a device that already has an entry
+            return self._send(200, "{}", headers=hdrs)
+        if r == "/approvals/devices/forget":
+            if not self._authed(): return self._send(401, '{"error":"log in with your PIN first"}')
+            with _lock:
+                d = _dev_load(); h = _dev_hash(self._cookie("gwd"))
+                if h in d: d.pop(h); _dev_save(d)
+                _sessions.pop(self._gwa_tok(), None); _dev_sess.discard(self._gwa_tok())
+            return self._send(200, "{}", headers=[("Set-Cookie", "%s=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict" % c) for c in ("gwa", "gwd")])
+        if r == "/approvals/devices/revoke":
+            if not self._authed(): return self._send(401, '{"error":"log in with your PIN first"}')
+            if not self._pin_authed(): return self._need_pin()
+            try: did = str(json.loads(body or b"{}").get("id", ""))
+            except Exception: did = ""
+            if not re.fullmatch(r"[0-9a-f]{8}", did): return self._send(400, '{"error":"id must be the 8 hex characters from /approvals/devices"}')
+            with _lock:
+                d = _dev_load(); hit = [h for h in d if h.startswith(did)]
+                if len(hit) != 1: return self._send(404, '{"error":"unknown device"}')
+                d.pop(hit[0]); _dev_save(d)
+            audit(tool="cc.device.revoke", intent="write", by="phone", id=did)
+            return self._send(200, "{}")
         if r == "/approvals/mode":   # switch the governor profile; same effect as `qwen mode <x>`, needs the PIN session
             if not self._authed(): return self._send(401, '{"error":"log in with your PIN on the approvals page first"}')
             if GPU_BUSY and GPU_BUSY(): return self._send(409, '{"error":"a video render has the GPU"}')
@@ -827,6 +963,7 @@ class _H(BaseHTTPRequestHandler):
         parts = r.split("/")   # ['', 'approvals', id, action]
         if len(parts) == 4 and parts[3] in ("approve", "allow", "deny") and parts[2] != "agent":
             if not self._authed(): return self._send(401, "{}")
+            if not self._pin_authed(): return self._need_pin()       # a device-minted session may look, not decide
             with _lock:
                 v = _pending.get(parts[2])
                 if not v or v["state"] != "pending": return self._send(404, "{}")
@@ -856,6 +993,7 @@ class _H(BaseHTTPRequestHandler):
             try: data = json.loads(body or b"{}")
             except ValueError: data = None
             if not isinstance(data, dict): return self._send(400, '{"error":"body must be a JSON object"}')
+            if cc == "/approvals/kill" and data.get("on") is False and not self._pin_authed(): return self._need_pin()   # re-enabling agents needs a real PIN
             try:
                 if cc == "/approvals/control": code, out = cc_control(data)
                 elif cc == "/approvals/model": code, out = cc_model(data)
