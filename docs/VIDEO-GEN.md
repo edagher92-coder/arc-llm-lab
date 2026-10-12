@@ -150,6 +150,14 @@ Tools registered by `video.py`: `video_workflows`, `video_generate`, `video_stat
 
 Studio is the browser front end (`gateway/studio.py`), served under `/approvals/studio` and protected by the same PIN login as approvals. It works from a phone over the tailnet. Choose a workflow, pick a preset (Draft, Daily or Hero) or set the size and length, write a prompt (or use the prompt assistant), optionally upload a start image, and press Generate. The library lists recent jobs with playback, cancel and delete. Studio calls the same queue as the MCP tools.
 
+Panels added in Studio Phase 2 (each hides itself if the gateway does not offer it):
+
+- **Telemetry strip and charts** now include GPU % (the busiest GPU engine) next to CPU, RAM, VRAM and Qwen speed. VRAM is one number: dedicated GPU memory when the PC reports it, otherwise the governor's figure. A value the PC did not send keeps showing its last reading, dimmed.
+- **Render history** (System tab, open the "Render history" section): median render time and run count per workflow, with a small bar of where the time goes (encode, load, stage 1, upscale, and so on), then your last 20 renders with age, size, duration and a finished or failed mark. It loads when you open it and after a render ends; it does not poll.
+- **ETA hint:** the time-left line says where it came from: "live", "≈ from past renders" or "estimate".
+- **Live preview:** if the render reports preview frames, a small image under the phase strip refreshes at most every 2 seconds and disappears when there is none.
+- **Dev mode:** turn on Developer readout in Settings, then use the Dev button on the System tab. It shows the ComfyUI command, its environment, the governor profile and model, and the ComfyUI and gateway log tails, each with a Copy button. It needs a PIN session (a Tailscale-only session is not enough); otherwise it says "Dev mode needs a fresh PIN login" and links to the approvals page.
+
 ## Building a workflow from the specs
 
 ```
