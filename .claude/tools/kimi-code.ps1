@@ -8,7 +8,7 @@
 # Works identically on the laptop and the server PC: both daemons are signed
 # in to ollama.com, so :cloud tags proxy to Ollama Cloud (flat rate, zero
 # Claude quota). A laptop WITHOUT a local daemon can point at the server hub:
-#   $env:CLAUDE_KIMI_OLLAMA_URL = 'http://elzydlab.tail76b098.ts.net:11434'
+#   $env:CLAUDE_KIMI_OLLAMA_URL = 'http://<your-machine>.<your-tailnet>.ts.net:11434'
 #
 # NUMBERS RULE (non-negotiable): a Kimi-backed session is for heavy NON-stakes
 # work only -- bulk coding, refactors, drafts, research. Customer prices,

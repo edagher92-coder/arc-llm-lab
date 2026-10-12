@@ -7,9 +7,9 @@ shells out to this CLI to offload bulk coding / long reasoning / summarising to
 gpt-oss:120b, kimi-k2.7-code, etc. — keeping Claude quota for stakes work.
 
 Server URL comes from CLAUDE_ROUTER_OLLAMA_URL (default http://localhost:11434).
-On a secondary PC, point it at the MAIN server (elzydlab) over Tailscale:
+On a secondary PC, point it at the MAIN server (<your-machine>) over Tailscale:
 
-    CLAUDE_ROUTER_OLLAMA_URL=http://elzydlab.tail76b098.ts.net:11434
+    CLAUDE_ROUTER_OLLAMA_URL=http://<your-machine>.<your-tailnet>.ts.net:11434
 
 (The main server must run Ollama with OLLAMA_HOST=0.0.0.0 so it listens on the
 Tailscale interface, not just localhost.)

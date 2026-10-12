@@ -62,10 +62,10 @@ like a spend: get Elie's explicit YES first, exactly as with budget changes.
 
 ## Key facts
 
-- Ad account: `act_179081790` (Snow Flow Sydney + Elie's personal — all real campaigns live here)
+- Ad account: `act_<AD_ACCOUNT_ID>` (Snow Flow Sydney + Elie's personal — all real campaigns live here)
 - Script: `meta_ads_api.py` in this folder
 - Token: `meta_token.txt` in this folder (gitignored) or `META_ADS_TOKEN` env var
-- Meta app: "Comments", App ID 614890192017160 (Business type, Marketing API enabled)
+- Meta app: "Comments", App ID <META_ID> (Business type, Marketing API enabled)
 - API version: v25.0 (matches `meta_ads_api.py`), plain HTTPS via urllib — no pip installs needed
 
 ## Usage
@@ -117,12 +117,12 @@ ad images. `launch --live` creates everything **PAUSED**. You review in Ads Mana
 ## Token maintenance
 
 - Token type: ~60-day user token. If API calls return OAuthException 190 (expired):
-  open https://developers.facebook.com/apps/614890192017160/marketing-api/tools/ ,
+  open https://developers.facebook.com/apps/<META_ID>/marketing-api/tools/ ,
   tick ads_management + ads_read + read_insights, click Get Token, paste it. Save to
   `meta_token.txt` (overwrite). Tokens can't be scraped from the page — Elie must paste.
-- PERMANENT FIX (pending, ~July 2026): add act_179081790 to the snowflowsydney business
-  portfolio (business_id 1049680525649904) — blocked until Meta lifts the new-portfolio ad
-  account cap — then assign to system user "Claude API" (ID 61590489518373) for a
+- PERMANENT FIX (pending, ~July 2026): add act_<AD_ACCOUNT_ID> to the snowflowsydney business
+  portfolio (business_id <META_ID>) — blocked until Meta lifts the new-portfolio ad
+  account cap — then assign to system user "Claude API" (ID <META_ID>) for a
   never-expiring token.
 
 ## History / context
