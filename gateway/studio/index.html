@@ -1776,7 +1776,8 @@ let built = false;
 async function boot() {
   try {
     if (!built) { built = true; loadUi(); buildNav(); buildTele(); buildCharts(); gpuControl($("#gpuRow")); $("#hdrSwitch").append(gpuSwitch()); layout(); }
-    tab(store.get("studio.tab.v3") || "create");
+    const hashTab = (location.hash || "").replace(/^#/, "");            // a link ending in #code opens the Code tab (coding Qwen) straight away
+    tab(TABS.some(x => x[0] === hashTab) ? hashTab : (store.get("studio.tab.v3") || "create"));
     setTimeout(() => $("#app").classList.remove("intro"), 1500);
     const d = await api("workflows"); S.wfs = d.workflows; S.enabled = d.enabled;
     if (!S.wfs.length) { $("#compose").replaceChildren(h("div", {class: "hd"}, h("span", {}, "Create")), h("div", {class: "empty"}, h("b", {}, "No workflows installed"), "Put workflow files in the gateway's video workflows folder.")); }
