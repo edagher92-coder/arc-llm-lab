@@ -64,7 +64,7 @@ Launch flags: `--disable-dynamic-vram --reserve-vram 1.5 --cache-none --use-spli
 
 **Measured:** Q4_K_M, 768x512, 2 s, 49 frames, with sound: 188 to 219 s from queued to clip, including starting ComfyUI. Sampling ran at about 4.5 s per step (the int8 build was about 2.5 s per step). Free RAM stayed above about 2 GB. **Use split attention, not PyTorch SDPA:** with `--use-pytorch-cross-attention` image-to-video produced NaN (all-black video, silent audio) on two of two runs, and text-to-video produced NaN audio on two of three. With `--use-split-cross-attention` image-to-video decoded clean (first frame matches the input, audio peak 0.61) in 185 s. The audio guard stays in as a safety net.
 
-**Memory limits on 32 GB:** Q4_K_M runs in one process (free RAM fell to about 1.8 GB at the lowest). Q6_K does not: the watchdog stopped it at about 32 MB free while the transformer loaded, because the int8 encoder stays in RAM. Q6_K needs the 64 GB RAM or a two-process split (encode, save conditioning, exit, then sample). `--fp32-vae` also pushes it over, so leave it off.
+**Memory limits on 32 GB:** Q4_K_M runs in one process (free RAM fell to about 1.8 GB at the lowest). Q6_K does not: the watchdog stopped it at about 32 MB free while the transformer loaded, because the int8 encoder stays in RAM. Q6_K needs the 64 GB RAM or the two-process split (encode, save conditioning, exit, then sample), which shipped in commit b10cad3 as the `ltx25q6_t2v` workflow (stages `ltx25g_q6_enc` and `ltx25g_q6_smp`, est_minutes 5). `--fp32-vae` also pushes it over, so leave it off.
 
 **Watchdog while testing:** stop ComfyUI if Windows "Available MBytes" falls under 400 (do not use "free" memory, it excludes cache and gives false alarms).
 
@@ -105,6 +105,7 @@ The A/B items are recommended starting points, not guaranteed wins. Measure them
 
 - **GPU (24 GB):** the LLM and ComfyUI never share it. The gateway unloads the LLM, runs ComfyUI, then kills ComfyUI so the governor can reload the LLM. Inside a job, the text encoder, the 22B model and the VAE take turns on the GPU while the rest waits in host RAM.
 - **Host RAM, 32 GB now:** loading is the pressure point, because weights are staged through RAM and the 12B text encoder is large. Keep other heavy applications closed during a render and keep the Windows page file on the NVMe. If a job fails with a host out-of-memory error rather than a GPU one, this is the cause.
+- **Two-process split:** shipped in b10cad3 for Q6_K (encode in one ComfyUI process, save the conditioning, exit, then sample in a second). It is not future work; see the GGUF section.
 - **Host RAM, 64 GB later:** should let the text encoder and model stay cached in RAM, which shortens loads. Keeping ComfyUI warm between jobs would then be possible, but it is a different design from kill-per-job and has not been tested. Treat it as a future option.
 - **Resolution and length** are the GPU memory levers. Raise them one step at a time (Draft, then Daily, then Hero).
 
@@ -206,6 +207,17 @@ Nothing here has been measured on this PC yet. Do not quote these as results.
 - Whether 64 GB makes a warm-ComfyUI design worth building: **TBD**.
 - Whether `POST /free` before the kill makes any visible difference: **TBD**.
 - Whether `/history` on this ComfyUI build carries per-node timings: **TBD** (the benchmark records them if so).
+
+### Measurement attempt, 12 Oct 2026 (tasks 71 and 72): nothing measured
+
+Checked read-only on ELZYDLAB. VERIFIED:
+
+- The built workflows in `C:\AI\video\workflows` are `ltx23_t2v`, `ltx23_i2v`, `ltx25g_t2v` and `ltx25g_i2v` only. `ltx25_t2v`, `ltx25_i2v` (est_minutes "TBD (measure)") and `ltx25_upscale` (UNMEASURED) are not built there, so they cannot be run. Their est_minutes stay as they are.
+- No per-run flag override exists: `ltx_bench.py` only talks to a ComfyUI that is already running and records `--flags` as text, and `video.py` takes `comfy_cmd` from `gateway.json` alone. The `--cache-none` A/B would need a `gateway.json` edit (owner) or a hand-started ComfyUI outside the gateway hand-off. Skipped.
+- The earlier 1.8 GB lowest free RAM (above) is already under the 4 GB abort line with `--cache-none` on, so removing it is expected to be unsafe on 32 GB; not tested.
+- Qwen was not touched: governor `Mode MAX | profile MAX | model LOADED (MAX)`, 12 Oct 2026.
+
+To measure the three, build them on the PC first (see "Building a workflow from the specs"), then queue 2 renders each at the default preset.
 
 ## Phone access (Tailscale Serve) and ComfyUI Mobile Frontend
 
