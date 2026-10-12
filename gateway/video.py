@@ -185,6 +185,61 @@ class Env:
         return image_name.lower() in o.lower()
 
 
+# ---------- finishing: size recommendation and the final upscale ----------
+FINISH_TARGETS = {"1080p": 1080, "2k": 1440, "4k": 2160}          # short side of the finished clip, in pixels (16:9 landscape = 1920x1080, 2560x1440, 3840x2160)
+
+
+STD_ASPECTS = ((16, 9), (9, 16), (1, 1), (4, 3), (3, 4), (3, 2), (2, 3))
+
+
+def target_size(w, h, target):
+    """Finished size for a target name: the short side becomes 1080/1440/2160. A source within 6% of a standard ratio (16:9, 9:16, 1:1, 4:3, 3:2) is
+    finished at exactly that ratio (the few pixels of difference are cropped), else it keeps its own ratio. Both sides even."""
+    t = FINISH_TARGETS.get(str(target).lower())
+    if not t or w < 1 or h < 1:
+        raise VideoError("target must be one of: %s" % ", ".join(FINISH_TARGETS))
+    r = w / float(h)
+    for a, b in STD_ASPECTS:
+        if abs(r - a / float(b)) / (a / float(b)) <= 0.06:
+            r = a / float(b)
+            break
+    if r >= 1:
+        return int(round(t * r / 2.0)) * 2, t
+    return t, int(round(t / r / 2.0)) * 2
+
+
+def recommend_plan(seconds, target, aspect=16 / 9.0, lim=80000000, fps=24, a=64):
+    """What to generate for a clip that will be finished at `target`. The generator is limited by memory (width*height*frames <= lim), not by clip length, so
+    a long clip is generated at the largest size that fits, never above the target, then finished (upscaled) to the target. Returns a dict:
+    frames, gen_w, gen_h, out_w, out_h, factor, method, note. method is "lanczos" (ffmpeg, any length, CPU) for now; no learned upscaler is installed."""
+    seconds = max(1.0, min(30.0, float(seconds)))
+    n = int(round(seconds * fps / 8.0)) * 8 + 1
+    ar = max(0.25, min(4.0, float(aspect)))
+    short_t = FINISH_TARGETS.get(str(target).lower())
+    if not short_t:
+        raise VideoError("target must be one of: %s" % ", ".join(FINISH_TARGETS))
+    big = 4096
+    cap_w, cap_h = (big, big)
+    best = None
+    for H in range(big // a * a, a - 1, -a):
+        W = int(round(H * ar / a)) * a
+        if W < a or W > big or W * H * n > lim or min(W, H) > short_t:
+            continue
+        err = abs(W / float(H) - ar) / ar
+        key = (0, -(W * H)) if err <= 0.06 else (1, err, -(W * H))
+        if best is None or key < best[0]:
+            best = (key, W, H)
+    if not best:
+        raise VideoError("%.1f s does not fit in GPU memory at any size; try a shorter clip" % seconds)
+    gw, gh = best[1], best[2]
+    ow, oh = target_size(gw, gh, target)
+    factor = round(max(ow / float(gw), oh / float(gh)), 2)
+    note = "Generate %dx%d (%d frames, %.0f M px-frames), then finish at %dx%d." % (gw, gh, n, gw * gh * n / 1e6, ow, oh)
+    if factor > 2.0:
+        note += " That is a %.1fx enlargement: sharp and clean, but it adds no new detail." % factor
+    return {"frames": n, "gen_w": gw, "gen_h": gh, "out_w": ow, "out_h": oh, "factor": factor, "method": "lanczos", "note": note}
+
+
 # ---------- workflow templates ----------
 def load_workflows(d):
     out = {}
@@ -302,7 +357,7 @@ def _resolve(wf, raw, cfg):
             if not math.isfinite(float(v)):
                 raise VideoError("%s must be a finite number" % name)
             vals[name] = max(float(p.get("min", v)), min(float(p.get("max", v)), float(v)))
-        elif t == "image":
+        elif t == "image" or t == "video":
             files[name] = str(v)
         elif t == "bool":
             vals[name] = _truthy(v)
@@ -704,19 +759,24 @@ class Queue:
             sys.stderr.write("video: LLM warm-up failed (%r)\n" % (ex,))
 
     # -- public API
-    def submit(self, workflow, raw, files_ok=True):
+    def submit(self, workflow, raw, files_ok=True, finish_target=None):
         wfs = load_workflows(self.cfg.workflows_dir)
         if workflow not in wfs:
             raise VideoError("unknown workflow %r. Available: %s" % (workflow, ", ".join(sorted(wfs)) or "(none installed)"))
         for st in stage_names(wfs[workflow]):                # a staged workflow must have every stage in place before it is queued
             load_stage(self.cfg.workflows_dir, st)
+        if finish_target is not None and str(finish_target).lower() not in FINISH_TARGETS:
+            raise VideoError("finish must be one of: %s" % ", ".join(FINISH_TARGETS))
         vals, files, info = resolve_full(wfs[workflow], raw, self.cfg)
+        pspec = wfs[workflow]["meta"].get("params") or {}
         for name, path in files.items():
-            files[name] = self._check_image(path)
+            files[name] = self._check_video(path) if (pspec.get(name) or {}).get("type") == "video" else self._check_image(path)
         with self.lock:
             if sum(1 for j in self.jobs if j["state"] in ("queued",) + ACTIVE) >= self.cfg.max_queue:
                 raise VideoError("the video queue is full (%d jobs); wait for one to finish" % self.cfg.max_queue)
             j = dict(id=secrets.token_hex(4), workflow=workflow, params=vals, files=files, state="queued", created=time.time(), note=info.get("fit_note", ""))
+            if finish_target:
+                j["finish_target"] = str(finish_target).lower()         # upscale the clip to this size as soon as the render is done
             for k in ("autofit", "fit_note", "prompt_notes"):          # what the gateway changed on the way in: shown on the job card, kept after the live note moves on
                 if info.get(k):
                     j[k] = info[k]
@@ -724,6 +784,70 @@ class Queue:
             self._save()
             pos = sum(1 for x in self.jobs if x["state"] in ("queued",) + ACTIVE and x["created"] <= j["created"])
         return j["id"], pos, wfs[workflow]["meta"].get("est_minutes", "unknown")
+
+    def _auto_finish(self, jid):
+        """If the job was queued with finish_target, start the ffmpeg upscale of its first clip. Never raises: a failure is recorded in the job's finish field."""
+        j = {}
+        try:
+            j = self.get(jid) or {}
+            t = j.get("finish_target")
+            if not t or not j.get("files_out"):
+                return
+            p = j["files_out"][0]
+            w, h = (j.get("params") or {}).get("width"), (j.get("params") or {}).get("height")
+            if not (isinstance(w, int) and isinstance(h, int)):
+                return
+            ow, oh = target_size(w, h, t)
+            self.finish(jid, p, t, ow, oh)
+        except Exception as ex:
+            self._set(jid, finish={"target": str(j.get("finish_target") or ""), "state": "error", "note": str(ex)[:300]})
+
+    # -- finishing: upscale a done clip with ffmpeg (CPU only: never takes the GPU, works at any clip length)
+    def finish(self, jid, clip_path, target, out_w, out_h):
+        """Start an ffmpeg upscale of one clip of job `jid` to out_w x out_h in a background thread. The result is <clip>_<target>.mp4 beside the clip and is
+        added to the job's clips. Raises VideoError at once if it cannot start; progress and failures are recorded in the job's "finish" field."""
+        c = self.cfg
+        exe = c.ffmpeg or "ffmpeg"
+        t = str(target).lower()
+        if t not in FINISH_TARGETS:
+            raise VideoError("target must be one of: %s" % ", ".join(FINISH_TARGETS))
+        j = self.get(jid)
+        if not j or j.get("state") != "done":
+            raise VideoError("only a finished job can be upscaled")
+        if not os.path.isfile(clip_path):
+            raise VideoError("clip not found")
+        if (j.get("finish") or {}).get("state") == "running":
+            raise VideoError("this job is already being upscaled")
+        if not (isinstance(out_w, int) and isinstance(out_h, int) and 64 <= out_w <= 7680 and 64 <= out_h <= 7680 and out_w % 2 == 0 and out_h % 2 == 0):
+            raise VideoError("bad output size")
+        stem = os.path.splitext(clip_path)[0]
+        out = "%s_%s.mp4" % (stem, t)
+        self._set(jid, finish={"target": t, "state": "running", "note": "upscaling to %dx%d (CPU, the GPU stays free)" % (out_w, out_h), "w": out_w, "h": out_h, "started": time.time()})
+
+        def work():
+            tmp = out + ".tmp.mp4"
+            try:
+                vf = "scale=%d:%d:force_original_aspect_ratio=increase:flags=lanczos,crop=%d:%d,unsharp=5:5:0.5:5:5:0.0" % (out_w, out_h, out_w, out_h)
+                acodec = ["-c:a", "copy"] if clip_path.lower().endswith(".mp4") else ["-c:a", "aac", "-b:a", "192k"]
+                cmd = [exe, "-y", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", clip_path, "-vf", vf, "-c:v", "libx264", "-preset", "medium", "-crf", "16",
+                       "-pix_fmt", "yuv420p"] + acodec + ["-movflags", "+faststart", tmp]
+                code, err = self.env.run_cmd(cmd, timeout=3600)
+                if code != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
+                    raise VideoError("ffmpeg exit %s: %s" % (code, err.strip()[-200:]))
+                os.replace(tmp, out)
+                cur = self.get(jid) or {}
+                outs = list(cur.get("files_out") or [])
+                if out not in outs:
+                    outs.append(out)
+                self._set(jid, files_out=outs, finish={"target": t, "state": "done", "note": "", "w": out_w, "h": out_h, "name": os.path.basename(out), "seconds": round(time.time() - (cur.get("finish") or {}).get("started", time.time()), 1)})
+            except Exception as ex:
+                msg = "ffmpeg was not found on this PC (set ffmpeg_path in the video config)" if isinstance(ex, FileNotFoundError) else str(ex)[:300]
+                try:
+                    if os.path.exists(tmp): os.remove(tmp)
+                except OSError:
+                    pass
+                self._set(jid, finish={"target": t, "state": "error", "note": msg, "w": out_w, "h": out_h})
+        threading.Thread(target=work, name="video-finish-" + jid, daemon=True).start()
 
     def _check_image(self, path):
         real = os.path.realpath(path)
@@ -735,6 +859,18 @@ class Queue:
             raise VideoError("image must be an existing png, jpg or webp file")
         if os.path.getsize(real) > 25 * 2 ** 20:
             raise VideoError("image is larger than 25 MB")
+        return real
+
+    def _check_video(self, path):
+        real = os.path.realpath(path)
+        if not self.cfg.allowed_roots:
+            raise VideoError("video input is not enabled (no allowed_roots configured)")
+        if not any(real == r or real.startswith(r.rstrip(os.sep) + os.sep) for r in self.cfg.allowed_roots):
+            raise VideoError("that video is outside the shared folders")
+        if not os.path.isfile(real) or os.path.splitext(real)[1].lower() not in (".mp4", ".webm", ".mov"):
+            raise VideoError("video must be an existing mp4, webm or mov file")
+        if os.path.getsize(real) > 200 * 2 ** 20:
+            raise VideoError("video is larger than 200 MB")
         return real
 
     def get(self, jid):
@@ -995,6 +1131,7 @@ class Queue:
             ended = time.time()
             self._sidecars(j, files, t0, ended)
             self._set(jid, state="done", ended=ended, seconds=round(ended - t0, 1), files_out=files, links=links, note="", **({"progress": 100.0} if stages else {}))
+            self._auto_finish(jid)
         except _Cancelled:
             self._set(jid, state="cancelled", ended=time.time(), note="")
         except Exception as ex:

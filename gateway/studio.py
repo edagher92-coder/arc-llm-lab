@@ -99,6 +99,9 @@ def _public_job(j):
         if j.get(k): d[k] = j[k]
     if isinstance(j.get("eta_s"), (int, float)) and not isinstance(j.get("eta_s"), bool) and 0 <= j["eta_s"] < 86400: d["eta_s"] = round(float(j["eta_s"]), 1)
     if isinstance(j.get("phase"), str) and re.match(r"^[a-z0-9_]{1,16}$", j["phase"]): d["phase"] = j["phase"]
+    if isinstance(j.get("finish"), dict):
+        f = j["finish"]
+        d["finish"] = {k: f[k] for k in ("target", "state", "note", "w", "h", "name", "seconds") if k in f and isinstance(f[k], (str, int, float))}
     if j.get("drive_rel"): d["drive"] = j["drive_rel"]                 # "2026-10/<job>_<clip>.mp4": a path inside the Drive folder, never the folder itself
     if j.get("drive_error"): d["drive_error"] = str(j["drive_error"])[:120]
     d["clips"] = [{"name": os.path.basename(p), "type": CLIP_TYPES.get(os.path.splitext(p)[1].lower(), "application/octet-stream")}
@@ -445,7 +448,7 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
             if not isinstance(img, str) or not UP_OK.match(img): return _j(400, {"error": "image must be an uploaded file"})
             raw["image"] = os.path.join(real_up, img)
         try:
-            jid, pos, est = q.submit(wf, raw)
+            jid, pos, est = q.submit(wf, raw, finish_target=(str(b.get("finish")) if b.get("finish") else None))
         except video.VideoError as e:
             return _j(400, {"error": str(e)})
         return _j(200, {"id": jid, "position": pos, "est_minutes": est})
@@ -466,6 +469,33 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
         if not q.set_fav(jid, on): return _j(404, {"error": "no such job"})
         return _j(200, {"id": jid, "fav": on})
 
+    def recommend(req):
+        bad = need(req)
+        if bad: return bad
+        qs = {k: (v[0] if isinstance(v, list) and v else v) for k, v in req["query"].items()}
+        try:
+            sec = float(qs.get("seconds", 5)); asp = float(qs.get("aspect", 16 / 9.0))
+            return _j(200, video.recommend_plan(sec, str(qs.get("target", "1080p")), asp, vc.max_px_frames or 80000000))
+        except (ValueError, video.VideoError) as e:
+            return _j(400, {"error": str(e)})
+
+    def finish(req):
+        b = req["body"]; jid, name, target = b.get("id"), str(b.get("clip") or ""), str(b.get("target") or "").lower()
+        if not isinstance(jid, str) or not JOB_ID.match(jid): return _j(400, {"error": "id must be a job id"})
+        if not NAME_OK.match(name) or "/" in name or "\\" in name or ".." in name: return _j(400, {"error": "bad name"})
+        if not vc.enabled: return _j(503, {"error": "video generation is not set up on this PC"})
+        p = os.path.realpath(os.path.join(real_out, jid, name))
+        if os.path.dirname(os.path.dirname(p)) != real_out or not os.path.isfile(p) or not name.lower().endswith((".mp4", ".webm")): return _j(404, {"error": "not found"})
+        old = q.get(jid) or {}; op = old.get("params") or {}
+        w, h = op.get("width"), op.get("height")
+        if not (isinstance(w, int) and isinstance(h, int)): return _j(400, {"error": "this clip's size is unknown"})
+        try:
+            ow, oh = video.target_size(w, h, target)
+            q.finish(jid, p, target, ow, oh)
+        except video.VideoError as e:
+            return _j(400, {"error": str(e)})
+        return _j(200, {"id": jid, "target": target, "w": ow, "h": oh})
+
     def rerun(req):
         jid = req["body"].get("id")
         if not isinstance(jid, str) or not JOB_ID.match(jid): return _j(400, {"error": "id must be a job id"})
@@ -473,8 +503,7 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
         if not old: return _j(404, {"error": "no such job"})
         if not vc.enabled: return _j(503, {"error": "video generation is not set up on this PC"})
         raw = dict(old.get("params") or {})                                       # the stored, already-cleaned values, checked again against the workflow as it is now
-        img = (old.get("files") or {}).get("image")
-        if img: raw["image"] = img                                                # submit() re-checks it is an existing png/jpg/webp inside the allowed folders
+        for k, pth in (old.get("files") or {}).items(): raw[k] = pth          # every staged input (image, video); submit() re-checks each is an existing file inside the allowed folders
         try:
             nid, pos, est = q.submit(str(old.get("workflow") or ""), raw)
         except video.VideoError as e:
@@ -519,7 +548,7 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
     table = {"GET " + T: shell, "GET " + T + "/api/workflows": workflows, "GET " + T + "/api/jobs": jobs, "GET " + T + "/api/status": status,
              "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": poked(generate), "POST " + T + "/api/cancel": poked(cancel),
              "POST " + T + "/api/delete": poked(delete), "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
-             "POST " + T + "/api/fav": poked(fav), "POST " + T + "/api/rerun": poked(rerun), "GET " + T + "/api/system": system, "POST " + T + "/api/mode": poked(mode),
+             "POST " + T + "/api/fav": poked(fav), "POST " + T + "/api/rerun": poked(rerun), "GET " + T + "/api/recommend": recommend, "POST " + T + "/api/finish": poked(finish), "GET " + T + "/api/system": system, "POST " + T + "/api/mode": poked(mode),
              "POST " + T + "/api/comfy": poked(comfy), "GET " + T + "/api/stream": stream, "GET " + T + "/api/stats": stats}
     table.update({"GET %s/%s" % (T, n): pwa_file(n) for n in PWA_FILES})
     return table, {"POST " + T + "/api/upload": MAX_UPLOAD + 4096}

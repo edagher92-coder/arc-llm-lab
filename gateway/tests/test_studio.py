@@ -66,6 +66,33 @@ def test_shell_public_api_private():
         assert call("POST", T + "/api/" + p, {}, cookie, xrw=False)[0] == 403, p       # the CSRF header is still required
 
 
+def test_recommend_and_finish_routes():
+    for path in ("/api/recommend?seconds=10&target=1080p",):
+        assert call("GET", T + path)[0] == 401
+    assert call("POST", T + "/api/finish", {})[0] == 401 and call("POST", T + "/api/finish", {}, cookie, xrw=False)[0] == 403
+    r = js(call("GET", T + "/api/recommend?seconds=10&target=1080p&aspect=1.7778", cookie=cookie))
+    assert r["out_w"] == 1920 and r["out_h"] == 1080 and r["gen_w"] * r["gen_h"] * r["frames"] <= 80000000 and r["method"] == "lanczos", r
+    assert call("GET", T + "/api/recommend?seconds=10&target=8k", cookie=cookie)[0] == 400
+    assert call("GET", T + "/api/recommend?seconds=abc&target=4k", cookie=cookie)[0] == 400
+    f = lambda body: call("POST", T + "/api/finish", body, cookie)
+    assert f({"id": "../x", "clip": "a.mp4", "target": "4k"})[0] == 400 and f({"id": "abcd1234", "clip": "..\\a.mp4", "target": "4k"})[0] == 400
+    assert f({"id": "abcd1234", "clip": "nope.mp4", "target": "4k"})[0] == 404
+    jid = "abcd1234"; d = os.path.join(rig.q.out_dir, jid); os.makedirs(d, exist_ok=True)
+    clip = os.path.join(d, "c.mp4"); open(clip, "wb").write(b"x")
+    with rig.q.lock:
+        rig.q.jobs.append(dict(id=jid, workflow="w", params={"width": 704, "height": 384}, files={}, state="done", created=time.time(), files_out=[clip]))
+    seen = []
+    def run_cmd(cmd, timeout=600): seen.append(cmd); open(cmd[-1], "wb").write(b"o"); return 0, ""
+    rig.q.env.run_cmd = run_cmd
+    assert f({"id": jid, "clip": "c.mp4", "target": "8k"})[0] == 400
+    r = f({"id": jid, "clip": "c.mp4", "target": "4k"}); assert r[0] == 200 and js(r)["w"] == 3840 and js(r)["h"] == 2160, r
+    end = time.time() + 10
+    while time.time() < end and (rig.q.get(jid).get("finish") or {}).get("state") == "running": time.sleep(0.05)
+    pub = [j for j in js(call("GET", T + "/api/jobs", cookie=cookie)) if j["id"] == jid][0]
+    assert pub["finish"]["state"] == "done" and [c["name"] for c in pub["clips"]] == ["c.mp4", "c_4k.mp4"], pub
+    assert seen and "scale=3840:2160" in seen[0][seen[0].index("-vf") + 1]
+
+
 def test_workflows_and_status():
     w = js(call("GET", T + "/api/workflows", cookie=cookie))
     assert w["enabled"] and w["workflows"][0]["name"] == "t2v" and w["workflows"][0]["params"]["prompt"]["required"]

@@ -1,8 +1,19 @@
 # Upscale a finished clip x2 (LTX-2.5)
 
-Status: spec and tests are in the repo; the three wiring changes below are NOT applied (they live in files this task may not edit). **Nothing has been run**: no render, ComfyUI not started, nothing downloaded. Labels: VERIFIED = read from the repo or from the PC's files (object_info.json, custom node and ComfyUI sources, 12 Oct 2026); INFERRED = reasoned, needs a real run.
+Status: spec and tests are in the repo; of the wiring below only the video.py `video` input type is applied (see the finishing section above). **Nothing has been run**: no render, ComfyUI not started, nothing downloaded. Labels: VERIFIED = read from the repo or from the PC's files (object_info.json, custom node and ComfyUI sources, 12 Oct 2026); INFERRED = reasoned, needs a real run.
 
-## What it does
+## Finish at 1080p / 2K / 4K (built, in the repo)
+
+Status: code and tests done (`tests/test_finish.py`, `test_recommend_and_finish_routes` in `tests/test_studio.py`); a headless-browser check of the Studio buttons passed on the dev box with real ffmpeg. **Not yet run on ELZYDLAB** and not deployed. ffmpeg must be on the PC's PATH or set as `ffmpeg_path` in the video config; if it is missing the job records "ffmpeg was not found".
+
+- **No length limit.** The generator is bound by memory (`width x height x frames <= 80 M`), so a long clip is generated at the largest size that fits and enlarged afterwards. `GET /api/recommend?seconds=&aspect=&target=1080p|2k|4k` returns that plan (`video.recommend_plan`): 3 s lands at 1344x768, 10 s at 704x384, 15 s at 576x320.
+- **Finishing is ffmpeg lanczos + light sharpen + x264 crf 16, on the CPU.** It never takes the GPU, so Qwen or the next render is not held up. `POST /api/finish {id, clip, target}` starts it; `Queue.finish` writes `<clip>_<target>.mp4` beside the clip and adds it to the job.
+- **Auto:** the Create tab's "Finish at" chips (Off, 1080p, 2K, 4K) send `finish` with the job; the clip is upscaled as soon as the render is done. "Use recommended size" sets the frame to the plan's generation size. The viewer has Upscale 1080p / 2K / 4K buttons for any finished clip.
+- **Honest limit:** this enlarges, it does not add detail. Above 2x (4K from a 10 s clip is 5.6x) the picture is clean but soft. A learned upscaler (SeedVR2 3B) would add detail and is the next step; it is NOT installed, NOT confirmed on Intel Arc, and its download needs Elz's yes. `recommend_plan` already returns `method: "lanczos"` so the method can change without touching the UI.
+- Output sizes snap to standard ratios (16:9, 9:16, 1:1, 4:3, 3:2) within 6%, the few pixels of difference are cropped: 1920x1080, 2560x1440, 3840x2160 (short side 1080/1440/2160).
+- The latent x2 workflow below is still a draft and is not installed. The video-input wiring it needs is now in `video.py` (`video` param type, `_check_video`); `/api/upscale` and its button are deliberately not added, because the ffmpeg path covers the need and the latent path is unmeasured.
+
+## What it does (latent x2 workflow, draft, not installed)
 
 A short finished clip (the gateway's own output, for example 768x416) goes in; a clip at double the size (1536x832) comes out with the original sound. No new model files and no 15 GB text encoder: everything is already on disk and the prompt is encoded by Lightricks' hosted encoder through our `ElzLTXAPITextEncode`.
 

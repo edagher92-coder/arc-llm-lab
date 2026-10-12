@@ -679,7 +679,8 @@ function applyJobs(list, replace) {
     if (CFG.autoOpen && !isTyping() && !$("#viewer").open) { S.sel = fj.id; if (!wide()) tab("queue"); else renderQueue(); toast("Clip ready", "ok"); }
     else toast("Clip ready", "ok", {label: "View", fn: () => { S.sel = fj.id; if (!wide()) tab("queue"); else renderQueue(); }});
   }
-  const busy = jobs.some(j => ACTIVE.includes(j.state));
+  const busy = jobs.some(j => ACTIVE.includes(j.state) || (j.finish && j.finish.state === "running"));        // an upscale in progress polls as fast as a render
+  if ($("#viewer").open && S.sel) renderStage($("#viewerBody"), S.sel);                                            // a no-op unless this clip's state, upscale state or clip list changed
   document.title = busy ? "Rendering · Studio" : "Studio";
   maybeAfter();
   return busy;
@@ -1142,6 +1143,32 @@ function boolToggle(label, help, on, set) {
   return h("label", {class: "toggle", style: "margin-top:8px"}, h("input", {type: "checkbox", role: "switch", checked: on, onchange: e => set(e.target.checked)}), h("span", {}, label, help ? h("small", {}, help) : ""));
 }
 let fitEl = null;
+/* Finish at: the final size. Picks nothing for you unless asked; "Use recommended size" asks the server which generation size fits this length, so long clips
+   are made at the largest size that fits GPU memory and enlarged afterwards (no length limit). The upscale itself runs on the CPU after the render. */
+let recTok = 0;
+function finishField(w) {
+  const note = h("div", {class: "help", role: "status", "data-do": "rec-note"}), use = h("button", {class: "btn sm", type: "button", hidden: true, "data-do": "rec-use"}, "Use recommended size");
+  const FIN = [["", "Off"], ["1080p", "1080p"], ["2k", "2K"], ["4k", "4K"]];
+  const chips = h("div", {class: "chips"}, FIN.map(([k, l]) => h("button", {class: "chip", type: "button", "aria-pressed": String((S.vals.finish || "") === k), onclick: () => { S.vals.finish = k || undefined; renderCompose(); }}, l)));
+  const f = h("div", {class: "field", "data-do": "finish-field"}, h("div", {class: "lab"}, "Finish at"), chips, note, use);
+  const t = S.vals.finish; if (!t) { note.textContent = "Off: the clip stays at its render size. Pick a size to enlarge it automatically when the render is done."; return f; }
+  const sz = w.sizes.length ? (w.sizes[S.vals.size || 0] || w.sizes[0]) : [+(S.vals.width || (w.params.width && w.params.width.default)) || 768, +(S.vals.height || (w.params.height && w.params.height.default)) || 416];
+  const sr = secRange(w), sec = sr ? +S.vals.seconds || sr.def : 5, tok = ++recTok;
+  note.textContent = "Checking the best size for " + sec + " s";
+  api("recommend?seconds=" + encodeURIComponent(sec) + "&aspect=" + (sz[0] / sz[1]).toFixed(4) + "&target=" + encodeURIComponent(t)).then(r => {
+    if (tok !== recTok) return;
+    note.textContent = r.note; use.hidden = false;
+    use.onclick = () => {
+      if (w.sizes.length) {
+        let best = -1; w.sizes.forEach((s, i) => { if (s[0] * s[1] <= r.gen_w * r.gen_h * 1.0001 && Math.abs(s[0] / s[1] - r.gen_w / r.gen_h) / (r.gen_w / r.gen_h) <= 0.06 && (best < 0 || s[0] * s[1] > w.sizes[best][0] * w.sizes[best][1])) best = i; });
+        if (best < 0) { toast("None of this workflow's frame sizes fits. Use Advanced to set the size.", "err"); return; }
+        S.vals.size = best;
+      } else { S.vals.width = r.gen_w; S.vals.height = r.gen_h; }
+      renderCompose(); toast("Frame set to the recommended size", "ok");
+    };
+  }).catch(x => { if (tok === recTok) note.textContent = x.message; });
+  return f;
+}
 function paintReq() {
   if (fitEl) { const w0 = wfNow(), t = w0 ? fitText(w0, S.vals) : ""; fitEl.textContent = t; fitEl.hidden = !t; }
   if (!reqPre) return; const w = wfNow(); if (!w) return;
@@ -1180,6 +1207,7 @@ function renderCompose() {
   if (w.sizes.length) root.append(h("div", {class: "field"}, h("div", {class: "lab"}, "Frame"), h("div", {class: "chips"}, w.sizes.map((s, i) =>
     h("button", {class: "chip", type: "button", "aria-pressed": String((S.vals.size || 0) === i), onclick: () => { S.vals.size = i; renderCompose(); }}, s[2] || (s[0] + "×" + s[1]), h("small", {}, s[0] + "×" + s[1]))))));
   fitEl = h("div", {class: "help", id: "fitNote", role: "status"}); root.append(fitEl);
+  if (!P.video && (w.sizes.length || P.width)) root.append(finishField(w));
   /* Advanced: every per-job parameter the chosen workflow accepts (the server rejects anything else), plus the exact request */
   const adv = h("details", {class: "adv"}, h("summary", {}, "Advanced"));
   if (!w.sizes.length) for (const k of ["width", "height"]) if (P[k]) adv.append(slider(w, k, P[k]));
@@ -1241,7 +1269,7 @@ async function generate() {
   const r = buildParams(w, S.vals); if (r.error) { err.textContent = r.error; err.hidden = false; return; }
   const b = $("#goBtn"); b.disabled = true;
   try {
-    const d = await api("generate", {method: "POST", json: {workflow: S.wf, params: r.params}});
+    const d = await api("generate", {method: "POST", json: {workflow: S.wf, params: r.params, finish: S.vals.finish || undefined}});
     toast(d.position > 1 ? "Queued, " + (d.position - 1) + " ahead" : "Queued", "ok"); S.sel = d.id;
     await refresh(); showQueue(d.id);
     if (CFG.seedLock) renderCompose();
@@ -1268,7 +1296,7 @@ function paintPhases(el, phase) {
 }
 function renderStage(root, id) {
   const j = jobNow(id);
-  const key = j ? j.id + ":" + j.state : "";
+  const key = j ? j.id + ":" + j.state + ":" + (j.finish ? j.finish.state : "") + ":" + (j.clips ? j.clips.length : 0) : "";
   if (root.dataset.key === key && j) {
     if (j.state === "done") { const sb = root.querySelector('[data-do="fav"]'); if (sb) paintStar(sb, j); }
     return;                                            // same clip, same state: keep playback and the running clock untouched
@@ -1326,12 +1354,20 @@ function renderStage(root, id) {
   add("workflow", j.workflow); add("size", p.width && p.height ? p.width + "×" + p.height : ""); add("frames", p.frames); add("length", p.seconds ? p.seconds + " s" : ""); add("seed", p.seed); add("render", j.seconds ? mmss(j.seconds) : "");
   if (j.autofit && j.autofit.from) add("asked", j.autofit.from[0] + "×" + j.autofit.from[1]);
   st.append(h("div", {class: "meta"}, p.prompt ? h("p", {}, p.prompt) : "", kv,
-    j.fit_note ? h("div", {class: "help", "data-do": "fit-note"}, j.fit_note) : "", j.prompt_notes ? h("div", {class: "help", "data-do": "prompt-notes"}, j.prompt_notes) : ""));
+    j.fit_note ? h("div", {class: "help", "data-do": "fit-note"}, j.fit_note) : "", j.finish && j.finish.state !== "done" && j.finish.note ? h("div", {class: "help", "data-do": "finish-note", role: "status"}, (j.finish.state === "error" ? "Upscale failed: " : "") + j.finish.note) : "", j.prompt_notes ? h("div", {class: "help", "data-do": "prompt-notes"}, j.prompt_notes) : ""));
   const acts = h("div", {class: "acts"});
   if (j.state === "done" && j.clips.length) {
     acts.append(h("a", {class: "btn", href: clipUrl(j, j.clips[0], true), download: j.clips[0].name}, "Download"));
     if (canShareFiles()) acts.append(h("button", {class: "btn", type: "button", onclick: e => shareClip(j, e.currentTarget)}, "Share"));
     if (j.clips[0].type.startsWith("video")) acts.append(h("button", {class: "btn", type: "button", onclick: e => continueFrom(j, e.currentTarget)}, "Continue from last frame"));
+    if (j.clips[0].type.startsWith("video") && p.width && p.height && j.workflow !== "ltx25g_upscale_api") {          // finish to 1080p / 2K / 4K: ffmpeg on the CPU, any length, the GPU stays free
+      const busy = !!(j.finish && j.finish.state === "running");
+      for (const [k, l] of [["1080p", "1080p"], ["2k", "2K"], ["4k", "4K"]]) {
+        const have = j.clips.find(c => c.name.endsWith("_" + k + ".mp4"));
+        acts.append(have ? h("a", {class: "btn", href: clipUrl(j, have, true), download: have.name, "data-do": "dl-" + k}, "Download " + l)
+          : h("button", {class: "btn", type: "button", "data-do": "up-" + k, disabled: busy, title: "Enlarge to " + l + " on the CPU. The GPU stays free", onclick: e => finishClip(j, k, e.currentTarget)}, "Upscale " + l));
+      }
+    }
   }
   acts.append(h("button", {class: "btn", type: "button", onclick: () => remix(j)}, "Remix"));
   if (!ACTIVE.includes(j.state)) acts.append(h("button", {class: "btn", type: "button", onclick: e => rerun(j, e.currentTarget)}, "Run again"));
@@ -1360,6 +1396,11 @@ function starBtn(j, long) {
 async function toggleFav(j) {
   try { const d = await api("fav", {method: "POST", json: {id: j.id, fav: !j.fav}}); j.fav = d.fav; toast(d.fav ? "Starred" : "Unstarred"); await refresh(); }
   catch (x) { toast(x.message, "err"); }
+}
+async function finishClip(j, target, btn) {
+  const was = btn.textContent; btn.disabled = true;
+  try { const d = await api("finish", {method: "POST", json: {id: j.id, clip: j.clips[0].name, target}}); toast("Upscaling to " + d.w + "×" + d.h, "ok"); await refresh(); }
+  catch (x) { toast(x.message, "err"); btn.disabled = false; btn.textContent = was; }
 }
 async function rerun(j, btn) {
   const was = btn && btn.textContent; if (btn) btn.disabled = true;
