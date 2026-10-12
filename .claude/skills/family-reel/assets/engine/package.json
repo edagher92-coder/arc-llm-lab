@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "family-reel renderer dependency (installed by scripts/doctor.py --install core when no global Playwright exists)",
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "baby": {
+    "src": "IMG_0014.jpg", "scale": 1.9, "emb": "baby", "id": 0.35, "beam": [7, 11, 23],
+    "steps": [
+      { "tag": "01", "strength": 0.60, "prompt": "close-up portrait of a cute 1 year old baby, big dark brown eyes, looking straight at the camera, both eyes aligned, soft cream background" },
+      { "tag": "05", "strength": 0.55, "prompt": "close-up portrait of a cute 5 year old child, looking straight at the camera, both eyes aligned, soft cream background" },
+      { "tag": "12", "strength": 0.55, "prompt": "close-up portrait of a 12 year old, looking straight at the camera, both eyes aligned, soft cream background" },
+      { "tag": "21", "strength": 0.50, "prompt": "close-up portrait of a 21 year old young adult, adult face, slim face, looking straight at the camera, both eyes aligned, soft cream background" }
+    ]
+  },
+  "dad": {
+    "src": "IMG_0012.jpg", "scale": 1.3, "emb": "dad", "id": 0.5, "beam": [7, 11, 23],
+    "steps": [
+      { "tag": "38", "strength": 0.55, "prompt": "close-up portrait of a 38 year old man, short dark hair, beard, kind smile, looking straight at the camera, both eyes aligned, soft cream background" },
+      { "tag": "50", "strength": 0.50, "from": "chain/dad_38.png", "prompt": "close-up portrait of a 50 year old man, greying hair and beard, kind smile, looking straight at the camera, both eyes aligned, soft cream background" }
+    ]
+  }
+}

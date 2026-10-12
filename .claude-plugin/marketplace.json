@@ -1,0 +1,306 @@
+{
+  "name": "hq-marketplace",
+  "description": "Local marketplace for Claude HQ plugins, distributed account-wide from the .github father repo.",
+  "owner": {
+    "name": "Elie Dagher"
+  },
+  "plugins": [
+    {
+      "name": "ai-specialists",
+      "description": "AI Specialists For Claude \u2014 70+ named specialist skills (copywriting, SEO, email, sales, invoicing, productivity, and more) plus a start-70 onboarding/router skill.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/ai-specialists",
+        "ref": "main"
+      },
+      "category": "business"
+    },
+    {
+      "name": "community-ai-agent-tooling",
+      "description": "AI & Agent Tooling \u2014 161 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-ai-agent-tooling",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-business-ops",
+      "description": "Business Ops & Productivity \u2014 182 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-business-ops",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-customer-support",
+      "description": "Customer Support \u2014 29 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-customer-support",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-data-analytics",
+      "description": "Data & Analytics \u2014 97 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-data-analytics",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-design-creative",
+      "description": "Design & Creative \u2014 91 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-design-creative",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-dev-engineering",
+      "description": "Dev & Engineering \u2014 597 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-dev-engineering",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-devops-infra",
+      "description": "DevOps & Infra \u2014 129 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-devops-infra",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-education-training",
+      "description": "Education & Training \u2014 28 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-education-training",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-email-newsletters",
+      "description": "Email & Newsletters \u2014 36 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-email-newsletters",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-finance-invoicing",
+      "description": "Finance & Invoicing \u2014 41 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-finance-invoicing",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-hr-recruiting",
+      "description": "HR & Recruiting \u2014 36 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-hr-recruiting",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-legal-regulated",
+      "description": "Legal & Regulated Advice \u2014 57 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-legal-regulated",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-marketing-content",
+      "description": "Marketing & Content \u2014 113 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-marketing-content",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-other",
+      "description": "Other \u2014 26 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-other",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-sales-crm",
+      "description": "Sales & CRM \u2014 44 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-sales-crm",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-security-research",
+      "description": "Security Research \u2014 83 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-security-research",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-seo-web",
+      "description": "SEO & Web \u2014 80 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-seo-web",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-social-media",
+      "description": "Social Media \u2014 33 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-social-media",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-video-audio-media",
+      "description": "Video & Audio & Media \u2014 22 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-video-audio-media",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "community-writing-editing",
+      "description": "Writing & Editing \u2014 55 community skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/community-writing-editing",
+        "ref": "main"
+      },
+      "category": "community"
+    },
+    {
+      "name": "watch",
+      "description": "Give Claude the ability to watch any video \u2014 downloads via yt-dlp, captions or Whisper transcription, ffmpeg frame extraction. From bradautomates/claude-video.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/watch",
+        "ref": "main"
+      },
+      "category": "external"
+    },
+    {
+      "name": "notebooklm",
+      "description": "Complete programmatic access to Google NotebookLM \u2014 create notebooks, add sources (URL/YouTube/PDF/audio/video), generate all artifact types (incl. podcasts), download results. From teng-lin/notebooklm-py.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/notebooklm",
+        "ref": "main"
+      },
+      "category": "external"
+    },
+    {
+      "name": "graphify-knowledge-graph",
+      "description": "Map any folder (code/docs/PDFs/images/video) into a queryable knowledge graph \u2014 tree-sitter AST for code, semantic pass for the rest. From Graphify-Labs/graphify. NOT the same as this account's own anytechie-graphify bar-chart CLI.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/graphify-knowledge-graph",
+        "ref": "main"
+      },
+      "category": "external"
+    },
+    {
+      "name": "obsidian",
+      "description": "Create and edit Obsidian vault files \u2014 Markdown, Bases, Canvas. 5 skills. From kepano/obsidian-skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/obsidian",
+        "ref": "main"
+      },
+      "category": "external"
+    },
+    {
+      "name": "impeccable",
+      "description": "Design fluency for frontend development \u2014 1 skill, 23 commands, 45 deterministic anti-pattern detectors. From pbakaus/impeccable.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/impeccable",
+        "ref": "main"
+      },
+      "category": "external"
+    },
+    {
+      "name": "ponytail",
+      "description": "Lazy senior dev mode \u2014 simplest working solution, YAGNI, stdlib-first. 6 skills. From DietrichGebert/ponytail.",
+      "source": {
+        "source": "git-subdir",
+        "url": "edagher92-coder/Claude-code-Agents",
+        "path": "plugins/ponytail",
+        "ref": "main"
+      },
+      "category": "external"
+    }
+  ]
+}

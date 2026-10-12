@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family reel</title>
+<style>
+  /* fonts/ is filled by scripts/doctor.py --install (Google Fonts, OFL). Missing files fall back to system fonts. */
+  @font-face { font-family: "Cormorant Garamond"; font-style: italic; font-weight: 500; src: url(fonts/CormorantGaramond-MediumItalic.ttf); }
+  @font-face { font-family: "Cormorant Garamond"; font-style: normal; font-weight: 500; src: url(fonts/CormorantGaramond-Medium.ttf); }
+  @font-face { font-family: "Great Vibes"; src: url(fonts/GreatVibes-Regular.ttf); }
+  @font-face { font-family: "Montserrat"; font-weight: 500; src: url(fonts/Montserrat-Medium.ttf); }
+  html, body { margin: 0; background: #000; height: 100%; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { height: 100vh; width: auto; display: block; }
+  body.render canvas { height: auto; width: auto; }
+  #play { position: fixed; inset: 0; margin: auto; width: 160px; height: 56px; font: 500 18px Montserrat, sans-serif;
+          border: 1px solid #d9b870; background: rgba(0,0,0,.6); color: #f6e7c8; border-radius: 28px; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<button id="play" hidden>&#9654; Play</button>
+<audio id="music" src="score.wav" preload="auto"></audio>
+<script src="reel.js"></script>
+</body>
+</html>
