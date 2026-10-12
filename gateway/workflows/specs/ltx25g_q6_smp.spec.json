@@ -1,0 +1,107 @@
+{
+ "meta": {
+  "title": "Q6 stage 2: sample and decode",
+  "description": "Stage 2 of ltx25q6_t2v: loads the saved conditioning, then samples with the Q6_K transformer and decodes. Build into workflows/stages/, not the Studio list.",
+  "kind": "stage",
+  "label": "sampling and decoding",
+  "fps": 24,
+  "audio": true,
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "width": {
+    "type": "int",
+    "default": 768,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "height": {
+    "type": "int",
+    "default": 512,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 32
+   },
+   "seconds": {
+    "type": "int",
+    "default": 4,
+    "min": 2,
+    "max": 10,
+    "label": "Length"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   }
+  }
+ },
+ "add": {
+  "405:900": {
+   "class_type": "ElzAudioNanGuard",
+   "inputs": {
+    "audio": [
+     "405:358",
+     0
+    ]
+   }
+  },
+  "405:901": {
+   "class_type": "ElzLoadConditioning",
+   "inputs": {
+    "prompt": "",
+    "name": "cond"
+   }
+  }
+ },
+ "rewire": {
+  "405:364:0": [
+   "405:901",
+   0
+  ],
+  "405:373:0": [
+   "405:901",
+   1
+  ]
+ },
+ "set": {
+  "75.filename_prefix": "video/gw_ltx25q6_t2v",
+  "405:370.audio": [
+   "405:900",
+   0
+  ]
+ },
+ "drop": [
+  "405:381"
+ ],
+ "bind": {
+  "prompt": [
+   "405:901.prompt"
+  ],
+  "width": [
+   "405:372.value"
+  ],
+  "height": [
+   "405:360.value"
+  ],
+  "seconds": [
+   "405:362.value"
+  ],
+  "seed": [
+   "405:338.noise_seed",
+   "405:339.noise_seed"
+  ]
+ },
+ "replace": {
+  "405:384": {
+   "class_type": "UnetLoaderGGUF",
+   "inputs": {
+    "unet_name": "LTX-2.5-Distilled-Q6_K.gguf"
+   }
+  }
+ }
+}

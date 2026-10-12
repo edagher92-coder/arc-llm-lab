@@ -1,0 +1,76 @@
+{
+ "schema": 1,
+ "license": "MIT",
+ "presets": {
+  "trailer": {
+   "label": "Trailer",
+   "style": "trailer-epic",
+   "grade": "teal-orange",
+   "sound": "music-orchestral",
+   "effects": "speed-ramp",
+   "camera": "crane-up",
+   "lighting": "rim-light",
+   "shot": "wide-establishing",
+   "length_seconds": 6,
+   "width": 1024,
+   "height": 576,
+   "idea": "A lone hero stands on a ridge as a vast storm gathers over the valley below."
+  },
+  "product-ad": {
+   "label": "Product ad",
+   "style": "commercial-product",
+   "grade": "clean-commercial",
+   "sound": "foley-detail",
+   "effects": "none",
+   "camera": "orbit",
+   "lighting": "studio-high-key",
+   "shot": "product-hero",
+   "length_seconds": 5,
+   "width": 1024,
+   "height": 576,
+   "idea": "A glass bottle of cold sparkling water sits on a wet black surface, condensation beading on the glass."
+  },
+  "music-video": {
+   "label": "Music video",
+   "style": "music-video",
+   "grade": "night-neon",
+   "sound": "music-upbeat",
+   "effects": "lens-flare",
+   "camera": "tracking",
+   "lighting": "neon-glow",
+   "shot": "medium",
+   "length_seconds": 6,
+   "width": 1024,
+   "height": 576,
+   "idea": "A singer performs on a rooftop at night, dancing to the beat as the city lights glow behind her."
+  },
+  "documentary": {
+   "label": "Documentary",
+   "style": "documentary",
+   "grade": "natural-neutral",
+   "sound": "voiceover",
+   "effects": "none",
+   "camera": "handheld-follow",
+   "lighting": "overcast",
+   "shot": "medium",
+   "length_seconds": 8,
+   "width": 1024,
+   "height": 576,
+   "idea": "A craftsman works at a wooden bench in his workshop, shaping a chair leg with a hand plane."
+  },
+  "social-vertical": {
+   "label": "Social vertical",
+   "style": "social-ugc",
+   "grade": "golden-hour",
+   "sound": "music-upbeat",
+   "effects": "none",
+   "camera": "static-tripod",
+   "lighting": "golden-backlight",
+   "shot": "close-up",
+   "length_seconds": 5,
+   "width": 576,
+   "height": 1024,
+   "idea": "A young woman holds up a coffee cup toward the camera, smiling, and says, \"This is my new morning ritual.\""
+  }
+ }
+}

@@ -1,0 +1,152 @@
+[gateway] ComfyUI produced no output in 45 s; restarting once
+[gateway] ComfyUI produced no output in 45 s; restarting once
+[32m[INFO][0m setup plugin alembic.autogenerate.schemas
+[32m[INFO][0m setup plugin alembic.autogenerate.tables
+[32m[INFO][0m setup plugin alembic.autogenerate.types
+[32m[INFO][0m setup plugin alembic.autogenerate.constraints
+[32m[INFO][0m setup plugin alembic.autogenerate.defaults
+[32m[INFO][0m setup plugin alembic.autogenerate.comments
+[32m[INFO][0m setup plugin alembic.ext.checkconstraint_byname
+[1m[33m[WARNING][0m On windows we are currently forcing single GPU mode in ComfyUI due to a Nvidia related issue, if you want to disable this use: --cuda-device all
+[32m[INFO][0m Found comfy_kitchen backend ascend: {'available': False, 'disabled': False, 'unavailable_reason': "torch-npu is not installed: No module named 'torch_npu'", 'capabilities': []}
+[32m[INFO][0m Found comfy_kitchen backend eager: {'available': True, 'disabled': False, 'unavailable_reason': None, 'capabilities': ['adaln', 'apply_rope', 'apply_rope1', 'apply_rope1_', 'apply_rope_', 'apply_rope_split_half', 'apply_rope_split_half1', 'apply_rope_split_half1_', 'apply_rope_split_half_', 'convrot_w4a4_linear', 'dequantize_convrot_w4a4_weight', 'dequantize_int8_convrot_weight', 'dequantize_int8_convrot_weight_dtype', 'dequantize_int8_embedding', 'dequantize_int8_simple', 'dequantize_int8_simple_dtype', 'dequantize_mxfp8', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'dequantize_w4a8_int8_weight', 'fp16_conv3d', 'fp16_conv3d_out', 'fp16_linear', 'gemv_awq_w4a16', 'group_norm_silu_pad3d', 'group_norm_silu_pad3d_out', 'int8_linear', 'na3d', 'prepare_int4_weight_for_int8_linear', 'quantize_and_rotate_rowwise', 'quantize_convrot_w4a4_weight', 'quantize_int8_convrot_weight', 'quantize_int8_rowwise', 'quantize_int8_tensorwise', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'quantize_svdquant_w4a4', 'quantize_w4a8_int8_weight', 'rms_adaln', 'rms_rope', 'rms_rope1', 'rms_rope1_', 'rms_rope_', 'rms_rope_split_half', 'rms_rope_split_half1', 'rms_rope_split_half1_', 'rms_rope_split_half_', 'rotate_int8_convrot_weight', 'scaled_mm_mxfp8', 'scaled_mm_nvfp4', 'scaled_mm_svdquant_w4a4', 'sol_attn', 'stochastic_rounding_fp8', 'w4a8_int8_linear']}
+[32m[INFO][0m Found comfy_kitchen backend cuda: {'available': False, 'disabled': True, 'unavailable_reason': 'CUDA not available on this system', 'capabilities': []}
+[32m[INFO][0m Found comfy_kitchen backend triton: {'available': True, 'disabled': True, 'unavailable_reason': None, 'capabilities': ['adaln', 'apply_rope', 'apply_rope1', 'apply_rope1_', 'apply_rope_', 'apply_rope_split_half', 'apply_rope_split_half1', 'apply_rope_split_half1_', 'apply_rope_split_half_', 'dequantize_nvfp4', 'dequantize_per_tensor_fp8', 'int8_linear', 'na3d', 'quantize_and_rotate_rowwise', 'quantize_int8_rowwise', 'quantize_mxfp8', 'quantize_nvfp4', 'quantize_per_tensor_fp8', 'rms_adaln', 'rms_rope', 'rms_rope1', 'rms_rope1_', 'rms_rope_', 'rms_rope_split_half', 'rms_rope_split_half1', 'rms_rope_split_half1_', 'rms_rope_split_half_', 'w4a8_int8_linear']}
+[32m[INFO][0m Found comfy_kitchen backend hip: {'available': False, 'disabled': False, 'unavailable_reason': 'PyTorch ROCm/HIP runtime not available', 'capabilities': []}
+[32m[INFO][0m Checkpoint files will always be loaded safely.
+[32m[INFO][0m Total VRAM 20960 MB, total RAM 32657 MB
+[32m[INFO][0m pytorch version: 2.14.0+xpu
+[32m[INFO][0m Set vram state to: NORMAL_VRAM
+[32m[INFO][0m Device: xpu:0 Intel(R) Arc(TM) Pro B60 Graphics
+[32m[INFO][0m Using split optimization for attention
+[32m[INFO][0m Python version: 3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]
+[32m[INFO][0m ComfyUI version: 0.39.0
+[32m[INFO][0m comfy-aimdo version: 0.5.5
+[32m[INFO][0m comfy-kitchen version: 0.2.37
+[1m[33m[WARNING][0m Dynamic vram disabled with argument. If you have any issues with dynamic vram enabled please give us a detailed reports as this argument will be removed soon. If you use gguf we recommend keeping dynamic vram enabled and using native ComfyUI model formats instead. ComfyUI native formats like fp8, int8 and w4a8 will be faster even if they are larger than your memory.
+[32m[INFO][0m comfyui-frontend-package version: 1.53.10
+[32m[INFO][0m comfyui-workflow-templates version: 0.11.76
+[32m[INFO][0m comfyui-embedded-docs version: 0.5.13
+[32m[INFO][0m comfy-kitchen version: 0.2.37
+[32m[INFO][0m comfy-aimdo version: 0.5.5
+[32m[INFO][0m [Prompt Server] web root: C:\AI\comfy\ComfyUI_windows_portable\python_embeded\Lib\site-packages\comfyui_frontend_package\static
+[32m[INFO][0m Asset seeder disabled
+C:\AI\comfy\ComfyUI_windows_portable\python_embeded\Lib\site-packages\torch\jit\_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+[32m[INFO][0m No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+[32m[INFO][0m ComfyUI-GGUF: Allowing full torch compile
+C:\AI\comfy\ComfyUI_windows_portable\python_embeded\Lib\site-packages\colour\utilities\verbose.py:340: ColourUsageWarning: "Matplotlib" related API features are not available: "No module named 'matplotlib'".
+See the installation guide for more information: https://www.colour-science.org/installation-guide/
+  warn(*args, **kwargs)
+[32m[INFO][0m Skipping websocket_image_save.py due to disable_all_custom_nodes and whitelist_custom_nodes
+[32m[INFO][0m 
+Import times for custom nodes:
+[32m[INFO][0m    0.0 seconds: C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes\ComfyUI-GGUF
+[32m[INFO][0m    0.0 seconds: C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes\elz_nodes
+[32m[INFO][0m    0.0 seconds: C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes\comfyui-mobile-frontend
+[32m[INFO][0m    0.8 seconds: C:\AI\comfy\ComfyUI_windows_portable\ComfyUI\custom_nodes\ComfyUI-LTXVideo
+[32m[INFO][0m 
+[32m[INFO][0m Disabling intermediate node cache.
+[Mobile Frontend] Loading custom node...
+[Mobile Frontend] app push pairing enabled
+[[34mMobile Frontend[0m] Mobile UI enabled at: [34m/mobile[0m
+[[34mMobile Telemetry[0m] telemetry off
+[32m[INFO][0m Starting server
+
+[[34mMobile Push[0m] detection spike active; seeded 0 prior history entries (polling every 1.0s)
+[32m[INFO][0m To see the GUI go to: http://127.0.0.1:8188
+[32m[INFO][0m got prompt
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-audio-vae-bf16.safetensors']
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.float32
+[32m[INFO][0m Found quantization metadata version 1
+[32m[INFO][0m Using MixedPrecisionOps for text encoder
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\text_encoders\\gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors']
+[32m[INFO][0m CLIP/text encoder model load device: xpu:0, offload device: cpu, current: cpu, dtype: torch.float16
+[32m[INFO][0m Requested to load LTXAVTEModel_
+[32m[INFO][0m Global interrupt (no prompt_id specified)
+[32m[INFO][0m got prompt
+[32m[INFO][0m loaded completely; 17498.24 MB usable, 14613.55 MB loaded, full load: True
+[32m[INFO][0m Processing interrupted
+[32m[INFO][0m [32mPrompt executed in 34.90 seconds[0m
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-audio-vae-bf16.safetensors']
+[[34mMobile Push[0m] completion detected prompt_id=7f5c3160-2abd-41d5-9307-59b3714429ba status=error outputs=0
+[[34mMobile Push[0m] generated new VAPID keypair
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.float32
+[32m[INFO][0m Found quantization metadata version 1
+[32m[INFO][0m Using MixedPrecisionOps for text encoder
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\text_encoders\\gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors']
+[32m[INFO][0m CLIP/text encoder model load device: xpu:0, offload device: cpu, current: cpu, dtype: torch.float16
+[32m[INFO][0m Requested to load LTXAVTEModel_
+[32m[INFO][0m loaded completely; 17498.24 MB usable, 14613.55 MB loaded, full load: True
+[32m[INFO][0m Global interrupt (no prompt_id specified)
+[32m[INFO][0m Processing interrupted
+[32m[INFO][0m [32mPrompt executed in 23.65 seconds[0m
+[[34mMobile Push[0m] completion detected prompt_id=f61a8658-980b-45be-a37d-68efaa8da952 status=error outputs=0
+[32m[INFO][0m got prompt
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-audio-vae-bf16.safetensors']
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.float32
+[32m[INFO][0m Found quantization metadata version 1
+[32m[INFO][0m Using MixedPrecisionOps for text encoder
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\text_encoders\\gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors']
+[32m[INFO][0m CLIP/text encoder model load device: xpu:0, offload device: cpu, current: cpu, dtype: torch.float16
+[32m[INFO][0m Requested to load LTXAVTEModel_
+[32m[INFO][0m loaded completely; 17497.99 MB usable, 14613.55 MB loaded, full load: True
+[32m[INFO][0m gguf qtypes: F32 (2603), F16 (2), Q4_K (350), Q6_K (102), Q5_K (1292)
+[32m[INFO][0m model weight dtype torch.bfloat16, manual cast: None
+[32m[INFO][0m model_type FLUX
+[32m[INFO][0m Model storage policy: fast_disk=False paths=[]
+[32m[INFO][0m Requested to load LTXAV
+[1m[33m[WARNING][0m [DEPRECATION WARNING] Detected import of deprecated legacy API: /scripts/ui/components/button.js. This is likely caused by a custom node extension using outdated APIs. Please update your extensions or contact the extension author for an updated version.
+[32m[INFO][0m loaded completely; 18247.18 MB usable, 15065.76 MB loaded, full load: True
+  0%|          | 0/8 [00:00<?, ?it/s] 12%|█▎        | 1/8 [00:06<00:47,  6.75s/it] 25%|██▌       | 2/8 [00:11<00:32,  5.34s/it] 38%|███▊      | 3/8 [00:15<00:24,  4.89s/it] 50%|█████     | 4/8 [00:20<00:19,  4.81s/it] 62%|██████▎   | 5/8 [00:24<00:13,  4.62s/it] 75%|███████▌  | 6/8 [00:28<00:09,  4.53s/it] 88%|████████▊ | 7/8 [00:33<00:04,  4.45s/it]100%|██████████| 8/8 [00:37<00:00,  4.41s/it]100%|██████████| 8/8 [00:37<00:00,  4.67s/it]
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-video-vae-bf16.safetensors']
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\latent_upscale_models\\ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors']
+[32m[INFO][0m Requested to load LatentUpsampler
+[32m[INFO][0m loaded completely; 3178.65 MB usable, 949.61 MB loaded, full load: True
+[32m[INFO][0m 0 models unloaded.
+[32m[INFO][0m Unloaded partially: 376.11 MB freed, 14700.23 MB remains loaded, 2.76 MB buffer reserved, lowvram patches: 0
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:06<00:13,  6.91s/it] 67%|██████▋   | 2/3 [00:13<00:06,  6.58s/it]100%|██████████| 3/3 [00:19<00:00,  6.46s/it]100%|██████████| 3/3 [00:19<00:00,  6.52s/it]
+[32m[INFO][0m Requested to load CausalDiffusionVAE
+[32m[INFO][0m loaded completely;  1403.92 MB loaded, full load: True
+[32m[INFO][0m Requested to load AudioVAE
+[32m[INFO][0m loaded completely;  693.46 MB loaded, full load: True
+ELZ_AUDIO_GUARD samples=288960 nonfinite=0 (0.0%) absmax=0.0527
+[32m[INFO][0m [32mPrompt executed in 175.42 seconds[0m
+[[34mMobile Push[0m] completion detected prompt_id=a9de7d85-e1d4-4b88-9ee7-c2e1ec2e8403 status=success outputs=1
+[32m[INFO][0m got prompt
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-audio-vae-bf16.safetensors']
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.float32
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\vae\\ltx-2.5-video-vae-bf16.safetensors']
+[32m[INFO][0m VAE load device: xpu:0, offload device: cpu, dtype: torch.bfloat16
+[32m[INFO][0m Requested to load CausalDiffusionVAE
+[32m[INFO][0m loaded completely;  1403.92 MB loaded, full load: True
+[32m[INFO][0m Found quantization metadata version 1
+[32m[INFO][0m Using MixedPrecisionOps for text encoder
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\text_encoders\\gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors']
+[32m[INFO][0m CLIP/text encoder model load device: xpu:0, offload device: cpu, current: cpu, dtype: torch.float16
+[32m[INFO][0m Requested to load LTXAVTEModel_
+[32m[INFO][0m Unloaded partially: 10.86 MB freed, 1393.09 MB remains loaded, 0.50 MB buffer reserved, lowvram patches: 0
+[32m[INFO][0m loaded completely; 16093.64 MB usable, 14613.55 MB loaded, full load: True
+[32m[INFO][0m gguf qtypes: F32 (2603), F16 (2), Q4_K (350), Q6_K (102), Q5_K (1292)
+[32m[INFO][0m model weight dtype torch.bfloat16, manual cast: None
+[32m[INFO][0m model_type FLUX
+[32m[INFO][0m Model storage policy: fast_disk=False paths=[]
+[32m[INFO][0m Requested to load LTXAV
+[32m[INFO][0m loaded partially; 14688.50 MB usable, 14685.74 MB loaded, 380.02 MB offloaded, 2.76 MB buffer reserved, lowvram patches: 0
+  0%|          | 0/8 [00:00<?, ?it/s] 12%|█▎        | 1/8 [00:11<01:19, 11.29s/it] 25%|██▌       | 2/8 [00:18<00:52,  8.79s/it] 38%|███▊      | 3/8 [00:25<00:39,  7.96s/it] 50%|█████     | 4/8 [00:32<00:30,  7.61s/it] 62%|██████▎   | 5/8 [00:39<00:22,  7.35s/it] 75%|███████▌  | 6/8 [00:46<00:14,  7.19s/it] 88%|████████▊ | 7/8 [00:53<00:07,  7.13s/it]100%|██████████| 8/8 [01:00<00:00,  7.20s/it]100%|██████████| 8/8 [01:00<00:00,  7.56s/it]
+[32m[INFO][0m Model storage policy: fast_disk=False paths=['C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\models\\latent_upscale_models\\ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors']
+[32m[INFO][0m Requested to load LatentUpsampler
+[32m[INFO][0m loaded completely; 3293.67 MB usable, 949.61 MB loaded, full load: True
+[32m[INFO][0m Requested to load CausalDiffusionVAE
+[32m[INFO][0m loaded completely;  1403.92 MB loaded, full load: True
+[32m[INFO][0m 0 models unloaded.
+[32m[INFO][0m Unloaded partially: 6455.51 MB freed, 8230.23 MB remains loaded, 11.02 MB buffer reserved, lowvram patches: 0
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [02:23<04:46, 143.09s/it] 67%|██████▋   | 2/3 [04:43<02:21, 141.24s/it]100%|██████████| 3/3 [07:03<00:00, 140.75s/it]100%|██████████| 3/3 [07:03<00:00, 141.07s/it]
+[32m[INFO][0m Requested to load CausalDiffusionVAE
+[32m[INFO][0m loaded completely;  1403.92 MB loaded, full load: True
+[32m[INFO][0m Requested to load AudioVAE
+[32m[INFO][0m loaded completely;  693.46 MB loaded, full load: True
+ELZ_AUDIO_GUARD samples=768960 nonfinite=0 (0.0%) absmax=1.0000
+[32m[INFO][0m [32mPrompt executed in 00:11:32[0m
+[[34mMobile Push[0m] completion detected prompt_id=9b0498ff-4664-4b43-b381-f1d1b40f965b status=success outputs=1

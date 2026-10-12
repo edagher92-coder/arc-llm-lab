@@ -1,0 +1,165 @@
+{
+ "schema": 1,
+ "sheet": "effects",
+ "title": "Effects (prompt-level only)",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Effects are prompt cues the model approximates. They are not post-production filters."
+ ],
+ "entries": [
+  {
+   "id": "slow-motion",
+   "label": "Slow motion",
+   "prompt": "The action plays in smooth slow motion, with every droplet and fabric ripple drifting and hanging in the air.",
+   "keywords": [
+    "slow motion",
+    "slow-mo",
+    "slowmo",
+    "splash",
+    "impact",
+    "explosion",
+    "spill",
+    "jump",
+    "dive",
+    "pour"
+   ],
+   "notes": "This is a prompt cue; the model approximates the look, it does not retime footage."
+  },
+  {
+   "id": "rain",
+   "label": "Rain",
+   "prompt": "Steady rain falls, with glistening wet surfaces, rippling puddles and fine droplets catching the light.",
+   "keywords": [
+    "rain",
+    "rainy",
+    "storm",
+    "wet",
+    "monsoon",
+    "drizzle",
+    "puddle"
+   ],
+   "notes": "Pairs with reflections and neon or street light."
+  },
+  {
+   "id": "snow",
+   "label": "Snow",
+   "prompt": "Soft snow drifts down in large flakes, settling on shoulders and the ground, with a hushed feel.",
+   "keywords": [
+    "snow",
+    "snowy",
+    "winter",
+    "blizzard",
+    "christmas",
+    "frost",
+    "ski"
+   ],
+   "notes": "Pairs with cool light."
+  },
+  {
+   "id": "fog",
+   "label": "Fog and haze",
+   "prompt": "Low fog and atmospheric haze drift through the scene, softening the distance and glowing around light sources.",
+   "keywords": [
+    "fog",
+    "foggy",
+    "mist",
+    "misty",
+    "haze",
+    "smoke",
+    "moody",
+    "atmospheric",
+    "eerie"
+   ],
+   "notes": "Adds depth; reduces contrast."
+  },
+  {
+   "id": "sparks",
+   "label": "Sparks",
+   "prompt": "Bright sparks spray and arc through the air, glowing orange and fading as they fall.",
+   "keywords": [
+    "spark",
+    "sparks",
+    "weld",
+    "welding",
+    "grinder",
+    "fire",
+    "forge",
+    "metal",
+    "blacksmith"
+   ],
+   "notes": "Hard, warm highlights."
+  },
+  {
+   "id": "lens-flare",
+   "label": "Lens flare",
+   "prompt": "A soft anamorphic lens flare streaks across the frame as the light source passes the lens.",
+   "keywords": [
+    "flare",
+    "sun",
+    "sunlight",
+    "lens",
+    "glare",
+    "backlit",
+    "sunrise",
+    "sunset",
+    "car headlights"
+   ],
+   "notes": "Use sparingly."
+  },
+  {
+   "id": "handheld",
+   "label": "Handheld shake",
+   "prompt": "The camera has a subtle handheld shake, with small organic movements that feel documentary and alive.",
+   "negative": "tripod stability",
+   "keywords": [
+    "handheld",
+    "shaky",
+    "documentary",
+    "raw",
+    "gritty",
+    "found footage",
+    "chase",
+    "run",
+    "running"
+   ],
+   "notes": "Combine with documentary styling; avoid for product hero shots."
+  },
+  {
+   "id": "speed-ramp",
+   "label": "Speed ramp",
+   "prompt": "The motion ramps from slow to fast in a sudden speed ramp, accelerating into the action.",
+   "keywords": [
+    "speed ramp",
+    "ramp",
+    "fast",
+    "skate",
+    "parkour",
+    "sprint",
+    "race",
+    "jump",
+    "sport",
+    "trick"
+   ],
+   "notes": "A prompt cue; results vary."
+  },
+  {
+   "id": "dust-particles",
+   "label": "Floating particles",
+   "prompt": "Fine dust particles float and glitter in the light beams, drifting slowly through the air.",
+   "keywords": [
+    "dust",
+    "particles",
+    "sunbeam",
+    "attic",
+    "barn",
+    "magic",
+    "golden dust",
+    "workshop"
+   ],
+   "notes": "Needs a visible light beam."
+  }
+ ]
+}

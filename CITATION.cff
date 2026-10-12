@@ -9,8 +9,8 @@ authors:
 license: MIT
 repository-code: "https://github.com/edagher92-coder/arc-llm-lab"
 url: "https://edagher92-coder.github.io/arc-llm-lab/"
-version: 2.2.1
-date-released: 2026-10-11
+version: 2.3.0
+date-released: 2026-10-12
 keywords:
   - Intel Arc
   - Arc Pro B60

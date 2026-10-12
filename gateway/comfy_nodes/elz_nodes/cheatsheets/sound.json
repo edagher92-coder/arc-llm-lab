@@ -1,0 +1,217 @@
+{
+ "schema": 1,
+ "sheet": "sound",
+ "title": "Generated sound (LTX-2.5 audio)",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Sound fragments steer LTX-2.5 audio. Combine one ambience or foley entry with at most one music entry."
+ ],
+ "entries": [
+  {
+   "id": "amb-city",
+   "label": "City ambience",
+   "prompt": "The soundscape is a city ambience, with distant traffic, a faint siren and the murmur of passing voices.",
+   "keywords": [
+    "city",
+    "street",
+    "traffic",
+    "downtown",
+    "urban",
+    "taxi",
+    "crowd",
+    "market"
+   ],
+   "notes": "Ambient bed; keep the dialogue short so it stays clear."
+  },
+  {
+   "id": "amb-nature",
+   "label": "Nature ambience",
+   "prompt": "The soundscape is natural, with wind in leaves, birdsong and the soft trickle of water.",
+   "keywords": [
+    "forest",
+    "nature",
+    "bird",
+    "river",
+    "mountain",
+    "hike",
+    "meadow",
+    "lake",
+    "garden",
+    "camp"
+   ],
+   "notes": "Quiet and wide; good under slow shots."
+  },
+  {
+   "id": "amb-interior",
+   "label": "Interior room tone",
+   "prompt": "The soundscape is a quiet interior room tone, with a low hum, a distant clock tick and soft footsteps on wood.",
+   "keywords": [
+    "room",
+    "office",
+    "kitchen",
+    "apartment",
+    "bedroom",
+    "library",
+    "home",
+    "cafe interior",
+    "studio"
+   ],
+   "notes": "Subtle bed for indoor scenes.",
+   "default": true
+  },
+  {
+   "id": "foley-detail",
+   "label": "Close foley detail",
+   "prompt": "Close, crisp foley details are heard, such as fabric rustle, gentle taps, clinking glass and precise footsteps.",
+   "keywords": [
+    "product",
+    "hands",
+    "pour",
+    "chop",
+    "typing",
+    "cooking",
+    "craft",
+    "unbox",
+    "pouring",
+    "make"
+   ],
+   "notes": "Good for macro and product shots."
+  },
+  {
+   "id": "dialogue-natural",
+   "label": "Natural spoken dialogue",
+   "prompt": "The speaker talks in a natural, relaxed tone, saying a short line in quotes, with clear mouth sync and a close-mic quality.",
+   "keywords": [
+    "says",
+    "said",
+    "talks",
+    "speaks",
+    "speaking",
+    "whispers",
+    "asks",
+    "interview",
+    "tells",
+    "dialogue",
+    "conversation",
+    "shouts"
+   ],
+   "notes": "Put the exact words in quotes and name the speaker. Keep it to one or two short lines."
+  },
+  {
+   "id": "voiceover",
+   "label": "Narrator voice-over",
+   "prompt": "A calm narrator speaks over the scene, with a warm, steady voice and unhurried pacing.",
+   "keywords": [
+    "narrator",
+    "voiceover",
+    "voice-over",
+    "narration",
+    "documentary",
+    "explainer"
+   ],
+   "notes": "Quote the narration; keep it brief."
+  },
+  {
+   "id": "music-orchestral",
+   "label": "Orchestral trailer score",
+   "prompt": "Music is a building orchestral trailer score, with low strings, deep percussion hits and a rising brass swell.",
+   "keywords": [
+    "trailer",
+    "epic",
+    "hero",
+    "battle",
+    "saga",
+    "legend",
+    "war",
+    "adventure",
+    "fantasy",
+    "dramatic"
+   ],
+   "notes": "Rising tension; pairs with speed ramps and impact moments."
+  },
+  {
+   "id": "music-ambient",
+   "label": "Ambient synth bed",
+   "prompt": "Music is a soft ambient synth bed, slow and spacious, with gentle pads and no strong beat.",
+   "keywords": [
+    "calm",
+    "peaceful",
+    "meditation",
+    "sleep",
+    "spa",
+    "gentle",
+    "relax",
+    "wellness",
+    "slow"
+   ],
+   "notes": "Low-key background music."
+  },
+  {
+   "id": "music-upbeat",
+   "label": "Upbeat pop groove",
+   "prompt": "Music is an upbeat pop groove, with a bright bassline, crisp claps and a steady danceable beat.",
+   "keywords": [
+    "upbeat",
+    "happy",
+    "party",
+    "dance",
+    "fun",
+    "festival",
+    "summer",
+    "celebrate",
+    "music video",
+    "tiktok",
+    "social"
+   ],
+   "notes": "Energetic; suits fast cuts and bright grades."
+  },
+  {
+   "id": "music-lofi",
+   "label": "Lo-fi beat",
+   "prompt": "Music is a mellow lo-fi beat, with dusty drums, warm keys and a relaxed swing.",
+   "keywords": [
+    "lofi",
+    "lo-fi",
+    "study",
+    "rainy",
+    "chill",
+    "coffee",
+    "cosy",
+    "evening"
+   ],
+   "notes": "Warm and unobtrusive."
+  },
+  {
+   "id": "music-synth",
+   "label": "Dark synthwave",
+   "prompt": "Music is a pulsing dark synthwave track, with an arpeggiated bassline and a driving electronic beat.",
+   "keywords": [
+    "synthwave",
+    "cyberpunk",
+    "neon",
+    "night drive",
+    "retro",
+    "80s",
+    "sci-fi",
+    "futuristic"
+   ],
+   "notes": "Pairs with night neon grade."
+  },
+  {
+   "id": "silence",
+   "label": "Near silence",
+   "prompt": "The scene is almost silent, with only a faint room tone and no music.",
+   "keywords": [
+    "silent",
+    "silence",
+    "quiet",
+    "still",
+    "empty"
+   ],
+   "notes": "Use when you want no generated music."
+  }
+ ]
+}

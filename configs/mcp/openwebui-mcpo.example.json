@@ -1,0 +1,11 @@
+{
+  "_comment": "mcpo config (C:\\AI\\mcpo\\config.json). start-mcpo.ps1 serves it as OpenAPI on 127.0.0.1:8100 with --api-key <MCPO_API_KEY from C:\\AI\\mcpo\\api-key.txt>. In Open WebUI: Settings > Tools > add http://127.0.0.1:8100/gw with Bearer <MCPO_API_KEY>. Merge this server into the existing mcpServers block.",
+  "mcpServers": {
+    "gw": {
+      "command": "C:\\AI\\gateway\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\AI\\gateway\\gateway.py", "C:\\AI\\gateway\\gateway.json"],
+      "env": { "PYTHONIOENCODING": "utf-8" }
+    }
+  },
+  "_open_webui_tool_server": { "url": "http://127.0.0.1:8100/gw", "auth": "bearer", "key": "<MCPO_API_KEY>" }
+}

@@ -1,0 +1,500 @@
+{
+ "meta": {
+  "title": "Upscale this clip x2 (LTX-2.5, cloud encoder)",
+  "description": "Re-renders a finished clip at double size with the LTX-2.5 x2 latent upscaler and a short distilled refine, then puts the original sound back. Short clips only: the pixel guard refuses anything that would not fit in GPU memory.",
+  "kind": "upscale",
+  "input": "video",
+  "fps": 24,
+  "audio": true,
+  "est_minutes": 6,
+  "est_minutes_note": "UNMEASURED. Extrapolated: 3 sampler steps at about 7.5k tokens (1536x832, 41 frames), a few tens of seconds each, plus model load, encode and decode. Replace after the first real run.",
+  "order": 41,
+  "max_px_frames": 15000000,
+  "max_px_frames_note": "Applied by the gateway to the SOURCE width*height*frames. Output is 4x that, so 15 M here = 60 M px-frames at the output, the default guard. The graph enforces the same cap again from the real clip.",
+  "requires_models": {
+   "diffusion_models": [
+    "LTX-2.5-Distilled-Q4_K_M.gguf"
+   ],
+   "vae": [
+    "ltx-2.5-video-vae-bf16.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors"
+   ],
+   "latent_upscale_models": [
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+   ]
+  },
+  "requires_nodes": [
+   "ElzLTXAPITextEncode (needs the LTX API key file)"
+  ],
+  "presets": [
+   {
+    "name": "x2",
+    "label": "Double size",
+    "params": {
+     "seconds": 1.7
+    },
+    "note": "768x416 becomes 1536x832, first 41 frames (1.7 s). Estimate only, not measured."
+   }
+  ],
+  "seconds": {
+   "min": 1,
+   "max": 4,
+   "default": 1.7,
+   "step": 0.1
+  },
+  "params": {
+   "video": {
+    "type": "video",
+    "required": true,
+    "label": "Clip to upscale",
+    "help": "A finished mp4/webm inside the shared folders. It is copied into ComfyUI's input folder first."
+   },
+   "width": {
+    "type": "int",
+    "required": true,
+    "min": 64,
+    "max": 1920,
+    "multiple_of": 32,
+    "label": "Clip width",
+    "help": "Width of the source clip. Used only for the memory guard; Studio fills it from the job. The graph reads the real size itself."
+   },
+   "height": {
+    "type": "int",
+    "required": true,
+    "min": 64,
+    "max": 1920,
+    "multiple_of": 32,
+    "label": "Clip height",
+    "help": "Height of the source clip (guard only)."
+   },
+   "seconds": {
+    "type": "float",
+    "default": 1.7,
+    "min": 1,
+    "max": 4,
+    "label": "Seconds to upscale",
+    "help": "Only the first part of the clip is upscaled; the length is snapped to 8n+1 frames. The guard may refuse long or large clips."
+   },
+   "prompt": {
+    "type": "str",
+    "default": "Sharp, detailed, natural footage, clean image, fine texture",
+    "max_len": 600,
+    "label": "Look (optional)",
+    "help": "Describe the look, not the scene."
+   },
+   "negative": {
+    "type": "str",
+    "default": "blurry, soft, noisy, compression artefacts, ugly",
+    "max_len": 300,
+    "label": "Avoid"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   }
+  },
+  "est_ref": [
+   768,
+   416,
+   1.7
+  ],
+  "frames_rule": "8n+1"
+ },
+ "add": {
+  "1": {
+   "class_type": "LoadVideo",
+   "inputs": {
+    "file": "{{video}}"
+   }
+  },
+  "2": {
+   "class_type": "GetVideoComponents",
+   "inputs": {
+    "video": [
+     "1",
+     0
+    ]
+   }
+  },
+  "3": {
+   "class_type": "GetImageSize",
+   "inputs": {
+    "image": [
+     "2",
+     0
+    ]
+   }
+  },
+  "4": {
+   "class_type": "PrimitiveFloat",
+   "inputs": {
+    "value": "{{seconds}}"
+   }
+  },
+  "5": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "a",
+    "values.a": [
+     "2",
+     2
+    ]
+   }
+  },
+  "6": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "round(a*b)+1",
+    "values.a": [
+     "4",
+     0
+    ],
+    "values.b": [
+     "5",
+     0
+    ]
+   }
+  },
+  "7": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "floor((min(a, b, floor(60000000/(c*d*4))) - 1)/8)*8 + 1",
+    "values.a": [
+     "3",
+     2
+    ],
+    "values.b": [
+     "6",
+     1
+    ],
+    "values.c": [
+     "3",
+     0
+    ],
+    "values.d": [
+     "3",
+     1
+    ]
+   }
+  },
+  "8": {
+   "class_type": "ImageFromBatch",
+   "inputs": {
+    "image": [
+     "2",
+     0
+    ],
+    "batch_index": 0,
+    "length": [
+     "7",
+     1
+    ]
+   }
+  },
+  "9": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "floor(a/32)*32",
+    "values.a": [
+     "3",
+     0
+    ]
+   }
+  },
+  "10": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "floor(a/32)*32",
+    "values.a": [
+     "3",
+     1
+    ]
+   }
+  },
+  "11": {
+   "class_type": "ImageScale",
+   "inputs": {
+    "image": [
+     "8",
+     0
+    ],
+    "upscale_method": "lanczos",
+    "width": [
+     "9",
+     1
+    ],
+    "height": [
+     "10",
+     1
+    ],
+    "crop": "center"
+   }
+  },
+  "12": {
+   "class_type": "VAELoader",
+   "inputs": {
+    "vae_name": "ltx-2.5-video-vae-bf16.safetensors"
+   }
+  },
+  "13": {
+   "class_type": "VAEEncode",
+   "inputs": {
+    "pixels": [
+     "11",
+     0
+    ],
+    "vae": [
+     "12",
+     0
+    ]
+   }
+  },
+  "14": {
+   "class_type": "LatentUpscaleModelLoader",
+   "inputs": {
+    "model_name": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+   }
+  },
+  "15": {
+   "class_type": "LTXVLatentUpsampler",
+   "inputs": {
+    "samples": [
+     "13",
+     0
+    ],
+    "upscale_model": [
+     "14",
+     0
+    ],
+    "vae": [
+     "12",
+     0
+    ]
+   }
+  },
+  "16": {
+   "class_type": "VAELoader",
+   "inputs": {
+    "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
+   }
+  },
+  "17": {
+   "class_type": "LTXVEmptyLatentAudio",
+   "inputs": {
+    "frames_number": [
+     "7",
+     1
+    ],
+    "frame_rate": [
+     "5",
+     1
+    ],
+    "batch_size": 1,
+    "audio_vae": [
+     "16",
+     0
+    ]
+   }
+  },
+  "18": {
+   "class_type": "LTXVConcatAVLatent",
+   "inputs": {
+    "video_latent": [
+     "15",
+     0
+    ],
+    "audio_latent": [
+     "17",
+     0
+    ]
+   }
+  },
+  "19": {
+   "class_type": "ElzLTXAPITextEncode",
+   "inputs": {
+    "prompt": "{{prompt}}",
+    "enhance_prompt": false,
+    "ltx_version": "2.5.0",
+    "gemma_version": "gemma4-12b-ltx-v1"
+   }
+  },
+  "20": {
+   "class_type": "ElzLTXAPITextEncode",
+   "inputs": {
+    "prompt": "{{negative}}",
+    "enhance_prompt": false,
+    "ltx_version": "2.5.0",
+    "gemma_version": "gemma4-12b-ltx-v1"
+   }
+  },
+  "21": {
+   "class_type": "LTXVConditioning",
+   "inputs": {
+    "positive": [
+     "19",
+     0
+    ],
+    "negative": [
+     "20",
+     0
+    ],
+    "frame_rate": [
+     "2",
+     2
+    ]
+   }
+  },
+  "22": {
+   "class_type": "UnetLoaderGGUF",
+   "inputs": {
+    "unet_name": "LTX-2.5-Distilled-Q4_K_M.gguf"
+   }
+  },
+  "23": {
+   "class_type": "LTXVDualCFGGuider",
+   "inputs": {
+    "model": [
+     "22",
+     0
+    ],
+    "positive": [
+     "21",
+     0
+    ],
+    "negative": [
+     "21",
+     1
+    ],
+    "video_cfg": 1,
+    "audio_cfg": 1
+   }
+  },
+  "24": {
+   "class_type": "RandomNoise",
+   "inputs": {
+    "noise_seed": "{{seed}}"
+   }
+  },
+  "25": {
+   "class_type": "KSamplerSelect",
+   "inputs": {
+    "sampler_name": "euler_ancestral"
+   }
+  },
+  "26": {
+   "class_type": "ManualSigmas",
+   "inputs": {
+    "sigmas": "0.85, 0.7250, 0.4219, 0.0"
+   }
+  },
+  "27": {
+   "class_type": "SamplerCustomAdvanced",
+   "inputs": {
+    "noise": [
+     "24",
+     0
+    ],
+    "guider": [
+     "23",
+     0
+    ],
+    "sampler": [
+     "25",
+     0
+    ],
+    "sigmas": [
+     "26",
+     0
+    ],
+    "latent_image": [
+     "18",
+     0
+    ]
+   }
+  },
+  "28": {
+   "class_type": "LTXVSeparateAVLatent",
+   "inputs": {
+    "av_latent": [
+     "27",
+     0
+    ]
+   }
+  },
+  "29": {
+   "class_type": "VAEDecodeTiled",
+   "inputs": {
+    "samples": [
+     "28",
+     0
+    ],
+    "vae": [
+     "12",
+     0
+    ],
+    "tile_size": 512,
+    "overlap": 64,
+    "temporal_size": 64,
+    "temporal_overlap": 16
+   }
+  },
+  "30": {
+   "class_type": "ComfyMathExpression",
+   "inputs": {
+    "expression": "(a-1)/b",
+    "values.a": [
+     "7",
+     1
+    ],
+    "values.b": [
+     "5",
+     0
+    ]
+   }
+  },
+  "31": {
+   "class_type": "TrimAudioDuration",
+   "inputs": {
+    "audio": [
+     "2",
+     1
+    ],
+    "start_index": 0,
+    "duration": [
+     "30",
+     0
+    ]
+   }
+  },
+  "32": {
+   "class_type": "CreateVideo",
+   "inputs": {
+    "images": [
+     "29",
+     0
+    ],
+    "audio": [
+     "31",
+     0
+    ],
+    "fps": [
+     "5",
+     0
+    ],
+    "bit_depth": 8
+   }
+  },
+  "33": {
+   "class_type": "SaveVideo",
+   "inputs": {
+    "video": [
+     "32",
+     0
+    ],
+    "filename_prefix": "video/gw_ltx25g_upscale",
+    "format": "auto",
+    "format.codec": "auto"
+   }
+  }
+ }
+}

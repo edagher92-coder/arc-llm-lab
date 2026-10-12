@@ -1,0 +1,189 @@
+{
+ "schema": 1,
+ "sheet": "grading",
+ "title": "Colour grading",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Grading fragments describe the finished look. Choose one per shot."
+ ],
+ "entries": [
+  {
+   "id": "teal-orange",
+   "label": "Teal and orange blockbuster",
+   "prompt": "The colour grade is a teal and orange blockbuster look, with warm amber skin tones against cool teal shadows and rich contrast.",
+   "keywords": [
+    "action",
+    "blockbuster",
+    "explosion",
+    "chase",
+    "trailer",
+    "hero",
+    "epic",
+    "battle",
+    "heist"
+   ],
+   "notes": "Classic big-budget action palette; pairs well with hard or rim light."
+  },
+  {
+   "id": "kodak-2383",
+   "label": "Kodak 2383 print film",
+   "prompt": "The image has the look of a Kodak 2383 print film grade, with gently rolled-off highlights, deep rich blacks, slightly warm mids and fine organic grain.",
+   "keywords": [
+    "film",
+    "cinematic",
+    "drama",
+    "period",
+    "nostalgic",
+    "romance",
+    "wedding",
+    "story"
+   ],
+   "notes": "Soft, filmic and forgiving; a safe cinematic default.",
+   "default": true
+  },
+  {
+   "id": "bleach-bypass",
+   "label": "Bleach bypass",
+   "prompt": "The grade is bleach bypass, desaturated and gritty with crushed contrast, silvery highlights and a harsh metallic texture.",
+   "keywords": [
+    "war",
+    "gritty",
+    "grim",
+    "dystopian",
+    "soldier",
+    "thriller",
+    "post-apocalyptic",
+    "survival",
+    "crime"
+   ],
+   "notes": "High contrast, low saturation; avoid for food or beauty."
+  },
+  {
+   "id": "golden-hour",
+   "label": "Golden hour warm",
+   "prompt": "The grade is warm golden hour, with honeyed highlights, soft amber glow and gently lifted shadows.",
+   "keywords": [
+    "sunset",
+    "sunrise",
+    "golden",
+    "beach",
+    "summer",
+    "family",
+    "picnic",
+    "warm",
+    "dusk",
+    "countryside",
+    "travel"
+   ],
+   "notes": "Pairs with low sun and backlight."
+  },
+  {
+   "id": "noir-mono",
+   "label": "Noir monochrome",
+   "prompt": "The footage is black and white noir, with deep inky blacks, bright specular highlights and strong contrast.",
+   "negative": "colour, saturated colours",
+   "keywords": [
+    "noir",
+    "detective",
+    "mystery",
+    "black and white",
+    "monochrome",
+    "rain-soaked",
+    "smoky",
+    "1940s"
+   ],
+   "notes": "True monochrome; add hard side light for best results."
+  },
+  {
+   "id": "clean-commercial",
+   "label": "Clean commercial",
+   "prompt": "The grade is clean and bright, with accurate colour, crisp whites, neutral skin tones and gentle contrast.",
+   "keywords": [
+    "product",
+    "ad",
+    "advert",
+    "commercial",
+    "brand",
+    "packshot",
+    "launch",
+    "bottle",
+    "coffee",
+    "skincare",
+    "website",
+    "shop"
+   ],
+   "notes": "Neutral, high-key; the default for product work."
+  },
+  {
+   "id": "pastel",
+   "label": "Soft pastel",
+   "prompt": "The grade is soft pastel, with milky lifted blacks, muted candy tones and a dreamy low-contrast finish.",
+   "keywords": [
+    "pastel",
+    "cute",
+    "dreamy",
+    "spring",
+    "flowers",
+    "baby",
+    "gentle",
+    "soft",
+    "whimsical",
+    "bakery"
+   ],
+   "notes": "Low contrast; avoid in dark scenes."
+  },
+  {
+   "id": "night-neon",
+   "label": "Night neon",
+   "prompt": "The grade is a night neon look, with saturated magenta and cyan highlights, glossy reflections and deep blue-black shadows.",
+   "keywords": [
+    "neon",
+    "cyberpunk",
+    "nightclub",
+    "city at night",
+    "night",
+    "arcade",
+    "synthwave",
+    "rave",
+    "tokyo",
+    "club"
+   ],
+   "notes": "Pairs with wet streets and practical light."
+  },
+  {
+   "id": "cold-thriller",
+   "label": "Cold desaturated thriller",
+   "prompt": "The grade is cold and slightly desaturated, with steel blue shadows, pale skin tones and restrained contrast.",
+   "keywords": [
+    "thriller",
+    "tense",
+    "suspense",
+    "horror",
+    "hospital",
+    "winter",
+    "investigation",
+    "stalker",
+    "dark"
+   ],
+   "notes": "Good for dread; keep faces readable."
+  },
+  {
+   "id": "natural-neutral",
+   "label": "Natural neutral",
+   "prompt": "The grade is natural and true to life, with balanced exposure, honest colour and no heavy stylisation.",
+   "keywords": [
+    "documentary",
+    "real",
+    "everyday",
+    "interview",
+    "news",
+    "street",
+    "reportage"
+   ],
+   "notes": "Minimal grade for documentary realism."
+  }
+ ]
+}

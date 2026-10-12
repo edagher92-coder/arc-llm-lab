@@ -1,0 +1,200 @@
+{
+ "meta": {
+  "title": "Image to video (GGUF)",
+  "description": "LTX-2.5 22B distilled, GGUF Q4_K_M: fits 24 GB VRAM and 32 GB RAM, with sound. Brings a still picture to life.",
+  "kind": "i2v",
+  "fps": 24,
+  "audio": true,
+  "est_minutes": 3.5,
+  "order": 15,
+  "sizes": [
+   [
+    768,
+    512,
+    "Draft"
+   ],
+   [
+    1024,
+    576,
+    "Daily"
+   ],
+   [
+    1280,
+    704,
+    "Hero"
+   ],
+   [
+    576,
+    1024,
+    "Vertical"
+   ],
+   [
+    704,
+    1280,
+    "Vertical HD"
+   ],
+   [
+    1024,
+    1024,
+    "Square"
+   ]
+  ],
+  "presets": [
+   {
+    "name": "draft",
+    "label": "Draft",
+    "params": {
+     "width": 768,
+     "height": 512,
+     "seconds": 2,
+     "quality": "fast"
+    },
+    "note": "Fast check: 768x512, 2 s (49 frames). Measured: about 3.5 min on this PC."
+   },
+   {
+    "name": "daily",
+    "label": "Daily",
+    "params": {
+     "width": 1024,
+     "height": 576,
+     "seconds": 4
+    },
+    "note": "1024x576, 4 s (97 frames). Estimate, not measured yet."
+   },
+   {
+    "name": "hero",
+    "label": "Hero",
+    "params": {
+     "width": 1280,
+     "height": 704,
+     "seconds": 5,
+     "quality": "best"
+    },
+    "note": "1280x704, 5 s (121 frames). Estimate, not measured yet."
+   }
+  ],
+  "seconds": {
+   "min": 2,
+   "max": 10,
+   "default": 4,
+   "step": 1
+  },
+  "params": {
+   "prompt": {
+    "type": "str",
+    "required": true,
+    "max_len": 1500,
+    "label": "Prompt"
+   },
+   "negative": {
+    "type": "str",
+    "default": "pc game, console game, video game, cartoon, childish, ugly",
+    "max_len": 500,
+    "label": "Avoid"
+   },
+   "width": {
+    "type": "int",
+    "default": 768,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 64
+   },
+   "height": {
+    "type": "int",
+    "default": 512,
+    "min": 384,
+    "max": 1280,
+    "multiple_of": 64
+   },
+   "seconds": {
+    "type": "int",
+    "default": 4,
+    "min": 2,
+    "max": 10,
+    "label": "Length"
+   },
+   "seed": {
+    "type": "int",
+    "label": "Seed"
+   },
+   "image": {
+    "type": "image",
+    "required": true,
+    "label": "Start image"
+   },
+   "quality": {
+    "type": "str",
+    "choices": [
+     "fast",
+     "standard",
+     "best"
+    ],
+    "default": "standard",
+    "label": "Quality",
+    "help": "Fast, Standard or Best. Accepted and stored with the job; the sigma-schedule mapping is not wired into the graph yet, so all three render the same today."
+   }
+  },
+  "est_ref": [
+   768,
+   512,
+   2
+  ]
+ },
+ "set": {
+  "398:364.text": [
+   "398:376",
+   0
+  ],
+  "75.filename_prefix": "video/gw_ltx25g_i2v",
+  "398:370.audio": [
+   "398:900",
+   0
+  ]
+ },
+ "drop": [
+  "398:381"
+ ],
+ "bind": {
+  "prompt": [
+   "398:376.value"
+  ],
+  "negative": [
+   "398:373.text"
+  ],
+  "width": [
+   "398:372.value"
+  ],
+  "height": [
+   "398:360.value"
+  ],
+  "seconds": [
+   "398:362.value"
+  ],
+  "seed": [
+   "398:338.noise_seed",
+   "398:339.noise_seed"
+  ],
+  "image": [
+   "395.image"
+  ]
+ },
+ "replace": {
+  "398:384": {
+   "class_type": "UnetLoaderGGUF",
+   "inputs": {
+    "unet_name": "LTX-2.5-Distilled-Q4_K_M.gguf"
+   }
+  }
+ },
+ "add": {
+  "398:900": {
+   "class_type": "ElzAudioNanGuard",
+   "inputs": {
+    "audio": [
+     "398:358",
+     0
+    ]
+   }
+  }
+ }
+}

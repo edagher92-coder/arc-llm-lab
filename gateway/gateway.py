@@ -309,6 +309,33 @@ def build():
     guard = Guard()
     search = Search(max_results=CFG.get("max_results", 4), always_visible=CFG.get("pin", []), search_result_serializer=compact)
     search.guard, guard.search = guard, search
+    # Server-side agent loop (agent.py), opt-in via the "agent" config block. Policy: list `agent` under "read": the tool itself
+    # changes nothing and every inner call goes back through this gateway's Guard (approvals, deny rules, trim, audit).
+    import agent as _agent
+    _agent.register(gw, CFG, guard, STATE, HERE, KILL)
+    # Local video generation (video.py) and its browser front end (studio.py), opt-in via the "video" config block.
+    # Policy: video_workflows, video_status, video_result, video_queue, video_system and video_presets are "read"; video_generate, video_cancel,
+    # video_comfy_session and video_mode stay "write" (PIN approval).
+    import video as _video
+    def _share_clip(path):
+        try:
+            import outbox
+            return outbox.share(path, False, CFG)["url"]
+        except Exception:
+            return ""
+    vq = _video.register(gw, CFG, STATE, HERE, KILL, share_fn=_share_clip)
+    # Agent-facing extras (tools_video_mcp.py): video_system and video_presets are "read"; video_comfy_session and video_mode stay "write" (PIN approval);
+    # it also re-registers video_generate with a `preset` argument. Docs: docs/MCP-VIDEO.md.
+    import tools_video_mcp as _vmcp
+    _vmcp.register(gw, vq, HERE)
+    # ask_local (tools_local_llm.py): delegate low-stakes subtasks to the local Qwen; policy.read. Docs: docs/LOCAL-LLM.md.
+    import tools_local_llm as _llocal
+    _llocal.register(gw, vq, HERE, CFG)
+    if vq is not None and vq.cfg.enabled:
+        import studio as _studio
+        _studio.register(approvals, vq, vq.cfg, HERE, cfg=CFG)
+        import studio_chat as _studio_chat
+        _studio_chat.register(approvals, CFG, vq, HERE)   # code tab: POST /approvals/studio/api/chat + GET code.js
     gw.add_transform(Hide())
     gw.add_transform(search)
     gw.add_transform(Describe())

@@ -76,7 +76,8 @@
   "fetch_fetch",
   "time_get_current_time",
   "skills",
-  "share_file"
+  "share_file",
+  "agent"
  ],
  "hide": [
   "pc_Agent",
@@ -117,6 +118,7 @@
   "files_*": "shared folder file",
   "context7_*": "library documentation api docs package framework",
   "skills": "skill playbook procedure how to workflow guide checklist",
+  "agent": "build make do multi step task website report research whole job finish autonomous",
   "share_file": "send give link download share file website zip deliver open on phone laptop"
  },
  "policy": {
@@ -137,7 +139,15 @@
    "docs_*",
    "fetch_fetch",
    "skills",
-   "share_file"
+   "share_file",
+   "agent",
+   "video_workflows",
+   "video_status",
+   "video_result",
+   "video_queue",
+   "video_system",
+   "video_presets",
+   "ask_local"
   ],
   "write": [
    "pc_PowerShell",
@@ -331,12 +341,14 @@
    "write",
    "destructive"
   ],
-  "max_result_chars": 12000
+  "max_result_chars": 12000,
+  "_comment_agent": "agent is read: the tool itself changes nothing; each inner call goes back through Guard (approvals, deny rules, audit), so a write inside it pauses for approval."
  },
  "descriptions": {
   "search_tools": "Find a tool when none shown fits: shell, edit or write files, browser, desktop, docs, PDF. Query = a few nouns, e.g. 'run shell command'. Then call_tool with the exact name and arguments matching input_schema.",
   "call_tool": "Run a tool found by search_tools. name = exact tool name; arguments = object matching its input_schema. One call per step. If it says NEEDS APPROVAL, tell the user, then repeat the same call once after they approve.",
   "skills": "Your playbooks (ops, releases, debugging). action 'search' with a few words first, then action 'load' with the exact skill name (query) and follow it.",
+  "agent": "Do a whole multi-step job on the PC in one go (build a website, research, fix and test). task = the job in plain words. Returns status, summary, links. If status is paused, tell the user to approve, then agent(resume=id).",
   "share_file": "Give the user a link to a file or folder you made (website, report, zip). path = full Windows path under C:\\AI\\shared. Always use this instead of telling them a server path.",
   "pc_Read": "Read a file. Give file_path (absolute) and use offset/limit for big files; do not read whole large files.",
   "pc_Grep": "Search file contents with a regex. Prefer this to reading many files. Give pattern and path; use glob to limit file types.",
@@ -352,6 +364,15 @@
    "D:\\shared\\skills"
   ]
  },
+ "agent": {
+  "base_url": "http://127.0.0.1:8090/v1",
+  "model": "qwen3.8-27b",
+  "api_key_file": "C:\\AI\\llama-swap\\api-key.txt",
+  "max_steps_cap": 30,
+  "timeout_s": 900,
+  "reasoning_effort_plan": "xhigh",
+  "reasoning_effort_act": "medium"
+ },
  "outbox": {
   "dir": "C:\\AI\\outbox",
   "roots": [
@@ -361,5 +382,74 @@
   "public_base": "https://<your-pc>.<tailnet>.ts.net:8445/tts/outbox",
   "ttl_hours": 24,
   "max_mb": 200
+ },
+ "video": {
+  "comfy_dir": "C:\\AI\\comfy\\ComfyUI_windows_portable",
+  "comfy_cmd": [
+   "C:\\AI\\comfy\\ComfyUI_windows_portable\\python_embeded\\python.exe",
+   "-s",
+   "ComfyUI\\main.py",
+   "--windows-standalone-build",
+   "--listen",
+   "127.0.0.1",
+   "--port",
+   "8188",
+   "--disable-auto-launch",
+   "--disable-dynamic-vram",
+   "--reserve-vram",
+   "1.5",
+   "--cache-none",
+   "--use-split-cross-attention",
+   "--preview-method",
+   "none",
+   "--disable-all-custom-nodes",
+   "--whitelist-custom-nodes",
+   "ComfyUI-GGUF",
+   "elz_nodes",
+   "ComfyUI-LTXVideo",
+   "comfyui-mobile-frontend",
+   "--disable-partner-nodes",
+   "--disable-metadata"
+  ],
+  "comfy_env": {
+   "SYCL_CACHE_PERSISTENT": "1",
+   "UR_L0_USE_RELAXED_ALLOCATION_LIMITS": "1",
+   "COMFYUI_MOBILE_TELEMETRY": "0",
+   "COMFYUI_MOBILE_CIVITAI_METADATA": "0"
+  },
+  "comfy_url": "http://127.0.0.1:8188",
+  "workflows_dir": "C:\\AI\\video\\workflows",
+  "input_dir": "C:\\AI\\comfy\\ComfyUI_windows_portable\\ComfyUI\\input",
+  "out_dir": "C:\\AI\\shared\\video",
+  "allowed_roots": [
+   "C:\\AI\\shared"
+  ],
+  "max_queue": 10,
+  "job_timeout_s": 3600,
+  "start_timeout_s": 300,
+  "comfy_settle_s": 3,
+  "comfy_stall_s": 45,
+  "ntfy_url": "",
+  "ntfy_topic": "",
+  "ntfy_click_base": "",
+  "ntfy_include_prompt": false,
+  "drive_dir": "",
+  "drive_mode": "off",
+  "ffmpeg_path": "",
+  "loudnorm": false,
+  "comfy_session_idle_min": 20,
+ "video_linger_min": 8,
+ "video_max_px_frames": 80000000,
+  "comfy_tailnet_port": 8448,
+  "keep_raw": false,
+  "llm": {
+   "swap_url": "http://127.0.0.1:8090",
+   "api_key_file": "C:\\AI\\llama-swap\\api-key.txt",
+   "model_id": "qwen3.8-27b",
+   "process": "llama-server.exe",
+   "quiet_s": 90,
+   "governor_mode_file": "C:\\AI\\governor\\mode.txt",
+   "unload_timeout_s": 90
+  }
  }
 }

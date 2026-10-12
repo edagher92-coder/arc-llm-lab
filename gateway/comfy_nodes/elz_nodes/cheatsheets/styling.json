@@ -1,0 +1,155 @@
+{
+ "schema": 1,
+ "sheet": "styling",
+ "title": "Styling",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Styling sets the overall visual identity. Choose exactly one."
+ ],
+ "entries": [
+  {
+   "id": "cinematic-realistic",
+   "label": "Cinematic realistic",
+   "prompt": "A cinematic, photorealistic live-action look with natural textures, shallow depth of field and realistic skin and fabric detail.",
+   "negative": "cartoon, illustration, 3d render, plastic skin",
+   "keywords": [
+    "cinematic",
+    "film",
+    "movie",
+    "scene",
+    "story",
+    "drama"
+   ],
+   "notes": "Good general default for story work.",
+   "default": true
+  },
+  {
+   "id": "documentary",
+   "label": "Documentary",
+   "prompt": "A natural documentary look, with available light, candid framing and unposed, authentic behaviour.",
+   "negative": "over-stylised, glossy",
+   "keywords": [
+    "documentary",
+    "real",
+    "candid",
+    "interview",
+    "behind the scenes",
+    "reportage",
+    "day in the life",
+    "factory",
+    "craftsman",
+    "worker"
+   ],
+   "notes": "Pairs with handheld and natural neutral grade."
+  },
+  {
+   "id": "commercial-product",
+   "label": "Commercial product",
+   "prompt": "A polished commercial product look, with immaculate surfaces, crisp reflections, controlled studio lighting and a clean backdrop.",
+   "negative": "clutter, fingerprints, dust, distorted logos, garbled text",
+   "keywords": [
+    "product",
+    "ad",
+    "advert",
+    "commercial",
+    "brand",
+    "packshot",
+    "launch",
+    "bottle",
+    "machine",
+    "gadget",
+    "shoe",
+    "watch",
+    "perfume"
+   ],
+   "notes": "For hero shots of objects."
+  },
+  {
+   "id": "photoreal-default",
+   "label": "Photoreal (no stylisation)",
+   "prompt": "A grounded photographic look, true to life, with sharp detail and neutral styling.",
+   "negative": "anime, cartoon, cel shading, illustration, 3d render",
+   "keywords": [
+    "photo",
+    "photograph",
+    "realistic",
+    "real life",
+    "natural"
+   ],
+   "notes": "Anime-free, plain photoreal default."
+  },
+  {
+   "id": "vintage-16mm",
+   "label": "Vintage 16mm",
+   "prompt": "A vintage 16mm film look, with visible grain, soft edges, slight gate weave and faded warm colours.",
+   "keywords": [
+    "vintage",
+    "retro",
+    "16mm",
+    "1970s",
+    "70s",
+    "nostalgia",
+    "old film",
+    "super 8",
+    "archive"
+   ],
+   "notes": "Pairs with Kodak grade; avoid with clean commercial."
+  },
+  {
+   "id": "music-video",
+   "label": "Music video",
+   "prompt": "A stylised music video look, with bold framing, expressive colour, dynamic movement and performance-led energy.",
+   "keywords": [
+    "music video",
+    "band",
+    "singer",
+    "rapper",
+    "dance",
+    "performance",
+    "concert",
+    "dancer",
+    "song",
+    "artist"
+   ],
+   "notes": "Pairs with upbeat or synth music."
+  },
+  {
+   "id": "trailer-epic",
+   "label": "Epic trailer",
+   "prompt": "An epic film-trailer look, with grand scale, dramatic contrast, intense close-ups and sweeping vistas.",
+   "keywords": [
+    "trailer",
+    "epic",
+    "saga",
+    "legend",
+    "warrior",
+    "kingdom",
+    "apocalypse",
+    "hero",
+    "monster"
+   ],
+   "notes": "Pairs with orchestral score."
+  },
+  {
+   "id": "social-ugc",
+   "label": "Social UGC",
+   "prompt": "A casual social-video look, shot like a phone, with direct-to-camera energy, natural light and a friendly, authentic feel.",
+   "keywords": [
+    "tiktok",
+    "reel",
+    "shorts",
+    "ugc",
+    "vlog",
+    "selfie",
+    "influencer",
+    "social",
+    "instagram",
+    "vertical"
+   ],
+   "notes": "Pairs with vertical framing."
+  }
+ ]
+}

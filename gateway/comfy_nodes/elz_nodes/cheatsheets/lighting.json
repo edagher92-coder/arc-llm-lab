@@ -1,0 +1,160 @@
+{
+ "schema": 1,
+ "sheet": "lighting",
+ "title": "Lighting",
+ "license": "MIT",
+ "guidance": [
+  "One flowing present-tense paragraph, under about 200 words.",
+  "Start with the main action, then movement and gestures, appearance, environment, camera, lighting and colour.",
+  "LTX-2.5 audio: describe ambient sound, put dialogue in quotes with the speaker, name any music.",
+  "Say where the light comes from and how it feels. One main lighting setup per shot."
+ ],
+ "entries": [
+  {
+   "id": "soft-key",
+   "label": "Soft key light",
+   "prompt": "Lighting is a large soft key light from the side, with gentle shadows and flattering skin tones.",
+   "keywords": [
+    "portrait",
+    "interview",
+    "beauty",
+    "skincare",
+    "face",
+    "people",
+    "talks",
+    "studio"
+   ],
+   "notes": "Flattering and safe for faces.",
+   "default": true
+  },
+  {
+   "id": "rim-light",
+   "label": "Rim light",
+   "prompt": "A strong rim light outlines the subject, separating them from a dark background.",
+   "keywords": [
+    "silhouette",
+    "hero",
+    "dramatic",
+    "moody",
+    "dark",
+    "night",
+    "sci-fi",
+    "dancer"
+   ],
+   "notes": "Pairs with fog."
+  },
+  {
+   "id": "practicals",
+   "label": "Practical lights",
+   "prompt": "Lighting comes from practical sources in the scene, such as lamps, neon signs and screens, giving warm pools of light.",
+   "keywords": [
+    "bar",
+    "diner",
+    "cafe",
+    "lamp",
+    "neon",
+    "night",
+    "interior",
+    "evening",
+    "bedroom",
+    "club"
+   ],
+   "notes": "Realistic motivated light."
+  },
+  {
+   "id": "overcast",
+   "label": "Overcast diffuse",
+   "prompt": "Overcast daylight is soft and even, with no harsh shadows and muted tones.",
+   "keywords": [
+    "overcast",
+    "cloudy",
+    "grey",
+    "moody",
+    "rainy",
+    "documentary",
+    "london",
+    "cold"
+   ],
+   "notes": "Flat and natural."
+  },
+  {
+   "id": "hard-noon",
+   "label": "Hard noon sun",
+   "prompt": "Hard midday sun casts crisp, short shadows and bright, punchy highlights.",
+   "keywords": [
+    "noon",
+    "midday",
+    "desert",
+    "beach",
+    "summer",
+    "harsh",
+    "sunny",
+    "hot",
+    "pool"
+   ],
+   "notes": "High contrast; squint-worthy."
+  },
+  {
+   "id": "candle",
+   "label": "Candlelight",
+   "prompt": "Candlelight flickers warmly, casting soft orange pools of light and deep, moving shadows.",
+   "keywords": [
+    "candle",
+    "candlelight",
+    "dinner",
+    "romantic",
+    "medieval",
+    "vigil",
+    "cosy",
+    "birthday"
+   ],
+   "notes": "Low, warm and moving."
+  },
+  {
+   "id": "golden-backlight",
+   "label": "Golden backlight",
+   "prompt": "Low golden sun backlights the subject, creating a glowing edge and long soft shadows.",
+   "keywords": [
+    "sunset",
+    "sunrise",
+    "golden",
+    "backlit",
+    "field",
+    "beach",
+    "dusk"
+   ],
+   "notes": "Pairs with golden hour grade."
+  },
+  {
+   "id": "studio-high-key",
+   "label": "Studio high key",
+   "prompt": "Bright high-key studio lighting, evenly lit, with clean highlights and minimal shadows.",
+   "keywords": [
+    "product",
+    "packshot",
+    "ad",
+    "advert",
+    "clean",
+    "white",
+    "commercial",
+    "brand",
+    "skincare"
+   ],
+   "notes": "Pairs with clean commercial grade."
+  },
+  {
+   "id": "neon-glow",
+   "label": "Neon glow",
+   "prompt": "Coloured neon light spills across faces and wet surfaces, in magenta and cyan.",
+   "keywords": [
+    "neon",
+    "cyberpunk",
+    "club",
+    "night city",
+    "arcade",
+    "synthwave"
+   ],
+   "notes": "Pairs with night neon grade."
+  }
+ ]
+}

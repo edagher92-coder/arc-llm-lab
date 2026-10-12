@@ -12,6 +12,8 @@ def _free_port():
 
 
 APPR_PORT = _free_port()
+for _m in ("gateway", "approvals", "skills", "outbox", "agent", "studio", "video", "tts_server", "cc_notify", "tools_video_mcp", "tools_local_llm", "build_workflow"):
+    sys.modules.pop(_m, None)     # other test files in the same process may have imported these with their own port/state
 os.environ["GW_APPROVAL_PORT"] = str(APPR_PORT)
 import outbox, approvals, tts_server  # noqa: E402
 from fastmcp import FastMCP, Client  # noqa: E402

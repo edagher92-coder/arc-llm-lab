@@ -1,0 +1,75 @@
+{
+ "schema": 1,
+ "sheet": "characters",
+ "title": "Characters",
+ "license": "MIT",
+ "guidance": [
+  "Fields: name, look, wardrobe, voice, mannerisms. Pass an example id, one JSON object, or a JSON list of up to three objects in the node's character input.",
+  "Reuse the same look and wardrobe text in every shot to keep a character consistent.",
+  "Dialogue goes in the idea, in quotes, with the speaker named."
+ ],
+ "fields": [
+  "name",
+  "look",
+  "wardrobe",
+  "voice",
+  "mannerisms"
+ ],
+ "entries": [
+  {
+   "id": "mara",
+   "name": "Mara Voss",
+   "label": "Mara Voss - restless detective",
+   "look": "a woman in her late thirties with cropped silver-streaked dark hair, sharp cheekbones and tired grey eyes",
+   "wardrobe": "a charcoal wool coat over a faded black shirt",
+   "voice": "low, dry and measured, with a slight rasp",
+   "mannerisms": "taps two fingers on whatever is nearby when she thinks and rarely smiles",
+   "keywords": [
+    "detective",
+    "investigator",
+    "police",
+    "mystery",
+    "noir",
+    "crime"
+   ]
+  },
+  {
+   "id": "tomas",
+   "name": "Tomas Reyes",
+   "label": "Tomas Reyes - friendly chef",
+   "look": "a broad-shouldered man in his fifties with a warm weathered face, a greying beard and flour on his forearms",
+   "wardrobe": "a white apron over rolled-up sleeves",
+   "voice": "warm, gravelly and unhurried",
+   "mannerisms": "hums quietly while he works and wipes his hands on his apron before he speaks",
+   "keywords": [
+    "chef",
+    "cook",
+    "baker",
+    "kitchen",
+    "restaurant",
+    "pizza",
+    "bakery",
+    "food"
+   ]
+  },
+  {
+   "id": "kai",
+   "name": "Kai Nakamura",
+   "label": "Kai Nakamura - young skater",
+   "look": "a lean young man in his early twenties with messy black hair, a lopsided grin and a small scar on his chin",
+   "wardrobe": "an oversized orange hoodie, loose jeans and worn white sneakers",
+   "voice": "bright, quick and playful",
+   "mannerisms": "bounces on his toes, flicks his hair back and laughs at his own jokes",
+   "keywords": [
+    "skate",
+    "skater",
+    "youth",
+    "street",
+    "music video",
+    "sport",
+    "teen",
+    "dance"
+   ]
+  }
+ ]
+}
