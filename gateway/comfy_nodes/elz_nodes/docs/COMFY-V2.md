@@ -22,7 +22,7 @@ external network requests and uses no `eval`.
 
 ## Full ComfyUI on the tailnet
 
-The full ComfyUI UI is reachable at **https://elzydlab.tail76b098.ts.net:8448** only while
+The full ComfyUI UI is reachable at **https://<your-machine>.<your-tailnet>.ts.net:8448** only while
 a Studio "ComfyUI session" is running. Stop the session in Studio to take it down.
 
 ComfyUI has no login. Access control is the tailnet. Keep the port tailnet-only.

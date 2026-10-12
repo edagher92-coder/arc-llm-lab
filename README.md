@@ -1,37 +1,59 @@
-# arc-llm-lab: Qwen3.8-27B on Intel Arc Pro B60 with llama.cpp Vulkan (benchmarks and agent stack)
+# arc-llm-lab: a local 27B coding model and local AI video on one Intel Arc GPU
 
-**Run a 27B coding agent fully local on one Intel Arc GPU, with the raw logs, versions and caveats published.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel, speculative decoding, Claude Code and Codex CLI wrappers, and a 100-task reliability suite. Measured on an Arc Pro B60 24GB; the Vulkan settings and the benchmark script apply to any Intel Arc card (B580, B570, B70, A770, B50).
+**A 27B coding model at 42-58 tok/s, local video generation and a phone control panel, all on a single Intel Arc Pro B60 24GB, with the raw logs, versions and caveats published.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel, DFlash2 speculative decoding, LTX-2.5 video through ComfyUI on XPU, and a way to use the local model from Claude Code.
 
 [![Self-test CI status](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml/badge.svg)](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml)
 [![GPU](https://img.shields.io/badge/GPU-Intel%20Arc%20Pro%20B60%2024GB-0071C5)](#which-intel-card-and-which-model-fits)
 [![Backend](https://img.shields.io/badge/backend-llama.cpp%20Vulkan-E8661E)](engine/)
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#versions-used)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/edagher92-coder/arc-llm-lab?style=flat)](https://github.com/edagher92-coder/arc-llm-lab/stargazers)
 
-**Headline results** (Arc Pro B60 24GB, Qwen3.8-27B Q4_K_M, single runs, raw logs in [data/raw/](data/raw/README.md)):
+## What you get
 
-| | Stock llama.cpp Vulkan | This repo |
+- **A local coding model on a roughly A$1,000-1,240 Intel card.** Qwen3.8-27B (the ThinkingCap build is the default) on an Arc Pro B60 24GB: 42-44 tok/s eval-suite throughput, 47-58 tok/s per-request decode, 57-64K context. Prices are dated in [the card table](#which-intel-card-and-which-model-fits).
+- **Local video generation.** LTX-2.5 text-to-video and image-to-video with sound through ComfyUI on XPU, a queue that hands the GPU from the LLM to ComfyUI and back, and an ffmpeg "finish at 1080p/2K/4K" step. See [docs/VIDEO-GEN.md](docs/VIDEO-GEN.md).
+- **A phone Studio.** A web app over Tailscale (never public): live GPU/VRAM telemetry, render progress and history, a Qwen code tab, installable as a PWA. PIN-gated approvals, with an optional 90-day remembered device. See [docs/GATEWAY.md](docs/GATEWAY.md) and [docs/STUDIO-P2-CONTRACTS.md](docs/STUDIO-P2-CONTRACTS.md).
+- **A Claude Code partner.** `ask_local` (stand-alone `qwen_mcp.py`) hands first-pass code and review tasks to the local model; Claude stays the gate. See [docs/LOCAL-LLM.md](docs/LOCAL-LLM.md).
+
+## Measured numbers
+
+All single runs on one Arc Pro B60 24GB (Ryzen 7 3700X, 32 GB RAM, Windows 11) unless noted. Raw logs are in [data/raw/](data/raw/README.md); "how to read these" is in [Notes on the numbers](#notes-on-the-numbers).
+
+| What | Figure | Source |
 |---|---|---|
-| Generation speed | 16 tok/s | **42.3 tok/s** (DFlash2 draft model) ‡ |
-| Reading new input at 32K context | 118 tok/s | **420 tok/s** |
-| 100-task hidden-checker agent eval | n/a | **97/100** Claude Code · **95/100** Codex CLI ([RELIABILITY.md](docs/RELIABILITY.md)) |
+| Generation, eval-suite throughput (wall-clock) | 16.0 tok/s stock, no drafter -> **42.3** with DFlash2; **43.94** with `--spec-draft-p-min 0.5` (+4.6%) | [TUNING-LOG](docs/TUNING-LOG.md) rows 1, 10, 17 |
+| Per-request decode with the drafter | 47-58 tok/s | [CHANGELOG](CHANGELOG.md) 2.1.0 |
+| Reading new input at 32K context | 118 -> **420 tok/s** (Intel FA kernel, f16 KV) | [TUNING-LOG](docs/TUNING-LOG.md) row 8 |
+| Resume a 43K-token prompt after a restart | about 2 min -> **4.5 s** (KV slot save/restore) | [TUNING-LOG](docs/TUNING-LOG.md) row 16 |
+| ThinkingCap vs base quant, 16 tasks at `xhigh` | 16/16 vs 15/16; **3.9x** tasks per minute | [TUNING-LOG](docs/TUNING-LOG.md) row 20 |
+| 100-task agent eval at a 32K window | **97/100** Claude Code, **95/100** Codex | [CHANGELOG](CHANGELOG.md) 2.1.0, [RELIABILITY](docs/RELIABILITY.md) |
+| Phone gateway eval | 10/10 | [CHANGELOG](CHANGELOG.md) 2.2.0 |
+| LTX-2.5 clip, 768x512, 2 s, 49 frames, with sound | 188-219 s queued to clip, including ComfyUI start (about 4.5 s per sampling step) | [VIDEO-GEN](docs/VIDEO-GEN.md) |
 
-‡ Wall-clock eval-suite throughput; the stock figure is a different measurement, so the two are not like-for-like ([how to read these numbers](#notes-on-the-numbers)).
+Not measured yet: render times for other sizes and lengths, the 1080p-4K finish step on the Arc box ([docs/UPSCALE.md](docs/UPSCALE.md)), and any card other than the B60.
 
-**Who it is for:** anyone running local LLMs on Intel Arc.
-- **Measured:** Arc Pro B60 24GB, everything above.
-- **ESTIMATE, not measured:** Arc Pro B70 32GB should fit this 27B with room to spare. Arc B580 (12GB), B570 (10GB), A770 (16GB) and B50 (16GB) do not fit it with a useful context ([card-by-card table](#which-intel-card-and-which-model-fits)). The Vulkan flags, the tuning and the benchmark script apply to any Intel Arc card.
+## Quick start
 
-**Try it** (Windows 11; Linux notes [below](#build-the-engine-and-benchmark-your-card)):
+1. **Build the engine** (Windows 11, portable, no admin): `powershell -ExecutionPolicy Bypass -File engine\build.ps1`
+2. **Get the model and start the server**, following [docs/SETUP.md](docs/SETUP.md).
+3. **Point a client at it**: Claude Code via `ask_local` ([LOCAL-LLM.md](docs/LOCAL-LLM.md)), the CLI wrappers in [agents/](agents/), or the phone gateway ([GATEWAY.md](docs/GATEWAY.md)). Video setup is in [VIDEO-GEN.md](docs/VIDEO-GEN.md).
 
-```powershell
-git clone https://github.com/edagher92-coder/arc-llm-lab; cd arc-llm-lab
-powershell -ExecutionPolicy Bypass -File engine\build.ps1      # portable, no admin: builds llama.cpp b11524 + the Intel FA patches
-```
+Linux notes: [engine/build-linux.sh](engine/build-linux.sh) builds the same engine (patch application is verified; not run end to end on an Arc GPU).
 
-**If this is useful, give it a star** so other Arc owners can find it. **Got a different Arc card?** Run [the benchmark script](#build-the-engine-and-benchmark-your-card) and submit your numbers through the [benchmark form](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml) (results are credited in [COMMUNITY-RESULTS.md](docs/COMMUNITY-RESULTS.md)). Questions, ideas or something wrong? [Open an issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new/choose).
+## Who this is for
 
-**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Phone tool gateway](docs/GATEWAY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
+- **People with an Intel Arc Pro B60 24GB** who want a local coding model, local video and a phone front end. This is what everything above was measured on.
+- **Other Arc owners (B580, B570, B50, A770, B70).** The Vulkan flags, tuning and [benchmark script](bench/) apply to any Arc card; whether this 27B fits is ESTIMATE, not measured ([card-by-card table](#which-intel-card-and-which-model-fits)). Your numbers are the most useful contribution: use the [benchmark form](https://github.com/edagher92-coder/arc-llm-lab/issues/new?template=benchmark.yml).
+- **Claude Code and Codex users** who want a private, free first pass for low-stakes drafting and review.
+
+## Guides
+
+[Setup](docs/SETUP.md) · [Tuning log](docs/TUNING-LOG.md) · [Video generation](docs/VIDEO-GEN.md) · [Upscale / finish](docs/UPSCALE.md) · [Studio contracts](docs/STUDIO-P2-CONTRACTS.md) · [Phone tool gateway](docs/GATEWAY.md) · [Local LLM delegation (`ask_local`)](docs/LOCAL-LLM.md) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Reliability](docs/RELIABILITY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Intel FA](docs/INTEL-FA.md) · [FAQ](docs/FAQ.md) · [Interactive benchmarks](https://edagher92-coder.github.io/arc-llm-lab/)
+
+If this is useful, a star helps other Arc owners find it. Questions or something wrong? [Open an issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new/choose).
+
+**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
 
 ## Results on one Arc Pro B60 24GB
 

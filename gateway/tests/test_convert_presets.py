@@ -138,8 +138,7 @@ class ConvertTests(unittest.TestCase):
     @staticmethod
     def _source():
         import os
-        cands = [os.environ.get("LTX_SRC", ""),
-                 "/tmp/claude-0/-home-claude-arc-llm-lab/1ea5e2e2-4d1d-5c40-8593-167d024647a1/scratchpad/ltxsrc"]
+        cands = [os.environ.get("LTX_SRC", "")]
         for c in cands:
             if c and (Path(c) / C.WF_REL).is_dir():
                 return Path(c)

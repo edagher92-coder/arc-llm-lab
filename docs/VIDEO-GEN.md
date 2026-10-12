@@ -2,7 +2,7 @@
 
 A text-to-video and image-to-video service for the PC. The phone tool gateway ([GATEWAY.md](GATEWAY.md)) queues a job, hands the GPU from the LLM to ComfyUI, renders one clip, collects it, and hands the GPU back. You can drive it from an MCP client (Qwen, Claude Code) or from the Studio web page. Everything runs locally; nothing is sent to a cloud service.
 
-Status: the workflows, gateway code and tooling are in the repo. Render times are **not measured yet**. Every figure marked TBD in this guide is a placeholder, not an estimate (see [Unverified / to measure](#unverified--to-measure)).
+Status: the workflows, gateway code and tooling are in the repo. Only the 768x512 GGUF render ([measured below](#gguf-build-for-32-gb-machines-measured-on-the-b60-11-oct-2026)) has a measured time. Every other figure marked TBD in this guide is a placeholder, not an estimate (see [Unverified / to measure](#unverified--to-measure)).
 
 ## What it is
 

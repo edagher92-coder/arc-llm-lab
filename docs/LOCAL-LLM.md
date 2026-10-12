@@ -21,4 +21,4 @@ Claude Code reaches `ask_local` through a stand-alone MCP server that exposes on
 It reads the same `video.llm` block and returns `paused` while the governor mode is OFF or the hub's `state/video/gpu.lock` exists, so a render is never interrupted. The QWEN CODING PARTNER block in `~/.claude/CLAUDE.md` tells Claude when to call it.
 
 ## `claude-qwen` launcher
-`C:\Users\edagh\bin\claude-qwen.v2.cmd` runs Claude Code entirely on Qwen through llama-swap's Anthropic-compatible `/v1/messages`. Anthropic does not support non-Claude models behind Claude Code, so treat it as unsupported: use it only for private/offline grunt work, not for anything that needs the cloud model's reliability.
+`C:\Users\<you>\bin\claude-qwen.v2.cmd` runs Claude Code entirely on Qwen through llama-swap's Anthropic-compatible `/v1/messages`. Anthropic does not support non-Claude models behind Claude Code, so treat it as unsupported: use it only for private/offline grunt work, not for anything that needs the cloud model's reliability.

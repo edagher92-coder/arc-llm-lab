@@ -1,15 +1,34 @@
 # Changelog
 
-## Unreleased (2.3.0 draft)
-**Model and engine**
-- Production default is now ThinkingCap-Qwen3.8-27B Q4_K_M with its own projector (the base model stays as the `qwen3.8-27b-base` variant): 3.9x more tasks per minute at `xhigh` on our 16 tasks, 16/16 correct, phone eval 10/10 ([TUNING-LOG](docs/TUNING-LOG.md) rows 16-21).
-- `--spec-draft-p-min 0.5` added to the DFlash2 variants: +4.6% generation, higher accept rate.
-- Measured: saving the KV slot to disk lets a restart resume a 43K-token prompt in 4.5 s instead of about 2 minutes (the governor lane that automates it is still being finished).
-**Windows**
-- `tools/windows-lean.ps1`: dry-run-first, fully undoable trim of background services, startup entries and Game DVR (optional `-Intel`, `-BrowserAccel`, `-Apps`).
-- `governor/display-policy.ps1`: opt-in idle display policy. Works, but did not free VRAM on our PC, so it ships off ([docs/DISPLAY-POLICY.md](docs/DISPLAY-POLICY.md)).
-**Research**
-- `docs/SCOUT-PROMPT.md`: the reusable brief for scouting new speed, memory and UI ideas, with our baseline so agents skip what is already measured.
+## 2.3.0 - 2026-10-12
+Covers `ed9aafd..HEAD`. Only figures measured in this repo are quoted; everything else is marked as not measured.
+
+**Video**
+- Local video generation with LTX-2.5 (distilled GGUF) and LTX-2.3 through ComfyUI on XPU: kill-per-job driver, async MCP tools, self-healing ComfyUI start, ntfy alerts (off unless configured), `docs/VIDEO-GEN.md`.
+- Measured: Q4_K_M at 768x512, 2 s, 49 frames with sound takes 188-219 s from queued to clip including ComfyUI start (about 4.5 s per step). Split attention fixes NaN output on XPU; Q6_K does not fit one process on 32 GB RAM.
+- Speed work: hosted LTX-2.5 text encoder node (no local 12B Gemma), a keep-warm linger after jobs and a pixel-frames guard. Not benchmarked end to end yet.
+- Finish at 1080p/2K/4K: size recommendation plus an ffmpeg CPU upscale job for any clip length, auto-finish after render ([UPSCALE.md](docs/UPSCALE.md)). Not yet run on the Arc box.
+- MiniMax H3 trial recorded as not adopted (broken output above 21 frames on Vulkan).
+
+**Studio** (phone web app, [STUDIO-P2-CONTRACTS.md](docs/STUDIO-P2-CONTRACTS.md))
+- P2 M1: live SSE telemetry strip and charts, Video/Qwen switch, live render panel with phase strip, phone/tablet/desktop layouts, Qwen Code tab, `#code` deep link.
+- P2 M2: GPU utilisation and VRAM series (Windows PDH), render stage history and history-based ETA, PIN-only dev readout with redaction, optional latent previews.
+- Installable PWA shell, favourites, re-run, camera image-to-video, auto-fit size, live render progress parsed from the ComfyUI log.
+
+**Local LLM + Claude Code**
+- `ask_local`: Claude Code and Codex hand private, low-stakes drafting, code and review tasks to the local Qwen (stakes refusal, pauses while video holds the GPU). Stand-alone `qwen_mcp.py` for Claude Code ([LOCAL-LLM.md](docs/LOCAL-LLM.md)).
+- Production default is now ThinkingCap-Qwen3.8-27B Q4_K_M with its own projector (base kept as `qwen3.8-27b-base`): 16/16 against 15/16 on our 16 tasks, 3.9x tasks per minute at `xhigh`, phone eval 10/10 ([TUNING-LOG](docs/TUNING-LOG.md) rows 16-21).
+- `--spec-draft-p-min 0.5` on the DFlash2 variants: 42.0 -> 43.94 tok/s (+4.6%).
+- Measured: saving the KV slot to disk resumes a 43K-token prompt in 4.5 s instead of about 2 minutes.
+
+**Security**
+- Remember this device for 90 days: a `gwd` cookie bound to the Tailscale IP, stored hashed; revoke devices or turn the kill switch off. Approving or denying a tool call still needs the PIN.
+- Tailscale identity listener is off by default and never grants approvals; dev readout is PIN-only and redacts secrets.
+- Repo scrub for public release: personal paths, tailnet hostname and machine name removed from docs; no secrets found in tracked files.
+
+**Tooling**
+- One-command `deploy.ps1` with rollback, restart-and-verify and a self-test.
+- Parallel gateway tests; `tools/windows-lean.ps1` (dry-run-first, undoable); `governor/display-policy.ps1` (opt-in, ships off, [DISPLAY-POLICY.md](docs/DISPLAY-POLICY.md)); `docs/SCOUT-PROMPT.md`.
 
 ## 2.2.1 - 2026-10-11
 - Use the gateway from Claude Code, Claude Desktop or Codex: `gateway/make_agent_config.py` builds an agent config without the nested `pc` server, and [GATEWAY.md](docs/GATEWAY.md#use-it-from-claude-code-claude-desktop-or-codex) has the setup for each. Ready in 7.3 s warm, 51.8 s on the first start.
