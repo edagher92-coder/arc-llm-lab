@@ -20,7 +20,7 @@ host RAM is returned to the OS before the big transformer loads (what Q6_K needs
 Everything outside this file (llama-swap, ComfyUI, process control) is reached through small functions on `Env`, so the tests run the
 whole lifecycle against mock servers.
 """
-import copy, json, math, os, random, re, secrets, shutil, subprocess, sys, threading, time, urllib.error, urllib.parse, urllib.request
+import base64, copy, hashlib, json, math, os, random, re, secrets, shutil, socket, struct, subprocess, sys, threading, time, urllib.error, urllib.parse, urllib.request
 
 STATES = ("queued", "waiting", "starting", "running", "done", "failed", "cancelled")
 ACTIVE = ("waiting", "starting", "running")
@@ -35,6 +35,8 @@ PROG_ENCODE, PROG_LOAD, PROG_STAGE1, PROG_UPSCALE = (0, 12), (12, 20), (20, 62),
 PROG_STAGE2, PROG_VDECODE, PROG_ADECODE, PROG_SAVING = (66, 88), (88, 96), (96, 99), 99
 PROG_TAIL_BYTES = 256 * 1024                       # most of the log read per job; the newest part is what matters
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+HIST_NAME, HIST_KEEP, HIST_MAX, HIST_LAST = "stage-history.jsonl", 500, 600, 50    # file name; lines kept after a trim; lines that trigger a trim; records per workflow in a summary
+TERMINAL = ("done", "failed", "cancelled")
 _TQDM = re.compile(r"(\d+)/(\d+) \[\s*[\d:]+<([\d:]+|\?),\s*([\d.]+|\?)\s*(s/it|it/s)")
 
 
@@ -52,6 +54,9 @@ class Cfg:
         j = lambda p: p if (not p or os.path.isabs(p)) else os.path.join(base_dir, p)
         self.comfy_dir = c.get("comfy_dir") or ""
         self.comfy_cmd = list(c.get("comfy_cmd") or [])
+        self.comfy_preview = bool(c.get("comfy_preview", False))                # live latent previews in Studio: ComfyUI gets --preview-method latent2rgb, previews are read from its websocket
+        if self.comfy_preview and self.comfy_cmd and not any(str(a).split("=", 1)[0] == "--preview-method" for a in self.comfy_cmd):
+            self.comfy_cmd += ["--preview-method", "latent2rgb"]
         self.comfy_env = dict(c.get("comfy_env") or {})
         self.comfy_url = str(c.get("comfy_url") or "http://127.0.0.1:8188").rstrip("/")
         self.workflows_dir = j(c.get("workflows_dir") or "workflows")
@@ -576,6 +581,10 @@ class Queue:
         self.jobs_path = os.path.join(self.dir, "jobs.json")
         self.lock_path = os.path.join(self.dir, "gpu.lock")
         self.log_path = os.path.join(self.dir, "comfy.log")
+        self.hist_path = os.path.join(self.dir, HIST_NAME)    # one JSON line per finished job: sizes and per-phase seconds (Studio history + ETA)
+        self._hist_lock, self._hist_n, self._hist_cache = threading.Lock(), None, None
+        self.previews = {}                                     # job id -> (image bytes, content type, epoch): the newest live preview of an active job
+        self._ph = {}                                          # job id -> {"cur", "t", "acc"}: seconds spent in each phase, from the moments job["phase"] changes
         self.cond_root = os.path.join(self.dir, "cond")      # per-job conditioning hand-over folders of staged workflows
         self.lock = threading.RLock()
         self.cancel = set()
@@ -978,6 +987,7 @@ class Queue:
                 return "no such job"
             if j["state"] == "queued":
                 j["state"], j["ended"] = "cancelled", time.time()
+                self._hist_add(j)
                 self._save()
                 return "cancelled (it had not started)"
             if j["state"] in ACTIVE:
@@ -1063,11 +1073,13 @@ class Queue:
                 return                                           # the session is still starting or stopping: the job waits for it
             if self._killed():
                 nxt["state"], nxt["error"], nxt["ended"] = "failed", "KILLED: the gateway kill switch is on", time.time()
+                self._hist_add(nxt)
                 self._save()
                 return
             if nxt["id"] in self.cancel:
                 self.cancel.discard(nxt["id"])
                 nxt["state"], nxt["ended"], nxt["note"] = "cancelled", time.time(), ""
+                self._hist_add(nxt)
                 self._save()
                 return
             if sess is None:
@@ -1082,8 +1094,100 @@ class Queue:
         with self.lock:
             for j in self.jobs:
                 if j["id"] == jid:
+                    was_end = j.get("state") in TERMINAL
+                    if isinstance(kw.get("phase"), str):
+                        self._phase_mark(jid, kw["phase"], time.time())
                     j.update(kw)
+                    if kw.get("state") in TERMINAL and not was_end:
+                        self.previews.pop(jid, None)
+                        j["preview_t"] = None
+                        self._hist_add(j)
             self._save()
+
+    # -- stage-timing history (Studio): never allowed to break a job
+    def _phase_mark(self, jid, name, now):
+        """The job's phase changed to `name` at `now`: close the previous phase's stopwatch and open the new one. Call with self.lock held."""
+        ph = self._ph.setdefault(jid, {"cur": None, "t": now, "acc": {}})
+        if ph["cur"] == name:
+            return
+        if ph["cur"]:
+            ph["acc"][ph["cur"]] = ph["acc"].get(ph["cur"], 0.0) + max(0.0, now - ph["t"])
+        ph["cur"], ph["t"] = name, now
+
+    def _hist_add(self, j):
+        """Append the finished job j (terminal state already set) to stage-history.jsonl. Catches and logs everything."""
+        try:
+            end = j.get("ended") if isinstance(j.get("ended"), (int, float)) else time.time()
+            ph = self._ph.pop(j["id"], None)
+            phases = {}
+            if ph:
+                if ph["cur"]:
+                    ph["acc"][ph["cur"]] = ph["acc"].get(ph["cur"], 0.0) + max(0.0, end - ph["t"])
+                phases = {k: round(v, 1) for k, v in ph["acc"].items()}
+            p = j.get("params") or {}
+            num = lambda v: int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else None
+            rec = {"t": round(end, 1), "id": j["id"], "workflow": j.get("workflow"), "w": num(p.get("width")), "h": num(p.get("height")), "frames": num(p.get("frames")),
+                   "ok": j.get("state") == "done", "total_s": round(max(0.0, end - (j.get("started") or j.get("created") or end)), 1), "phases": phases}
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            with self._hist_lock:
+                n = self._hist_n if self._hist_n is not None else len(self._hist_lines())
+                with open(self.hist_path, "ab") as f:
+                    f.write(line.encode("utf-8"))
+                self._hist_n = n + 1
+                if self._hist_n > HIST_MAX:
+                    self._hist_trim()
+        except Exception as ex:
+            sys.stderr.write("video: stage history write failed (%r)\n" % (ex,))
+
+    def _hist_lines(self):
+        try:
+            with open(self.hist_path, "rb") as f:
+                return [l for l in f.read().decode("utf-8", "replace").splitlines() if l.strip()]
+        except OSError:
+            return []
+
+    def _hist_trim(self):
+        """Keep the newest HIST_KEEP lines: temp file + os.replace, so a crash never leaves a half file. Call with _hist_lock held."""
+        keep = self._hist_lines()[-HIST_KEEP:]
+        tmp = self.hist_path + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(("\n".join(keep) + "\n").encode("utf-8"))
+        os.replace(tmp, self.hist_path)
+        self._hist_n = len(keep)
+
+    def history_records(self):
+        """Every stored record, oldest first (bad lines skipped). Cached on the file's (mtime, size)."""
+        try:
+            st = os.stat(self.hist_path)
+        except OSError:
+            return []
+        sig = (st.st_mtime_ns, st.st_size)
+        with self._hist_lock:
+            if self._hist_cache and self._hist_cache[0] == sig:
+                return self._hist_cache[1]
+            out = []
+            for l in self._hist_lines():
+                try:
+                    r = json.loads(l)
+                    if isinstance(r, dict) and r.get("id"):
+                        out.append(r)
+                except ValueError:
+                    pass
+            self._hist_cache = (sig, out)
+            return out
+
+    def history(self, workflow=None, limit=50):
+        """(records newest first, summary): records filtered by workflow and cut to `limit`; the summary covers the whole file (or just that workflow)."""
+        recs = self.history_records()
+        sm = hist_summary(recs)
+        if workflow:
+            recs = [r for r in recs if r.get("workflow") == workflow]
+            sm = {k: v for k, v in sm.items() if k == workflow}
+        return recs[::-1][:max(1, limit)], sm
+
+    def hist_stats(self):
+        """Per-workflow summary for ETAs (cheap: cached with the records)."""
+        return hist_summary(self.history_records())
 
     def run(self, jid):
         c, e = self.cfg, self.env
@@ -1522,15 +1626,62 @@ class Queue:
             log_off = os.path.getsize(self.log_path)                      # only log text written after this point belongs to this prompt
         except OSError:
             log_off = 0
-        r = e.http("POST", c.comfy_url + "/prompt", {"prompt": graph, "client_id": "gw-" + jid}, timeout=30)
-        if r.get("node_errors"):
-            raise VideoError("ComfyUI rejected the workflow: %s" % json.dumps(r["node_errors"])[:400])
-        pid = r.get("prompt_id")
-        if not pid:
-            raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
+        stop = self._preview_start(jid)                                   # None unless comfy_preview is on
+        try:
+            r = e.http("POST", c.comfy_url + "/prompt", {"prompt": graph, "client_id": "gw-" + jid}, timeout=30)
+            if r.get("node_errors"):
+                raise VideoError("ComfyUI rejected the workflow: %s" % json.dumps(r["node_errors"])[:400])
+            pid = r.get("prompt_id")
+            if not pid:
+                raise VideoError("ComfyUI did not accept the job: %s" % json.dumps(r)[:300])
+            with self.lock:
+                self.own_pids.add(pid)
+            return self._wait(jid, pid, span, expect_s, deadline, log_off)
+        finally:
+            if stop is not None:
+                stop.set()
+
+    # -- live latent previews (comfy_preview): ComfyUI pushes them only as binary frames on its websocket /ws?clientId=gw-<job>
+    def _preview_start(self, jid):
+        c = self.cfg
+        if not c.comfy_preview or not c.comfy_url.startswith("http://"):
+            return None
+        stop = threading.Event()
+        threading.Thread(target=self._preview_loop, args=(jid, stop), name="comfy-preview", daemon=True).start()
+        return stop
+
+    def _preview_loop(self, jid, stop):
+        """Connect to ComfyUI's websocket and keep the newest preview image of this job in self.previews until `stop`. Never raises."""
+        last_set = 0.0
+        while not stop.is_set():
+            sock = None
+            try:
+                sock, buf = ws_connect(self.cfg.comfy_url, "gw-" + jid)
+                for op, data in ws_messages(sock, buf, stop):
+                    img = preview_image(data) if op == 2 else None
+                    if img is None:
+                        continue
+                    now = time.time()
+                    self.previews[jid] = (img[0], img[1], now)
+                    if now - last_set >= 1.0:                             # each _set rewrites jobs.json: at most once a second
+                        last_set = now
+                        self._set(jid, preview_t=round(now, 1))
+            except Exception as ex:
+                if not stop.is_set():
+                    sys.stderr.write("video: preview socket for %s: %r\n" % (jid, ex))
+            finally:
+                if sock is not None:
+                    try:
+                        sock.close()
+                    except OSError:
+                        pass
+            stop.wait(2.0)
+
+    def preview_get(self, jid):
+        """(image bytes, content type, epoch) of an active job's newest preview, or None."""
         with self.lock:
-            self.own_pids.add(pid)
-        return self._wait(jid, pid, span, expect_s, deadline, log_off)
+            j = next((x for x in self.jobs if x["id"] == jid), None)
+            return self.previews.get(jid) if j and j["state"] in ACTIVE else None
 
     # -- two-process split
     def _cond_dir(self, jid):
@@ -1838,6 +1989,140 @@ def parse_progress(text):
         "saving": ("Saving", PROG_SAVING),
     }[ph]
     return {"phase": ph, "label": r[0], "progress": round(float(r[1]), 1), "step": step, "eta_s": eta, "s_per_it": spi}
+
+
+_WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+WS_MAX_MSG = 8 * 2 ** 20
+
+
+def ws_connect(url, client_id, timeout=5.0):
+    """RFC 6455 client handshake over a raw socket (http:// only). Returns (socket, bytes already read after the headers)."""
+    u = urllib.parse.urlparse(url)
+    host, port = u.hostname, u.port or 80
+    sock = socket.create_connection((host, port), timeout)
+    try:
+        key = base64.b64encode(os.urandom(16))
+        sock.sendall(("GET /ws?clientId=%s HTTP/1.1\r\nHost: %s:%d\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n"
+                      % (urllib.parse.quote(client_id, safe=""), host, port, key.decode())).encode("ascii"))
+        buf = b""
+        while b"\r\n\r\n" not in buf:
+            d = sock.recv(4096)
+            if not d or len(buf) > 65536:
+                raise VideoError("websocket handshake failed")
+            buf += d
+        head, _, rest = buf.partition(b"\r\n\r\n")
+        if b" 101 " not in head.split(b"\r\n", 1)[0] or base64.b64encode(hashlib.sha1(key + _WS_GUID).digest()).lower() not in head.lower():
+            raise VideoError("websocket upgrade refused")
+        return sock, rest
+    except BaseException:
+        sock.close()
+        raise
+
+
+def ws_messages(sock, buf=b"", stop=None):
+    """Yield (opcode, payload) for each complete message (1 text, 2 binary; continuation frames are joined). Answers ping with pong, ends on close or EOF
+    or when `stop` is set. Server frames are unmasked (RFC 6455); the pong is masked as a client must."""
+    sock.settimeout(1.0)
+    msg, mop = b"", None
+
+    def need(n):
+        nonlocal buf
+        while len(buf) < n:
+            if stop is not None and stop.is_set():
+                return False
+            try:
+                d = sock.recv(65536)
+            except socket.timeout:
+                continue
+            if not d:
+                return False
+            buf += d
+        return True
+
+    while need(2):
+        b0, b1 = buf[0], buf[1]
+        n, off = b1 & 0x7F, 2
+        if n == 126:
+            if not need(4): return
+            n, off = struct.unpack(">H", buf[2:4])[0], 4
+        elif n == 127:
+            if not need(10): return
+            n, off = struct.unpack(">Q", buf[2:10])[0], 10
+        if n > WS_MAX_MSG: return
+        mask = b""
+        if b1 & 0x80:
+            if not need(off + 4): return
+            mask, off = buf[off:off + 4], off + 4
+        if not need(off + n): return
+        pl, buf = buf[off:off + n], buf[off + n:]
+        if mask:
+            pl = bytes(x ^ mask[i % 4] for i, x in enumerate(pl))
+        op = b0 & 0x0F
+        if op == 8:
+            return
+        if op == 9:                                                   # ping -> pong with the same payload
+            m = os.urandom(4)
+            sock.sendall(bytes([0x8A, 0x80 | len(pl[:125])]) + m + bytes(x ^ m[i % 4] for i, x in enumerate(pl[:125])))
+            continue
+        if op == 10:
+            continue
+        if op in (1, 2):
+            msg, mop = pl, op
+        elif op == 0 and mop is not None:
+            msg += pl
+        if len(msg) > WS_MAX_MSG: return
+        if b0 & 0x80 and mop is not None:
+            out, o2, msg, mop = msg, mop, b"", None
+            yield o2, out
+
+
+def preview_image(data):
+    """(bytes, content type) of the JPEG or PNG inside a ComfyUI binary frame (event type, image type and, for event 4, a metadata block come first), or None."""
+    head = data[:4096]
+    c = [(i, t) for i, t in ((head.find(b"\xff\xd8\xff"), "image/jpeg"), (head.find(b"\x89PNG\r\n\x1a\n"), "image/png")) if i >= 0]
+    if not c or len(data) < 64:
+        return None
+    i, t = min(c)
+    return data[i:], t
+
+
+def _median(xs):
+    xs = sorted(xs)
+    n = len(xs)
+    return None if not n else (xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2.0)
+
+
+def hist_summary(records, last=HIST_LAST):
+    """{workflow: {"n", "median_total_s", "median_phase_s": {phase: s}, "median_px_frames"}} from history records (oldest first). Only ok records
+    count, and only the newest `last` of them per workflow. median_px_frames is width*height*frames (0 when no record has all three)."""
+    by = {}
+    for r in records:
+        if isinstance(r, dict) and r.get("ok") is True and r.get("workflow") and isinstance(r.get("total_s"), (int, float)) and not isinstance(r.get("total_s"), bool):
+            by.setdefault(r["workflow"], []).append(r)
+    out = {}
+    for wf, rs in by.items():
+        rs = rs[-last:]
+        phs = {}
+        for r in rs:
+            for k, v in (r.get("phases") or {}).items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    phs.setdefault(k, []).append(float(v))
+        px = [r["w"] * r["h"] * r["frames"] for r in rs if all(isinstance(r.get(k), int) and r[k] > 0 for k in ("w", "h", "frames"))]
+        out[wf] = {"n": len(rs), "median_total_s": round(_median([float(r["total_s"]) for r in rs]), 1),
+                   "median_phase_s": {k: round(_median(v), 1) for k, v in sorted(phs.items())}, "median_px_frames": int(_median(px)) if px else 0}
+    return out
+
+
+def hist_eta(stats, w, h, frames, elapsed=None):
+    """ETA seconds from a workflow's history summary: median_total_s scaled by this job's px-frames over the median's, clamped to 0.5x-3x of the
+    median, minus `elapsed` for a job already running (never below 0). None when the history has fewer than 2 ok records."""
+    if not stats or stats.get("n", 0) < 2 or not stats.get("median_total_s", 0) > 0:
+        return None
+    med, mpx = float(stats["median_total_s"]), stats.get("median_px_frames") or 0
+    px = w * h * frames if all(isinstance(x, (int, float)) and not isinstance(x, bool) and x > 0 for x in (w, h, frames)) else 0
+    total = med * (px / float(mpx)) if px and mpx else med
+    total = max(0.5 * med, min(3.0 * med, total))
+    return round(max(0.0, total - (elapsed or 0.0)), 1)
 
 
 def est_minutes(wf):

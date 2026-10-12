@@ -29,7 +29,7 @@ Enter the PIN once per device; that device then stays logged in for 90 days whil
 - Device-minted sessions are flagged. They may use everything (Studio, Code tab, stats, video jobs, mode) except `POST /approvals/<id>/approve|allow|deny` and `POST /approvals/devices/revoke`, which answer `401 {"error":"enter your PIN to approve actions","pin_required":true}`; the approvals page then shows the PIN box.
 - `GET /approvals/devices` (any session): `[{id (first 8 hex of the hash), ip, created, expires, last_seen, ua, current}]`. `POST /approvals/devices/revoke {id}` (PIN session). `POST /approvals/devices/forget` (any session, CSRF header): removes this device's entry and clears `gwa` and `gwd` (`Max-Age=0`).
 - `GET /approvals/pending.json` adds `X-Device-Until` (epoch seconds) while the session is device-minted; the page shows "This device is remembered until <date> - Forget".
-- Studio's own PIN gate (`studio/index.html`) posts only `{pin}`, so it does not request `gwd`; a `gwd` set from the approvals page works on Studio too (same origin, `Path=/`).
+- Studio's own PIN gate (`studio/index.html`) posts `{pin, remember}`, so it can request `gwd` itself; a `gwd` set from the approvals page works on Studio too (same origin, `Path=/`).
 
 Config (gateway.json, all optional):
 
@@ -182,3 +182,84 @@ interpolate across it. Colours come from CSS custom properties so light and dark
   SSE does **not** work through it; reach Studio's stream through a direct `tailscale serve` mapping (8093 or the 8096 identity listener) or
   fall back to polling.
 - Sampler budget: one daemon thread, < 0.5 % CPU, < 5 MB. It reads `status.json` only on mtime change and `running.json` likewise.
+
+## M2 (back end)
+
+Additive: nothing in M1 changes shape. Tiers: every route below is `ts` or `pin` except `/api/dev/info` (PIN only).
+
+### GPU metrics (every metric point: `m`, `hello.points`, `/api/stats` fast and slow)
+
+`fields` gains two names at the end: `[..., "tps", "gpu_util", "gpu_mem_gb"]`.
+
+| Field | Meaning |
+|-------|---------|
+| `gpu_util` | float 0-100, one decimal. PDH `\GPU Engine(*)\Utilization Percentage`: instances summed per (luid, engtype), then the max over the 3D / Compute / Copy / VideoDecode sums (busiest engine on the busiest adapter) |
+| `gpu_mem_gb` | GiB, two decimals. Max over adapters of PDH `\GPU Adapter Memory(*)\Dedicated Usage` |
+
+Both are `null` off Windows, before the first two collections (rate counters need two samples), and after any error. Three errors in a row disable the
+reader for the life of the process (one line on stderr). ctypes only, no subprocess; one query opened once and collected once per sampler tick (so never
+while the sampler is parked); the wildcard counters are re-added every 60 s (the new pair is primed beside the old one, so there is no null gap).
+Slow ring: the mean of each, nulls skipped.
+
+### Stage-timing history
+
+When a video job reaches `done`, `failed` or `cancelled` (including cancelled while queued) one line is appended to `<state_dir>/video/stage-history.jsonl`:
+
+```json
+{"t": 1760320400.2, "id": "5ee5ee01", "workflow": "ltx_t2v", "w": 768, "h": 512, "frames": 97, "ok": true, "total_s": 312.4, "phases": {"encode": 6.1, "load": 22.0, "stage1": 140.2}}
+```
+
+`t` = end epoch. `total_s` = end - start (end - created for a job that never started). `ok` is false for error and cancel. `phases` are seconds spent in each
+`phase` value (the phase strip), measured from the moments the job's `phase` changes; the last phase runs to the end. Jobs that never report a phase
+(two-process staged workflows, which have no log-parsed phases) have `phases: {}`. `w`/`h`/`frames` are `null` when the job did not carry them. The file is
+capped: when it passes 600 lines it is rewritten atomically (temp + replace) to the newest 500. A failed write is logged to stderr and never touches the job.
+
+`GET /approvals/studio/api/history?workflow=<name>&limit=<n>` (limit 1..200, default 50; out-of-range values are clamped, junk gives 50):
+
+```json
+{"v": 1, "records": [ /* newest first, optionally one workflow, failed jobs included */ ],
+ "summary": {"ltx_t2v": {"n": 12, "median_total_s": 301.5, "median_phase_s": {"encode": 6.0, "stage1": 139.0}, "median_px_frames": 38076416}}}
+```
+
+`summary` uses ok records only, the newest 50 ok records per workflow, over the whole file (not cut by `limit`); with `workflow=` it holds just that workflow.
+`median_px_frames` is the median of w*h*frames over those records that carry all three (0 when none do). Medians of an even count are the mean of the middle two.
+
+### ETA from history
+
+Public jobs (`/api/jobs`, stream `job` events and `hello.jobs`, `/api/status.active`) gain `eta_source`: `"live"` (eta_s from the progress parser, as before),
+`"history"`, or `null`. `"est"` is reserved for ETAs derived from `est_minutes`; the server derives none, so the page keeps computing that itself and should
+show it when `eta_source` is `null`.
+
+While a job is `queued`, `waiting`, `starting` or `running` and has no live ETA, and its workflow has at least 2 ok history records:
+`eta_s = median_total_s * clamp(job w*h*frames / median_px_frames, 0.5, 3)`, minus the seconds since `started` for a job that has started (never below 0).
+If the job's size is unknown the median itself is used. Finished jobs get no history ETA. With no usable history `eta_s` is absent, exactly as before.
+
+### GET /approvals/studio/api/dev/info (PIN only)
+
+PIN-only through `studio.PIN_ONLY` (`^(GET|POST) /approvals/studio/api/dev(/.*)?$`) and by not being in the ts-tier route list: a `ts` session gets `401`.
+Read-only.
+
+```json
+{"v": 1, "comfy": {"cmd": ["python", "main.py", "--listen", "--preview-method", "latent2rgb"], "env": {"CUDA_VISIBLE_DEVICES": "0", "HF_TOKEN": "***"}, "log_tail": ["..."]},
+ "gateway": {"version": "c296814", "log_tail": null}, "governor": {"profile": "MAX", "mode": "AUTO"}, "llm": {"model": "qwen3-35b"}}
+```
+
+- `comfy.cmd` / `comfy.env`: the effective launch config the queue uses (`video.comfy_cmd`, plus the preview flag when enabled; `video.comfy_env`).
+- `comfy.log_tail`: last 200 lines of `<state_dir>/video/comfy.log` (tqdm `\r` updates count as lines, ANSI colours removed), `null` if unreadable.
+- `gateway.version`: first line of a `VERSION` file next to the code (`gateway/VERSION`), else `null`. `gateway.log_tail`: last 200 lines of `gateway.log` in the
+  state dir or next to the code, else `null` (the gateway writes only to stderr today, so this is `null` unless its output is redirected there).
+- `governor`: `profile`, `mode` from `public/status.json`; `llm.model`: `id` from governor `running.json`; `null` when missing.
+- Redaction: any env key, config key or argument name matching `(?i)key|token|secret|pass|pin|auth|cookie` has its value replaced by `"***"` (`--api-key X`,
+  `--api-key=X`, env `HF_TOKEN`). In every log line and value, anything matching `(?i)(bearer\s+\S+|sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9]{8,}|[A-Za-z0-9_-]{32,})`
+  and the value of any `name=value` / `name: value` whose name matches the key pattern (query strings included) becomes `***`.
+
+### Live latent previews (built)
+
+Off by default. Config `video.comfy_preview: true` appends `--preview-method latent2rgb` to `comfy_cmd` (unless a `--preview-method` is already there).
+ComfyUI sends previews only as binary frames on its websocket (`/ws?clientId=gw-<job id>`, the same client id the queue submits prompts with), so the gateway
+runs a minimal stdlib websocket client (raw-socket handshake, frame reader, ping/pong) for the duration of each submitted graph and keeps the newest JPEG or
+PNG per active job in memory (frames of ComfyUI event 1 and event 4 are both understood). `http://` ComfyUI URLs only.
+
+- Job field `preview_t`: epoch (1 decimal) of the newest preview while the job is active, else `null`. Present on every public job; it changes at most once a second.
+- `GET /approvals/studio/api/jobs/<id>/preview` (tier `ts` or `pin`): `200` with the image (`Content-Type: image/jpeg` or `image/png`), `204` with an empty body when
+  there is none (unknown job, not active, feature off). The page should append `?t=<preview_t>` to defeat caching. The preview is dropped when the job ends.

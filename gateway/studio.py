@@ -23,6 +23,9 @@ security headers and the Tailscale publishing already done by tts_server (it app
   GET  /approvals/studio/api/stream            Server-Sent Events: hello (snapshot + ring backfill), m (metric point), job, sys, ": ping" every 15 s
                                                (?backfill=0..900 points, default 900). At most 4 streams at once (429). Contracts: docs/STUDIO-P2-CONTRACTS.md
   GET  /approvals/studio/api/stats             both metric rings (fast 900 x 1 s, slow 1440 x 60 s) as JSON
+  GET  /approvals/studio/api/history           ?workflow=&limit=1..200 (default 50): finished-job stage timings, newest first, plus per-workflow medians
+  GET  /approvals/studio/api/jobs/<id>/preview newest live latent preview of an active job (image/jpeg or image/png; 204 when none; needs video.comfy_preview)
+  GET  /approvals/studio/api/dev/info          PIN only, read-only: effective ComfyUI command and env, log tails, governor profile, model (secrets redacted)
 
 Access tiers (docs/STUDIO-P2-CONTRACTS.md): every API route needs the PIN session (cookie gwa, tier "pin") or, only when config
 studio.ts_identity.enabled is true and only on the loopback identity listener, a Tailscale-identity session (cookie gws, tier "ts"), which may
@@ -89,7 +92,9 @@ def _j(code, obj):
     return code, json.dumps(obj, separators=(",", ":")), "application/json"
 
 
-def _public_job(j):
+def _public_job(j, hist=None, now=None):
+    """The browser's view of a job. hist = video.Queue.hist_stats() (per-workflow medians of finished jobs): while a job is queued or has no live ETA,
+    and its workflow has at least 2 ok history records, eta_s comes from history and eta_source says "history"."""
     d = {"id": j["id"], "workflow": j.get("workflow"), "state": j.get("state"), "note": j.get("note", ""), "created": j.get("created"),
          "started": j.get("started"), "ended": j.get("ended"), "seconds": j.get("seconds"), "error": j.get("error", ""),
          "params": {k: v for k, v in (j.get("params") or {}).items()}, "has_image": bool(j.get("files")), "fav": bool(j.get("fav"))}
@@ -97,7 +102,16 @@ def _public_job(j):
     if isinstance(j.get("step"), str) and re.match(r"^\d{1,4}/\d{1,4}$", j["step"]): d["step"] = j["step"]                      # live sampler step, e.g. "3/8"
     for k in ("autofit", "fit_note", "prompt_notes"):                                                                            # auto-fit size and prompt clean-up notes
         if j.get(k): d[k] = j[k]
-    if isinstance(j.get("eta_s"), (int, float)) and not isinstance(j.get("eta_s"), bool) and 0 <= j["eta_s"] < 86400: d["eta_s"] = round(float(j["eta_s"]), 1)
+    d["eta_source"] = None                                                     # "live" (progress parser), "history" (past runs of this workflow) or null; "est" is reserved for est_minutes-derived ETAs (the server derives none)
+    if isinstance(j.get("eta_s"), (int, float)) and not isinstance(j.get("eta_s"), bool) and 0 <= j["eta_s"] < 86400:
+        d["eta_s"], d["eta_source"] = round(float(j["eta_s"]), 1), "live"
+    elif hist and j.get("state") in ("queued",) + video.ACTIVE:
+        p = j.get("params") or {}
+        t = time.time() if now is None else now
+        el = max(0.0, t - j["started"]) if j.get("state") in ("starting", "running") and isinstance(j.get("started"), (int, float)) else None
+        e = video.hist_eta(hist.get(j.get("workflow")), p.get("width"), p.get("height"), p.get("frames"), el)
+        if e is not None and 0 <= e < 86400: d["eta_s"], d["eta_source"] = e, "history"
+    d["preview_t"] = round(float(j["preview_t"]), 1) if j.get("state") in video.ACTIVE and isinstance(j.get("preview_t"), (int, float)) and not isinstance(j.get("preview_t"), bool) else None
     if isinstance(j.get("phase"), str) and re.match(r"^[a-z0-9_]{1,16}$", j["phase"]): d["phase"] = j["phase"]
     if isinstance(j.get("finish"), dict):
         f = j["finish"]
@@ -213,6 +227,51 @@ def last_speed(jobs):
     return None
 
 
+# ---------- /api/dev/info: read-only diagnostics, every secret blanked ----------
+SECRET_KEY = re.compile(r"(?i)key|token|secret|pass|pin|auth|cookie")
+_LOG_SECRET = re.compile(r"(?i)(bearer\s+\S+|sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9]{8,}|[A-Za-z0-9_-]{32,})")
+_KV_SECRET = re.compile(r"(?i)([\w.-]*(?:key|token|secret|pass|pin|auth|cookie)[\w.-]*)(\s*[=:]\s*)(?!\*\*\*)([^&\s\"',;]+)")      # name=value in a query string, env line or JSON-ish text
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+LOG_LINES, LOG_TAIL_BYTES = 200, 256 * 1024
+
+
+def redact_line(text):
+    """A log line with bearer tokens, sk-/ghp_ keys, 32+ character token-like runs and the values of key/token/secret/pass/pin/auth/cookie names replaced by ***."""
+    t = _LOG_SECRET.sub("***", str(text))                       # "Bearer x" first, so "Authorization: Bearer x" is not read as authorization=Bearer
+    return _KV_SECRET.sub(lambda m: m.group(1) + m.group(2) + "***", t)
+
+
+def redact_env(env):
+    return {str(k): ("***" if SECRET_KEY.search(str(k)) else redact_line(v)) for k, v in (env or {}).items()}
+
+
+def redact_cmd(cmd):
+    """Argument list with secret values blanked: `--api-key=x` -> `--api-key=***`, `--token x` -> `--token ***`."""
+    out, hide = [], False
+    for a in cmd or []:
+        a = str(a)
+        if hide:
+            out.append("***"); hide = False
+        elif a.startswith("-") and SECRET_KEY.search(a.split("=", 1)[0]):
+            if "=" in a: out.append(a.split("=", 1)[0] + "=***")
+            else: out.append(a); hide = True
+        else:
+            out.append(redact_line(a))
+    return out
+
+
+def log_tail(path, n=LOG_LINES):
+    """Last n lines of a text log (tqdm carriage-return updates count as lines, colours removed, each line redacted and cut to 400 chars); None when unreadable."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2); size = f.tell(); f.seek(max(0, size - LOG_TAIL_BYTES))
+            raw = f.read().decode("utf-8", "replace")
+    except (OSError, TypeError, ValueError):
+        return None
+    lines = [l for l in re.split(r"[\r\n]+", _ANSI.sub("", raw)) if l.strip()]
+    return [redact_line(l)[:400] for l in lines[-n:]]
+
+
 def _metrics_cfg(cfg):
     m = ((cfg or {}).get("studio") or {}).get("metrics") or {}
     return {"gov_status": str(m.get("governor_status") or studio_metrics.GOV_STATUS), "gov_running": str(m.get("governor_running") or studio_metrics.GOV_RUNNING)}
@@ -249,7 +308,8 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
     def _live_jobs():
         out = q.recent(40)
         have = {j["id"] for j in out}
-        return [_public_job(j) for j in out + [f for f in q.favourites() if f["id"] not in have]]
+        hs = q.hist_stats()
+        return [_public_job(j, hs) for j in out + [f for f in q.favourites() if f["id"] not in have]]
 
     def _live_sys():
         """The parts of /api/system that change on their own (no counters that tick every second, so "sys" fires only on real changes)."""
@@ -294,6 +354,49 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
         s = sampler_get(); s.touch()
         return _j(200, s.snapshot())
 
+    def history(req):
+        bad = need(req)
+        if bad: return bad
+        qs = {k: (v[0] if isinstance(v, list) and v else v) for k, v in req["query"].items()}
+        try: n = int(qs.get("limit", 50))
+        except (TypeError, ValueError): n = 50
+        wf = str(qs.get("workflow") or "")[:64] or None
+        recs, sm = q.history(wf, max(1, min(200, n)))
+        return _j(200, {"v": 1, "records": recs, "summary": sm})
+
+    gov_files = {}
+
+    def _gov(kind):
+        m = _metrics_cfg(cfg)
+        f = gov_files.get(kind)
+        if f is None:
+            f = gov_files[kind] = studio_metrics.JsonFile(m["gov_status"] if kind == "status" else m["gov_running"])
+        return f.get() or {}
+
+    def _str(v):
+        return v if isinstance(v, str) else None
+
+    def dev_info(req):
+        if not (req.get("authed") or req.get("tier") == "pin"): return _j(401, {"error": "enter your PIN to use developer info"})
+        st, run = _gov("status"), _gov("running")
+        ver = None
+        try:
+            with open(os.path.join(here, "VERSION"), encoding="utf-8-sig") as f: ver = redact_line(f.readline().strip())[:40] or None
+        except OSError: pass
+        glog = next((t for t in (log_tail(p) for p in (os.path.join(os.path.dirname(q.dir), "gateway.log"), os.path.join(here, "gateway.log"))) if t is not None), None)
+        return _j(200, {"v": 1, "comfy": {"cmd": redact_cmd(vc.comfy_cmd), "env": redact_env(vc.comfy_env), "log_tail": log_tail(q.log_path)},
+                        "gateway": {"version": ver, "log_tail": glog}, "governor": {"profile": _str(st.get("profile")), "mode": _str(st.get("mode"))},
+                        "llm": {"model": _str(run.get("id")) or _str(run.get("model"))}})
+
+    def preview(req):
+        bad = need(req)
+        if bad: return bad
+        m = re.match(r"^" + T + r"/api/jobs/([0-9a-f]{8})/preview$", req["path"])
+        if not m: return _j(404, {"error": "not found"})
+        pv = q.preview_get(m.group(1))
+        if not pv: return 204, b"", "image/jpeg"
+        return 200, pv[0], pv[1]
+
     def shell(req):
         try:
             with open(index, "rb") as f:
@@ -322,7 +425,8 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
         if bad: return bad
         out = q.recent(40)
         have = {j["id"] for j in out}
-        return _j(200, [_public_job(j) for j in out + [f for f in q.favourites() if f["id"] not in have]])    # starred clips stay listed once newer ones push them out
+        hs = q.hist_stats()
+        return _j(200, [_public_job(j, hs) for j in out + [f for f in q.favourites() if f["id"] not in have]])    # starred clips stay listed once newer ones push them out
 
     def status(req):
         bad = need(req)
@@ -338,7 +442,7 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
         except Exception:
             pass
         owner = "video" if (active and active[0]["state"] in ("starting", "running")) or os.path.exists(q.lock_path) else "llm"
-        return _j(200, {"gpu": owner, "llm": llm, "active": _public_job(active[0]) if active else None, "queued": len(queued) + len(
+        return _j(200, {"gpu": owner, "llm": llm, "active": _public_job(active[0], q.hist_stats()) if active else None, "queued": len(queued) + len(
             [j for j in active if j["state"] == "waiting"]), "now": time.time(), "enabled": vc.enabled,
                                 "ntfy": bool(vc.ntfy_url and vc.ntfy_topic)})                 # on/off only: never the server address or topic
 
@@ -549,7 +653,8 @@ def routes(q, vc, here, env=None, cfg=None, sampler=None):
              "GET " + T + "/api/clip/*": clip, "POST " + T + "/api/generate": poked(generate), "POST " + T + "/api/cancel": poked(cancel),
              "POST " + T + "/api/delete": poked(delete), "POST " + T + "/api/upload": upload, "POST " + T + "/api/assist": assist,
              "POST " + T + "/api/fav": poked(fav), "POST " + T + "/api/rerun": poked(rerun), "GET " + T + "/api/recommend": recommend, "POST " + T + "/api/finish": poked(finish), "GET " + T + "/api/system": system, "POST " + T + "/api/mode": poked(mode),
-             "POST " + T + "/api/comfy": poked(comfy), "GET " + T + "/api/stream": stream, "GET " + T + "/api/stats": stats}
+             "POST " + T + "/api/comfy": poked(comfy), "GET " + T + "/api/stream": stream, "GET " + T + "/api/stats": stats,
+             "GET " + T + "/api/history": history, "GET " + T + "/api/dev/info": dev_info, "GET " + T + "/api/jobs/*": preview}
     table.update({"GET %s/%s" % (T, n): pwa_file(n) for n in PWA_FILES})
     return table, {"POST " + T + "/api/upload": MAX_UPLOAD + 4096}
 
