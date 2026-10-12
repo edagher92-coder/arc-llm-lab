@@ -1,0 +1,109 @@
+{
+  "_notes": [
+    "All objects are created PAUSED by `meta_ads_api.py launch --live`. Nothing spends until you ACTIVATE in Ads Manager.",
+    "Set page_id (and instagram_actor_id) first: run `python3 meta_ads_api.py pages`.",
+    "Targeting here is Sydney + 50km + age 28-60. Layer interest targeting and the customer-list Custom Audience (Service ad) in Ads Manager before activating.",
+    "image_url MUST be a public HTTPS photo of the REAL Snow Flow machine. The Canva mockups were rejected — they are not the real machines. Two ways to set each: (a) open the product on snowflow.com.au, right-click the product photo, Copy image address (gives a cdn.shopify.com URL Meta can fetch), paste it here; or (b) commit the real photo to automation/media/ and use its jsDelivr URL. Real product pages: SFX3 (slush, $4,100), D200 (soft serve, $5,500), F2-E (pump, $23,995) on snowflow.com.au. The launcher refuses to run --live while any image_url still says REPLACE.",
+    "Prices: slush $2,000 (SFG1) to $4,100 (SFX3); soft serve $5,500 (D200) to $23,995 (F2-E). The $23,995 F2-E is above the $20K excl-GST write-off cap — keep it out of EOFY-deduction claims.",
+    "Range ad (Active 1) is a CAROUSEL: card 1 SFX3 (triple slush), card 2 F2-E (flagship pump), card 3 SFG1 (entry, from $2,000). Set each card's image_url to that machine's real cdn.shopify.com photo URL. Pre-Summer ad uses an SFX3 photo; Service ad (the winter LEAD) uses a real service/condenser photo.",
+    "WINTER 2026 PIVOT (29 Jun): EOFY ad retired — the $20K write-off dies 30 Jun, reverts to $1K from 1 Jul, so all 'write it off' language is gone. Set is now Service & Repair (LEAD, $12/day), The Range (evergreen, $8/day), Pre-Summer Lead Time (buy-ahead + hire, $5/day) = $25/day total. Objective stays Engagement + CONVERSATIONS optimization (Click-to-Message → Sam qualifies). Full creative + visual specs: ads/winter-2026-adset.md. Targeting/budget/measurement logic: ads/corrected-ad-logic.md. Activate 1 Jul once META_ADS_TOKEN is refreshed (the secret is currently UNSET — Actions runs fail)."
+  ],
+  "ad_account": "act_179081790",
+  "page_id": "REPLACE_WITH_SNOWFLOW_PAGE_ID",
+  "instagram_actor_id": "REPLACE_WITH_SNOWFLOW_IG_ID_OR_REMOVE",
+  "campaigns": [
+    {
+      "name": "Snowflow · Active · Messages · Winter 2026",
+      "objective": "OUTCOME_ENGAGEMENT",
+      "special_ad_categories": [],
+      "adsets": [
+        {
+          "name": "Active 1 · The Range (DM lock-in)",
+          "daily_budget": 8,
+          "billing_event": "IMPRESSIONS",
+          "optimization_goal": "CONVERSATIONS",
+          "destination_type": "MESSENGER",
+          "targeting": {
+            "geo_locations": { "custom_locations": [{ "latitude": -33.8688, "longitude": 151.2093, "radius": 50, "distance_unit": "kilometer" }] },
+            "age_min": 28,
+            "age_max": 60
+          },
+          "ads": [
+            {
+              "name": "Active 1 · Range DM (carousel)",
+              "primary_text": "A machine for every counter and every budget — $2,000 to $23,995. Slush. Soft serve. Froyo. Açaí. Fairy floss. Popcorn. Aussie-made, built for real venue volume, backed by an in-house service team and 16 years on the ground in Sydney. The trick is matching the machine to your counter space and how much you'll actually pour — that's a conversation, not a checkout button. Message us your space and what you want to serve, and we'll match the full range to you. www.snowflow.com.au",
+              "cta": "MESSAGE_PAGE",
+              "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=winter2026&utm_content=ad-2-range",
+              "cards": [
+                {
+                  "headline": "F2-E pump",
+                  "description": "Soft serve · froyo · açaí · $23,995",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=1779074484",
+                  "link": "https://www.snowflow.com.au/collections/acai-frozen-yoghurt-soft-serve/products/f2-e?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-f2e"
+                },
+                {
+                  "headline": "SFX3 triple slush",
+                  "description": "3 bowls · top slush · $4,100",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=1768453898",
+                  "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-sfx3"
+                },
+                {
+                  "headline": "SFG1 slush",
+                  "description": "Entry single-bowl · from $2,000",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/5-scaled.webp?v=1756711823",
+                  "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-sfg1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Active 2 · Pre-Summer Lead Time (buy-ahead + hire)",
+          "daily_budget": 5,
+          "billing_event": "IMPRESSIONS",
+          "optimization_goal": "CONVERSATIONS",
+          "destination_type": "MESSENGER",
+          "targeting": {
+            "geo_locations": { "custom_locations": [{ "latitude": -33.8688, "longitude": 151.2093, "radius": 50, "distance_unit": "kilometer" }] },
+            "age_min": 28,
+            "age_max": 60
+          },
+          "ads": [
+            {
+              "name": "Active 2 · Pre-Summer DM",
+              "primary_text": "The venues serving slush on day one of summer bought their machine in winter. When the heat hits, everyone orders at once — and install and lead times blow out right when you need the machine on the counter, not in transit. The quiet season is when you skip the queue. Lock in now, get installed and trained while it's slow, and you're pouring before your competitors have even ordered. Full range, $2,000 to $23,995, matched to your space. www.snowflow.com.au",
+              "headline": "Buy in winter, pour in summer",
+              "description": "Beat the summer lead times",
+              "cta": "MESSAGE_PAGE",
+              "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=winter2026&utm_content=ad-3-presummer",
+              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=1768453898"
+            }
+          ]
+        },
+        {
+          "name": "Active 3 · Service & Repair (winter LEAD)",
+          "daily_budget": 12,
+          "billing_event": "IMPRESSIONS",
+          "optimization_goal": "CONVERSATIONS",
+          "destination_type": "MESSENGER",
+          "targeting": {
+            "geo_locations": { "custom_locations": [{ "latitude": -33.8688, "longitude": 151.2093, "radius": 40, "distance_unit": "kilometer" }] },
+            "age_min": 28,
+            "age_max": 60
+          },
+          "ads": [
+            {
+              "name": "Active 3 · Service DM",
+              "primary_text": "Winter is the cheap window to service your machine — and the smartest venues use it. A blocked condenser doesn't fail in July. It fails on the hottest Saturday in January, mid-rush, with a queue out the door. A $20k machine, dead, on its biggest day. We strip down, clean and service every brand — not just ours — right across Sydney metro. Book now while it's quiet and you're ready before the heat. Service is a deductible running expense (info only — see your accountant). www.snowflow.com.au",
+              "headline": "Service before the rush",
+              "description": "Every brand · Sydney metro",
+              "cta": "MESSAGE_PAGE",
+              "link": "https://www.snowflow.com.au/services?utm_source=meta&utm_medium=cpc&utm_campaign=winter2026&utm_content=ad-1-service",
+              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=1779074484"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

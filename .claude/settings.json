@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Skill",
+      "mcp__Claude_Code_Remote__create_trigger",
+      "mcp__Claude_Code_Remote__send_later"
+    ]
+  },
+  "model": "claude-opus-5",
+  "effortLevel": "high",
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/tools/claude_status_line.py",
+    "refreshInterval": 10
+  },
+  "autoCompactEnabled": true,
+  "autoCompactWindow": 150000,
+  "fallbackModel": [
+    "haiku"
+  ],
+  "enableAllProjectMcpServers": false,
+  "extraKnownMarketplaces": {
+    "hq-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "edagher92-coder/Claude-code-Agents"
+      },
+      "autoUpdate": true
+    },
+    "wshobson-agents": {
+      "source": {
+        "source": "github",
+        "repo": "wshobson/agents"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true,
+    "agent-sdk-dev@claude-plugins-official": true,
+    "mcp-server-dev@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "playground@claude-plugins-official": false,
+    "explanatory-output-style@claude-plugins-official": false,
+    "learning-output-style@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "snowflow-hq@hq-marketplace": true,
+    "hq-playbooks@hq-marketplace": true,
+    "ai-specialists@hq-marketplace": true,
+    "impeccable@hq-marketplace": true,
+    "community-ai-agent-tooling@hq-marketplace": false,
+    "community-business-ops@hq-marketplace": false,
+    "community-customer-support@hq-marketplace": false,
+    "community-data-analytics@hq-marketplace": false,
+    "community-design-creative@hq-marketplace": false,
+    "community-dev-engineering@hq-marketplace": false,
+    "community-devops-infra@hq-marketplace": false,
+    "community-education-training@hq-marketplace": false,
+    "community-email-newsletters@hq-marketplace": false,
+    "community-finance-invoicing@hq-marketplace": false,
+    "community-hr-recruiting@hq-marketplace": false,
+    "community-legal-regulated@hq-marketplace": false,
+    "community-marketing-content@hq-marketplace": false,
+    "community-other@hq-marketplace": false,
+    "community-sales-crm@hq-marketplace": false,
+    "community-security-research@hq-marketplace": false,
+    "community-seo-web@hq-marketplace": false,
+    "community-social-media@hq-marketplace": false,
+    "community-video-audio-media@hq-marketplace": false,
+    "community-writing-editing@hq-marketplace": false,
+    "watch@hq-marketplace": false,
+    "notebooklm@hq-marketplace": false,
+    "graphify-knowledge-graph@hq-marketplace": false,
+    "obsidian@hq-marketplace": false,
+    "ponytail@hq-marketplace": false,
+    "superpowers@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/gstack-session-start.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

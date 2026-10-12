@@ -1,0 +1,5 @@
+{
+  "mum":  [ { "file": "IMG_0005.jpg", "pick_x": 0.25 }, { "file": "IMG_0010.jpg" }, { "file": "IMG_0011.jpg" } ],
+  "dad":  [ { "file": "IMG_0005.jpg", "pick_x": 0.75 }, { "file": "IMG_0012.jpg" }, { "file": "IMG_0013.jpg" } ],
+  "baby": [ { "file": "IMG_0003.jpg" }, { "file": "IMG_0014.jpg" }, { "file": "IMG_0015.jpg" } ]
+}

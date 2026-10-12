@@ -1,0 +1,60 @@
+{
+  "name": "Our family",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 45,
+  "output": "out/reel.mp4",
+  "music": null,
+  "look": { "grade": 0.34, "grain": 0.07, "vignette": true, "particles": 0.45, "petals": true },
+  "intro": { "t1": 4.3 },
+  "photos": {
+    "first":   { "file": "IMG_0001.jpg" },
+    "hospital": { "file": "IMG_0002.jpg", "blur": [[0.10, 0.62, 0.30, 0.80]] },
+    "home":    { "file": "IMG_0003.jpg" },
+    "beach":   { "file": "IMG_0004.jpg" },
+    "family":  { "file": "IMG_0005.jpg" }
+  },
+  "videos": {
+    "laugh": { "src": "IMG_0006.MOV", "ss": 1.0, "speed": 0.85, "crop": null }
+  },
+  "cards": {
+    "mum":   { "file": "IMG_0005.jpg", "box": [0.10, 0.20, 0.40, 0.45] },
+    "baby":  { "file": "IMG_0005.jpg", "box": [0.40, 0.35, 0.60, 0.55] },
+    "dad":   { "file": "IMG_0005.jpg", "box": [0.60, 0.20, 0.90, 0.45] }
+  },
+  "shots": [
+    { "photo": "first",    "t0": 4.3,  "t1": 10.4, "fade": 0.9, "from": [0.5, 0.45, 0.95], "to": [0.5, 0.40, 0.75] },
+    { "photo": "hospital", "t0": 9.7,  "t1": 15.4, "fade": 0.7, "from": [0.5, 0.50, 1.00], "to": [0.55, 0.45, 0.80] },
+    { "photo": "home",     "t0": 14.7, "t1": 20.4, "fade": 0.7, "from": [0.5, 0.55, 0.90], "to": [0.5, 0.50, 0.70] },
+    { "video": "laugh",    "t0": 19.7, "t1": 25.4, "fade": 0.7 },
+    { "photo": "beach",    "t0": 24.7, "t1": 30.4, "fade": 0.7, "fit": true },
+    { "photo": "family",   "t0": 29.7, "t1": 36.4, "fade": 0.9, "from": [0.5, 0.45, 1.00], "to": [0.5, 0.40, 0.85] }
+  ],
+  "captions": [
+    { "t0": 0.6,  "t1": 4.3,  "y": 900,  "theme": "intro", "lines": ["*Every story*", "HAS A BEGINNING."] },
+    { "t0": 5.6,  "t1": 9.7,  "y": 1300, "lines": ["BEFORE YOU,", "*there was us.*"] },
+    { "t0": 10.9, "t1": 14.7, "y": 900,  "lines": ["~A name~"] },
+    { "t0": 11.3, "t1": 14.7, "y": 1300, "lines": ["THEN YOU ARRIVED —", "*and became our light.*"] },
+    { "t0": 15.6, "t1": 19.7, "y": 1300, "lines": ["*You fell asleep on my heart*", "AND MADE IT YOUR HOME."] },
+    { "t0": 20.6, "t1": 24.7, "y": 1300, "lines": ["YOUR LAUGH IS MY", "*favourite sound.*"] },
+    { "t0": 30.6, "t1": 35.7, "y": 1300, "lines": ["WHEREVER LIFE TAKES YOU,", "*we'll be right here.*"] }
+  ],
+  "blooms": [ { "t": 10.4, "y": 820, "size": 1.0 } ],
+  "lightLeaks": [15.2, 25.2],
+  "petalsFrom": 37,
+  "endcard": {
+    "t0": 36.8,
+    "faces": [
+      { "card": "mum",  "slot": [250, 520, 130], "label": "Mum",  "at": 37.3 },
+      { "card": "baby", "slot": [540, 470, 160], "label": "Baby", "at": 37.8 },
+      { "card": "dad",  "slot": [830, 520, 130], "label": "Dad",  "at": 38.3 }
+    ],
+    "lines": [
+      { "t": 39.2, "y": 1050, "text": "~Our family~", "scale": 0.62 },
+      { "t": 40.0, "y": 1180, "text": "LOVED BEYOND MEASURE, ALWAYS." }
+    ],
+    "divider": { "t": 40.6, "y": 1270 }
+  },
+  "score": { "key": "D", "bpm": 96, "strings_at": 10.0 }
+}
