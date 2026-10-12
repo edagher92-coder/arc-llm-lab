@@ -11,7 +11,9 @@ import json, re, socket, time, urllib.error, urllib.request
 
 import video
 
-TASKS = ("summarise", "classify", "draft", "rewrite", "extract_noncritical")
+TASKS = ("summarise", "classify", "draft", "rewrite", "extract_noncritical", "code", "review")
+CODE_SYSTEM = {"code": "You are a careful senior engineer. Write only the code asked for, complete and runnable, in one fenced block, then at most three short notes on assumptions. No placeholders.",
+               "review": "You are a strict code reviewer. List concrete defects (bug, security, data loss, missing test) with the line or symbol, most severe first. No praise, no restating the code. If you find none, say so."}
 MAX_OUT = 20000
 PAUSED_NOTE = "Qwen is paused while video renders; do it yourself or use the cloud tier"
 STAKES = re.compile(r"\b(price[sd]?|pricing|quot(?:e|es|ed|ing|ation)s?|invoice[sd]?|invoicing|refunds?|payments?|AUD|GST|legal|contracts?|tax(?:es)?)\b|\$\s*\d|\d\s*\$", re.I)
@@ -60,7 +62,7 @@ def register(server, q, base_dir, cfg=None):
 
     @server.tool(name="ask_local", description=(
         "Ask the local Qwen 3.8 model running on the owner's PC (private, free, slower than the cloud model). Its output is a DRAFT you must check yourself. "
-        "Good for: summarise, classify, draft, rewrite, extract_noncritical (task=...). "
+        "Good for: summarise, classify, draft, rewrite, extract_noncritical, and coding help: code (write a function, test or script from a spec) and review (first-pass defect list for a diff). Claude gates every result: read it, run the tests, apply it yourself. "
         "NEVER use it for money, pricing, quotes, invoices, legal, irreversible actions, customer-facing final copy, or critical extraction (names, amounts, dates, specs); "
         "prompts mentioning those are refused. Returns JSON {ok, status: ok|paused|busy|timeout|error|refused, text, model, elapsed_ms, note}. "
         "status paused = the GPU is on video work: do the task yourself or use the cloud tier."))
@@ -87,6 +89,7 @@ def register(server, q, base_dir, cfg=None):
             to = max(5, min(600, int(timeout_s)))
         except (TypeError, ValueError):
             to = 120
+        system = system if str(system or "").strip() else CODE_SYSTEM.get(task, "")
         msgs = ([{"role": "system", "content": str(system)}] if str(system or "").strip() else []) + [{"role": "user", "content": str(prompt)}]
         body = {"model": model, "messages": msgs, "max_tokens": mt, "temperature": 0.2, "chat_template_kwargs": {"enable_thinking": False}}
         key = lc.api_key()

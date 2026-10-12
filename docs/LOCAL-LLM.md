@@ -3,7 +3,7 @@
 `ask_local` is an MCP tool on the local gateway. Claude Code or Codex can hand a cheap, private, low-stakes subtask to the Qwen 3.8 model on the PC (via llama-swap, no-thinking `:code` preset, temperature 0.2).
 
 ## Use it for
-`task` is one of `summarise`, `classify`, `draft`, `rewrite`, `extract_noncritical`. Typical: summarise a long log, classify a batch of notes, rough first draft, tidy wording. The answer is a **draft**: the caller must check it.
+`task` is one of `summarise`, `classify`, `draft`, `rewrite`, `extract_noncritical`, `code` (write a function, test or script from a spec) or `review` (first-pass defect list for a diff). `code` and `review` get a built-in engineer/reviewer system prompt unless you pass your own. Typical: summarise a long log, classify a batch of notes, rough first draft, tidy wording. The answer is a **draft**: the caller must check it.
 
 ## Do not use it for
 Money, pricing, quotes, invoices, refunds, tax/GST, legal, irreversible actions, customer-facing final copy, or critical extraction (names, amounts, dates, specs). Prompts matching a simple stakes regex (price, quote, invoice, refund, payment, AUD, `$` amounts, GST, legal, contract, tax) are refused with `status: "refused"`. The regex is a backstop, not a substitute for judgement.

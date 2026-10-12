@@ -148,3 +148,17 @@ def test_build_hook_registers_ask_local():
     finally:
         lmod.register = real
     assert len(seen) == 1 and seen[0][2] == gateway.HERE and seen[0][3] is gateway.CFG
+
+
+def test_code_and_review_tasks_get_an_engineer_system_prompt():
+    fn, s = rig(); calls = []; real, tl._http = tl._http, fake_http(calls)
+    try:
+        a = run(fn, "Write is_8n1(n).", "code")
+        b = run(fn, "Review: def f(x): return x/0", "review", "custom reviewer")
+        c = run(fn, "summarise this note", "summarise")
+    finally:
+        tl._http = real
+    assert a["ok"] and b["ok"] and c["ok"]
+    sysmsg = lambda i: [m for m in calls[i][1]["messages"] if m["role"] == "system"]
+    assert "senior engineer" in sysmsg(0)[0]["content"] and sysmsg(1)[0]["content"] == "custom reviewer" and sysmsg(2) == []
+    assert run(fn, "Write the invoice total function for GST", "code")["status"] == "refused"      # the stakes filter still applies to code tasks
