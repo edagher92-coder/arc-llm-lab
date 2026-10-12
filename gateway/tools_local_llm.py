@@ -7,7 +7,7 @@ Config read (all from the existing "video" block's "llm" section, via video.Cfg;
   video.llm.governor_mode_file  governor mode file; OFF (or a video job / ComfyUI session / GPU lock) means "paused"
 Policy: ask_local belongs in policy.read. Called from gateway.build() right after tools_video_mcp.register. Docs: docs/LOCAL-LLM.md.
 """
-import json, re, socket, time, urllib.error, urllib.request
+import json, os, re, socket, time, urllib.error, urllib.request
 
 import video
 
@@ -35,8 +35,9 @@ def _is_timeout(e):
     return isinstance(e, (socket.timeout, TimeoutError)) or (isinstance(e, urllib.error.URLError) and isinstance(e.reason, (socket.timeout, TimeoutError)))
 
 
-def register(server, q, base_dir, cfg=None):
-    """Add ask_local to `server`. Uses Queue q's config/state when the video block exists, else builds video.Cfg from cfg["video"]. No-op if neither."""
+def register(server, q, base_dir, cfg=None, gpu_lock=None):
+    """Add ask_local to `server`. Uses Queue q's config/state when the video block exists, else builds video.Cfg from cfg["video"]. No-op if neither.
+    gpu_lock: path of the video queue's gpu.lock, checked when q is None (stand-alone qwen_mcp.py) so a render is never interrupted."""
     if q is not None:
         lc = q.cfg
     elif cfg and "video" in cfg:
@@ -51,7 +52,7 @@ def register(server, q, base_dir, cfg=None):
             m = (open(lc.mode_file).read().strip() or "MAX") if lc.mode_file else ""
         except OSError:
             m = ""
-        if m.upper() == "OFF":
+        if m.upper() == "OFF" or (gpu_lock and os.path.exists(gpu_lock)):
             return True
         if q is not None:
             try:

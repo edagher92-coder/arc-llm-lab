@@ -162,3 +162,22 @@ def test_code_and_review_tasks_get_an_engineer_system_prompt():
     sysmsg = lambda i: [m for m in calls[i][1]["messages"] if m["role"] == "system"]
     assert "senior engineer" in sysmsg(0)[0]["content"] and sysmsg(1)[0]["content"] == "custom reviewer" and sysmsg(2) == []
     assert run(fn, "Write the invoice total function for GST", "code")["status"] == "refused"      # the stakes filter still applies to code tasks
+
+
+def test_standalone_paused_on_gpu_lock_and_qwen_mcp_build():
+    """qwen_mcp.py (Claude Code's ask_local) has no Queue: it must still pause while the hub's gpu.lock exists, and call Qwen once it is gone."""
+    c = cfg_dict(); s = FakeServer(); lock = os.path.join(TMP, "gpu.lock")
+    tl.register(s, None, D, c, gpu_lock=lock); fn = s.tools["ask_local"][0]
+    calls = []; real, tl._http = tl._http, fake_http(calls)
+    try:
+        open(lock, "w").write("{}")
+        assert run(fn, "write a helper", "code")["status"] == "paused" and calls == []
+        os.remove(lock)
+        assert run(fn, "write a helper", "code")["status"] == "ok" and len(calls) == 1
+    finally:
+        tl._http = real
+        if os.path.exists(lock): os.remove(lock)
+    p = os.path.join(TMP, "gw.json"); json.dump(c, open(p, "w"))
+    import asyncio, qwen_mcp
+    names = [t.name for t in asyncio.run(qwen_mcp.build(p).list_tools())]
+    assert names == ["ask_local"]
