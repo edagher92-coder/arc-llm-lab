@@ -12,7 +12,8 @@ Imported selectively from three maintainer hand-off archives (Claude and Codex s
 **Governor**
 - v3 → **v4.3** ([governor/README.md](governor/README.md)): null-safe sensing, pressure hysteresis, never unloads mid-request, KV slot save/restore (`slotlib.ps1`), power-plan hysteresis, footprint calibration, and Ollama's bundled `llama-server.exe` is no longer counted as the model. Fixes the published v3 loop crash (`needLog` uninitialised) when the governor starts with no model loaded.
 - `profiles.json`: MAX/BALANCED `free_margin_gib` 1.35 → 2.5 and `auto.others_vram_max_gib` 2.5. ThinkingCap is the default variant, with `--spec-draft-p-min 0.5` and `--slot-save-path`.
-- Tests: `test_governor.ps1` 111/0, `test_ctx.ps1` 7/7 (its function extraction now uses the PowerShell AST), and pytest `govpolicy`/`slotpolicy` 53/0.
+- Review fixes (Codex review on PR #5): a slot save now fails closed when `/slots` is unreadable afterwards; calibration entries carry a model-file + engine fingerprint and are ignored when it changes; the preserved `qwen3.8-27b-base` variant is registered in `llama-swap/config.yaml` and tracked by the governor; the lean Codex wrapper redirects `TEMP`/`TMP` like `codex-qwen.cmd`.
+- Tests: `test_governor.ps1` 111/0, `test_ctx.ps1` 11/11 (its function extraction now uses the PowerShell AST), and pytest `govpolicy`/`slotpolicy` 53/0.
 
 **Agents and docs**
 - [agents/codex-lean/](agents/codex-lean/README.md): an opt-in `CODEX_HOME` that cuts Codex's start-up prompt from 12,235 to 3,010 tokens (measured). Not yet run on the 100-task eval.
