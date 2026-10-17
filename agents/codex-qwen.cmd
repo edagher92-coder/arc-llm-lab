@@ -8,10 +8,10 @@ set "TMP=%LOCALAPPDATA%\Temp"
 if "%LOCAL_QWEN_KEY%"=="" for /f "usebackq delims=" %%k in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('LOCAL_QWEN_KEY','User')"`) do set "LOCAL_QWEN_KEY=%%k"
 set "QWEN_WIN=100000"
 for /f "usebackq delims=" %%w in (`powershell -NoProfile -ExecutionPolicy Bypass -File C:\AI\governor\qwen.ps1 window`) do set "QWEN_WIN=%%w"
-if "%QWEN_CLIENT_CAP%"=="" set "QWEN_CLIENT_CAP=32768"
+if "%QWEN_CLIENT_CAP%"=="" set "QWEN_CLIENT_CAP=65536"
 if %QWEN_WIN% GTR %QWEN_CLIENT_CAP% set "QWEN_WIN=%QWEN_CLIENT_CAP%"
 if "%QWEN_COMPACT%"=="" set "QWEN_COMPACT=200000"
-set /a QWEN_CAP=QWEN_WIN*85/100
+set /a QWEN_CAP=QWEN_WIN*90/100
 if %QWEN_COMPACT% GTR %QWEN_CAP% set "QWEN_COMPACT=%QWEN_CAP%"
 rem Lean MCP set for the local model: disable any heavy/cloud MCP servers from your main Codex config here, e.g.
 rem   -c mcp_servers.<name>.enabled=false

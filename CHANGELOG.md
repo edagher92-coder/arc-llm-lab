@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 2026-10-18 context tune
+
+- Context sweep on the production launch line (32K/40K/48K/56K, short and 80%-full requests): speed holds to 48K (43.6 tok/s with 39K tokens in context) and falls off at 56K (22.4 tok/s, about 1 GiB moved to system memory). New `bench/ctx-sweep.py`, raw results in `data/ctx-sweep-20261018.jsonl`, tuning-log rows 24-27.
+- Governor margin 2.5 -> 1.2 GiB and host-RAM prompt cache 6144 MiB (MAX and BALANCED): the live load is now 45,056 tokens (49,152 when the desktop is light) at 45-50 tok/s on the warm check, instead of 32,768.
+- `agents/codex-qwen.cmd`: the 32,768 client cap is now 65,536, so Codex uses the server's real window minus 8K, and it compacts at 90% of the window instead of 85%.
+- Recorded the 17-18 Oct slowdown (28 vs 47 tok/s) and its fix (a Windows restart; ECC was off, clocks and temperature normal).
+
 ## Unreleased — 2026-10-17 field report
 
 - README front page refresh: hero banner, a four-step "recipe" for Qwen3.8-27B at 50+ tok/s on a B60 (copy-paste server line), the per-request decode headline (mean 53.3, 47-58 tok/s, from the existing `tune.txt` run) with its context caveats stated up front, and a project-scale card.
