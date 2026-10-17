@@ -1,0 +1,5 @@
+request,condition,native_ctx_tokens,output_tokens,gen_tok_s,wall_s,note
+parse_duration,second idle Ollama model resident on the GPU,32768,862,22.20,39.61,output length and cache state differ between the two runs
+parse_duration,after unloading the idle Ollama model,32768,799,52.66,15.49,output length and cache state differ between the two runs
+merge_intervals,before recovery (53K window),53248,700,22.16,33.2,context also changed; confounded
+merge_intervals,larger sizing reserve (32K window) repeat,32768,700,50.21,14.3,context also changed; confounded
