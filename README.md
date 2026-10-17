@@ -1,19 +1,64 @@
-# arc-llm-lab: a local 27B coding model and local AI video on one Intel Arc GPU
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.png">
+  <img alt="arc-llm-lab: Qwen3.8-27B at 50+ tokens per second on one Intel Arc Pro B60 24GB. 53 tok/s mean decode across 7 coding tasks (peak 58, stock 16), 64K context window, 3.6x faster prompt reading at 32K, 97 of 100 hidden-checker agent tasks, A$999 card" src="assets/hero-light.png">
+</picture>
 
-**17 October field report:** [B60 throughput recovery, desktop-safe AUTO profiles and context trade-offs](docs/OPERATING-PROFILES-20261017.md). Dated local observations; not a new benchmark headline or an installable runtime update.
+# arc-llm-lab: Qwen3.8-27B at 50+ tok/s on one Intel Arc GPU
 
-**A 27B coding model at 42-58 tok/s, local video generation and a phone control panel, all on a single Intel Arc Pro B60 24GB, with the raw logs, versions and caveats published.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel, DFlash2 speculative decoding, LTX-2.5 video through ComfyUI on XPU, and a way to use the local model from Claude Code.
+**The fastest single-card Qwen3.8-27B decode we have found published for the Intel Arc Pro B60 24GB ([comparison](docs/PEERS.md)): 53 tok/s mean decode (47-58 across seven coding tasks) with a 64K context window allocated, 420 tok/s prompt reading at 32K, and 97/100 on a hidden-checker agent eval.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel and DFlash2 speculative decoding, plus local video generation (LTX-2.5), a phone control panel and a Claude Code bridge. Every number links to a raw log.
 
 [![Self-test CI status](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml/badge.svg)](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml)
+[![Decode](https://img.shields.io/badge/decode-53%20tok%2Fs%20mean-E8661E)](#the-recipe-qwen38-27b-at-50-toks-on-an-arc-b60)
+[![Context](https://img.shields.io/badge/context-64K%20on%2024GB-4F7BFF)](#which-intel-card-and-which-model-fits)
 [![GPU](https://img.shields.io/badge/GPU-Intel%20Arc%20Pro%20B60%2024GB-0071C5)](#which-intel-card-and-which-model-fits)
 [![Backend](https://img.shields.io/badge/backend-llama.cpp%20Vulkan-E8661E)](engine/)
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#versions-used)
+[![Interactive benchmarks](https://img.shields.io/badge/interactive-benchmarks-B26FE0)](https://edagher92-coder.github.io/arc-llm-lab/)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/edagher92-coder/arc-llm-lab?style=flat)](https://github.com/edagher92-coder/arc-llm-lab/stargazers)
 
+> **The fine print, up front.** 53 tok/s is per-request server decode with short prompts and a 65,536-token KV window allocated ([tune.txt](data/raw/tune.txt)). With 30-37K tokens of real conversation in the window, agent turns generate about 42 tok/s ([bench-history.csv](data/raw/bench-history.csv)). On 17 October a 53K window on a contended desktop fell to 22 tok/s, and 50-60K without loss is not yet qualified ([field report](docs/OPERATING-PROFILES-20261017.md)). Single runs on one workstation.
+
+**17 October field report:** [B60 throughput recovery, desktop-safe AUTO profiles and context trade-offs](docs/OPERATING-PROFILES-20261017.md). Dated local observations; not a new benchmark headline or an installable runtime update.
+
+## The recipe: Qwen3.8-27B at 50+ tok/s on an Arc B60
+
+Four things do almost all of the work. Each was measured on its own before it went in ([tuning log](docs/TUNING-LOG.md)).
+
+| Step | What it buys | Evidence |
+|---|---|---|
+| **1. DFlash2 draft model**, 7 tokens per round | Decode **16 -> 53 tok/s** mean (47-58), coding still 7/7 correct | [tune.txt](data/raw/tune.txt), [compare-f16.txt](data/raw/compare-f16.txt) |
+| **2. Intel FA prefill kernel with an f16 KV cache** | Prompt reading at 32K **118 -> 420 tok/s** (3.6x); a q4 KV cache gains nothing | [compare-f16.txt](data/raw/compare-f16.txt), [INTEL-FA](docs/INTEL-FA.md) |
+| **3. `-ub 256`, q8 draft KV, auto-fit off** | Frees 0.55 GiB at no speed cost: the difference between 57K and **64K** context | [vram-budget-64k.csv](data/vram-budget-64k.csv) |
+| **4. Keep the GPU to yourself** | An idle Ollama model left resident cut decode from **52.7 to 22.2 tok/s**; unloading it restored speed | [field report](docs/OPERATING-PROFILES-20261017.md) |
+
+The server line (Windows PowerShell; the full flag-by-flag explanation is in [docs/TUNING-LOG.md](docs/TUNING-LOG.md#settings-that-matter-final)):
+
+```powershell
+$env:GGML_VK_FORCE_MMVQ = "1"
+llama-server -m Qwen3.8-27B-UD-Q4_K_M.gguf -ngl 99 -fa on -c 65536 -ctk f16 -ctv f16 `
+  -md Qwen3.8-27B-DFlash2-Q4_K_M.gguf -ngld 99 --spec-type draft-dflash --spec-draft-n-max 7 `
+  -ub 256 -ctkd q8_0 -ctvd q8_0 -np 1 -fit off --no-context-shift --jinja
+```
+
+- Build the engine first with `engine\build.ps1` ([Quick start](#quick-start)): the prefill speed-up needs the vendored Intel FA patches; the drafter alone works on stock llama.cpp b11524.
+- If your desktop uses more than about 1 GiB of VRAM, drop `-c` to 57344 or 61440. The [governor](governor/) does this sizing for you at every load.
+- Free the card before you benchmark: `ollama ps`, then `ollama stop <model>` for anything listed, and close other GPU-heavy apps.
+- Optional: `--spec-draft-p-min 0.5` added a further 4.6% in eval-suite throughput (42.0 -> 43.94 tok/s, [tuning log](docs/TUNING-LOG.md) row 17).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/decode-per-task-dark.png">
+  <img alt="Per-task decode on an Arc Pro B60 with the DFlash2 drafter: 49.1, 47.1, 58.0, 56.4, 53.0, 56.5 and 52.7 tokens per second across seven coding tasks, mean 53.3, against 16.05 for stock llama.cpp without a drafter" src="assets/decode-per-task-light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/gpu-contention-dark.png">
+  <img alt="GPU contention on 17 October: with an idle Ollama model resident a request decoded at 22.2 tokens per second over 39.6 s; after unloading it, 52.7 tokens per second over 15.5 s. A 53K window under contention ran at 22.2 tok/s, a 32K window with more headroom at 50.2 tok/s" src="assets/gpu-contention-light.png">
+</picture>
+
 ## What you get
 
-- **A local coding model on a roughly A$1,000-1,240 Intel card.** Qwen3.8-27B (the ThinkingCap build is the default) on an Arc Pro B60 24GB: 42-44 tok/s eval-suite throughput, 47-58 tok/s per-request decode, 57-64K context. Prices are dated in [the card table](#which-intel-card-and-which-model-fits).
+- **A local coding model on a roughly A$1,000-1,240 Intel card.** Qwen3.8-27B (the ThinkingCap build is the default) on an Arc Pro B60 24GB: 53 tok/s mean per-request decode (47-58), 42-44 tok/s eval-suite throughput, 57-64K context. Prices are dated in [the card table](#which-intel-card-and-which-model-fits).
 - **Local video generation.** LTX-2.5 text-to-video and image-to-video with sound through ComfyUI on XPU, a queue that hands the GPU from the LLM to ComfyUI and back, and an ffmpeg "finish at 1080p/2K/4K" step. See [docs/VIDEO-GEN.md](docs/VIDEO-GEN.md).
 - **A phone Studio.** A web app over Tailscale (never public): live GPU/VRAM telemetry, render progress and history, a Qwen code tab, installable as a PWA. PIN-gated approvals, with an optional 90-day remembered device. See [docs/GATEWAY.md](docs/GATEWAY.md) and [docs/STUDIO-P2-CONTRACTS.md](docs/STUDIO-P2-CONTRACTS.md).
 - **A Claude Code partner.** `ask_local` (stand-alone `qwen_mcp.py`) hands first-pass code and review tasks to the local model; Claude stays the gate. See [docs/LOCAL-LLM.md](docs/LOCAL-LLM.md).
@@ -25,7 +70,8 @@ All single runs on one Arc Pro B60 24GB (Ryzen 7 3700X, 32 GB RAM, Windows 11) u
 | What | Figure | Source |
 |---|---|---|
 | Generation, eval-suite throughput (wall-clock) | 16.0 tok/s stock, no drafter -> **42.3** with DFlash2; **43.94** with `--spec-draft-p-min 0.5` (+4.6%) | [TUNING-LOG](docs/TUNING-LOG.md) rows 1, 10, 17 |
-| Per-request decode with the drafter | 47-58 tok/s | [CHANGELOG](CHANGELOG.md) 2.1.0 |
+| Per-request decode with the drafter | **47-58 tok/s, mean 53.3** (7 coding tasks, 64K KV window allocated, short prompts) | [tune.txt](data/raw/tune.txt), [decode-per-request.csv](data/decode-per-request.csv) |
+| Decode at a 32K window, 17 Oct (ThinkingCap build) | **50.2 tok/s** on a free card; 22.2 tok/s with an idle Ollama model still resident | [field report](docs/OPERATING-PROFILES-20261017.md), [gpu-contention-20261017.csv](data/gpu-contention-20261017.csv) |
 | Reading new input at 32K context | 118 -> **420 tok/s** (Intel FA kernel, f16 KV) | [TUNING-LOG](docs/TUNING-LOG.md) row 8 |
 | Resume a 43K-token prompt after a restart | about 2 min -> **4.5 s** (KV slot save/restore) | [TUNING-LOG](docs/TUNING-LOG.md) row 16 |
 | ThinkingCap vs base quant, 16 tasks at `xhigh` | 16/16 vs 15/16; **3.9x** tasks per minute | [TUNING-LOG](docs/TUNING-LOG.md) row 20 |
@@ -34,6 +80,15 @@ All single runs on one Arc Pro B60 24GB (Ryzen 7 3700X, 32 GB RAM, Windows 11) u
 | LTX-2.5 clip, 768x512, 2 s, 49 frames, with sound | 188-219 s queued to clip, including ComfyUI start (about 4.5 s per sampling step) | [VIDEO-GEN](docs/VIDEO-GEN.md) |
 
 Not measured yet: render times for other sizes and lengths, the 1080p-4K finish step on the Arc box ([docs/UPSCALE.md](docs/UPSCALE.md)), and any card other than the B60.
+
+## The project, by the numbers
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/project-scale-dark.png">
+  <img alt="The project by the numbers: 443 automated tests, 100 agent tasks with hidden checkers, 23 logged tuning experiments, 31K lines of Python, PowerShell, JS and HTML, 89 Markdown guides, 15 raw logs, about 100 phone-gateway tools, 26 doctor health checks, 2 vendored Intel FA kernel patches, 3 AI workloads on one GPU" src="assets/project-scale-light.png">
+</picture>
+
+This is a full local-AI stack, not a config gist: a portable engine build with vendored kernel patches ([engine/](engine/)), a governor that sizes context to free VRAM and protects live sessions ([governor/](governor/)), agent wrappers for Claude Code and Codex ([agents/](agents/)), a 100-task evaluation harness whose checkers are verified in CI ([evalsuite/](evalsuite/)), a phone Studio and tool gateway ([gateway/](gateway/)), local video generation ([docs/VIDEO-GEN.md](docs/VIDEO-GEN.md)), voice ([voice/](voice/)) and an interactive benchmark site ([docs/index.html](docs/index.html)). Counts are from the repository at the time of writing; `python tools/make_hero.py` regenerates the card.
 
 ## Quick start
 
