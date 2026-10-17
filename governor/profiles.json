@@ -1,5 +1,5 @@
 {
-  "_comment": "Qwen governor v2 (measured on this B60, 10 Oct 2026). AUTO picks MAX (PC idle) / BALANCED (you are on the PC) / LEAN (heavy load). Context is sized at each load from the VRAM free at that moment minus the profile's free-VRAM margin. DFlash2 drafter (7 tokens) ~43-50 tok/s. One run with 0.96 GiB free slowed to 27 tok/s (the exact threshold was not isolated, see docs/TUNING-LOG.md), so the profile margins stay at 1.35 GiB or more. Variants: default UD-Q4_K_M (best quality), turbo Q4_0 (faster, slightly lower quality), long = native 262k context, no drafter (~15 tok/s).",
+  "_comment": "Qwen governor v2 (measured on this B60, 10 Oct 2026). AUTO picks MAX (PC idle) / BALANCED (you are on the PC) / LEAN (heavy load). Context is sized at each load from the VRAM free at that moment minus the profile's free-VRAM margin. DFlash2 drafter (7 tokens) ~43-50 tok/s; generation collapses if free VRAM < ~1.1 GiB, so margins stay >= 1.2 GiB. Variants: default UD-Q4_K_M (best quality), turbo Q4_0 (faster, slightly lower quality), long = native 262k context, no drafter (~15 tok/s).",
   "exe": "C:/AI/llama.cpp/vulkan-intelfa/llama-server.exe",
   "mmproj": "C:/AI/models/qwen3.8-27b/mmproj-F16.gguf",
   "vram": {
@@ -23,7 +23,7 @@
     "256",
     "--metrics",
     "--reasoning-budget",
-    "4096",
+    "16384",
     "--reasoning-budget-message",
     "Thinking budget reached. Give the final answer now.",
     "--no-mmproj-offload",
@@ -31,13 +31,29 @@
     "off",
     "--chat-template-file",
     "C:/AI/governor/qwen38-template.jinja",
-    "--no-context-shift"
+    "--no-context-shift",
+    "--slot-save-path",
+    "C:/AI/cache/slots"
   ],
+  "slots": {
+    "enabled": true,
+    "dir": "C:/AI/cache/slots",
+    "max_files": 3,
+    "max_gib": 12,
+    "min_tokens": 4096,
+    "min_free_disk_gib": 10
+  },
+  "calibration": {
+    "enabled": true,
+    "alpha": 0.5,
+    "max_overhead_gib": 1.5,
+    "_note": "governor learns (measured llama VRAM - base_gib - ctx*kv) per variant into calib.json at each post-launch BASELINE; launch.ps1 adds the positive part to base_gib so free VRAM lands near the profile margin instead of 0.65 GiB (2026-10-16)"
+  },
   "variants": {
     "default": {
       "id": "qwen3.8-27b",
       "port": 10001,
-      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "model": "C:/AI/models/thinkingcap/ThinkingCap-Qwen3.8-27B-Q4_K_M.gguf",
       "ctk": "f16",
       "ctv": "f16",
       "base_gib": 17.15,
@@ -57,8 +73,11 @@
         "-ctkd",
         "q8_0",
         "-ctvd",
-        "q8_0"
-      ]
+        "q8_0",
+        "--spec-draft-p-min",
+        "0.5"
+      ],
+      "mmproj": "C:/AI/models/thinkingcap/mmproj-ThinkingCap-Qwen3.8-27B-f16.gguf"
     },
     "turbo": {
       "id": "qwen3.8-27b-turbo",
@@ -83,7 +102,9 @@
         "-ctkd",
         "q8_0",
         "-ctvd",
-        "q8_0"
+        "q8_0",
+        "--spec-draft-p-min",
+        "0.5"
       ]
     },
     "long": {
@@ -133,19 +154,47 @@
         "--spec-draft-n-max",
         "7"
       ]
+    },
+    "base": {
+      "id": "qwen3.8-27b-base",
+      "port": 10006,
+      "model": "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-UD-Q4_K_M.gguf",
+      "ctk": "f16",
+      "ctv": "f16",
+      "base_gib": 17.15,
+      "kv_kib_per_token": 64.5,
+      "ctx_max": 65536,
+      "extra_args": [
+        "-ngld",
+        "99",
+        "-md",
+        "C:/AI/models/qwen3.8-27b/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+        "--spec-type",
+        "draft-dflash",
+        "--spec-draft-n-max",
+        "7",
+        "-ub",
+        "256",
+        "-ctkd",
+        "q8_0",
+        "-ctvd",
+        "q8_0",
+        "--spec-draft-p-min",
+        "0.5"
+      ]
     }
   },
   "profiles": {
     "MAX": {
-      "free_margin_gib": 1.35,
+      "free_margin_gib": 2.5,
       "ctx_min": 32768,
       "threads": 14,
-      "cache_ram_mib": 8192,
+      "cache_ram_mib": 2048,
       "priority": "Normal",
       "idle_unload_min": 0
     },
     "BALANCED": {
-      "free_margin_gib": 1.5,
+      "free_margin_gib": 2.5,
       "ctx_min": 32768,
       "threads": 8,
       "cache_ram_mib": 4096,
@@ -164,15 +213,40 @@
   "auto": {
     "idle_for_max_sec": 600,
     "ram_floor_gb": 3.5,
-    "ram_for_max_gb": 8.0,
+    "ram_critical_gb": 1.5,
+    "ram_for_max_gb": 10.0,
     "others_vram_lean_gib": 3.5,
-    "others_vram_max_gib": 3.0,
+    "others_vram_max_gib": 2.5,
     "vram_free_pressure_gib": 1.1,
+    "vram_free_hard_floor_gib": 0.25,
+    "others_growth_gib": 0.5,
+    "pressure_persist_sec": 60,
+    "refit_min_interval_min": 15,
     "others_cpu_lean_pct": 85,
-    "confirm_samples": 3,
+    "confirm_samples": 4,
     "model_quiet_sec_before_reload": 120,
     "max_upgrade_quiet_min": 20,
     "prewarm_cooldown_min": 10,
-    "sample_sec": 15
-  }
+    "sample_sec": 15,
+    "agent_processes": [
+      "codex",
+      "claude"
+    ],
+    "agent_recent_min": 10,
+    "ctx_target_min": 61440
+  },
+  "power": {
+    "dwell_min": 10,
+    "saver_idle_min": 15,
+    "saver_model_quiet_min": 15,
+    "perf_model_recent_sec": 120,
+    "cpu_busy_pct": 40,
+    "cpu_busy_samples": 2,
+    "cpu_calm_pct": 25,
+    "_note": "v4.2 power-plan hysteresis: PERFORMANCE at once on model activity (busy, or a request within perf_model_recent_sec) or CPU >= cpu_busy_pct for cpu_busy_samples; step down ONE plan at a time only after the lower demand has lasted dwell_min AND the current plan was held dwell_min; never below BALANCED while an agent client is active (auto.agent_processes or a request within auto.agent_recent_min); SAVER only with no input for saver_idle_min AND model quiet for saver_model_quiet_min AND CPU < cpu_calm_pct. power.txt (qwen power ...) still forces a plan immediately."
+  },
+  "_v3_note": "2026-10-11 V3: default = ThinkingCap-Qwen3.8-27B Q4_K_M (16/16, 3.9x tasks/min vs base at xhigh); DFlash2 p-min 0.5 (+4.6%); base kept as variant 'base'.",
+  "_v4_note": "2026-10-15 V4 governor: PDH readings validated (invalid sample = keep last good, never act); pressure must persist pressure_persist_sec and re-fits/upgrades happen at most every refit_min_interval_min; ram_critical_gb is the acute floor (ram_floor_gb only selects LEAN); agent_processes keep the model warm and block idle unloads; slots = KV slot save before governor unloads / restore after its relaunch (needs --slot-save-path in common_args). ctx_target_min is only logged by launch.ps1 when the fit falls short (f16 KV: 61440 needs others <= ~1.6 GiB in MAX). v4.1: a re-fit needs OTHER apps to have grown >= others_growth_gib since the post-launch baseline (or free < vram_free_hard_floor_gib); footprint calibration via calib.json.",
+  "_v43_note": "2026-10-17 v4.3 (ctxlab): (1) ProcIds/launch.ps1 count only C:\\AI\\llama.cpp\\* llama-server processes - Ollama's runner (Ollama's bundled llama-server.exe, llama3.2:3b, 3.07 GiB, OLLAMA_KEEP_ALIVE=24h) was being booked as the model, so others read 3 GiB low and free VRAM sat at 0.56 GiB. (2) BALANCED free margin 1.5 -> 1.35 (same as MAX; measured cliff is ~1.1 GiB, post-launch free was 3.06 GiB at ctx 45056 once the Ollama runner was gone). KV stays f16: q8_0 KV measured -53% prefill and -57% decode at 25K depth (Intel FA kernels require f16 K and V) and saved only 0.27 GiB of dedicated VRAM at 40960.",
+  "_v44_note": "2026-10-18 published defaults: MAX/BALANCED free_margin_gib 2.5 and auto.others_vram_max_gib 2.5. A fit on adapter dedicated-free VRAM is not a real fit: at margin 1.35 the governor chose ctx 57344 and llama-server spilled 2.90 GiB into WDDM shared memory (20-22 tok/s). Margin 2.5 landed ctx 36864 with 1.23 GiB shared (26.7-28.3 tok/s). Re-qualify the margin on your desktop with the shared-usage check in docs/FIELD-REPORT-20261018.md."
 }
