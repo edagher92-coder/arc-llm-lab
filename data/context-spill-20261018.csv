@@ -1,0 +1,4 @@
+date,ctx,free_margin_gib,llama_dedicated_gib,llama_shared_gib,others_gib,warm_gen_tok_s_min,warm_gen_tok_s_max,source
+2026-10-16,40960,1.35,,,,48.0,48.0,maintainer governor.log (shared usage not recorded before 18 Oct)
+2026-10-18,57344,1.35,19.70,2.90,1.74,20.0,22.3,maintainer governor.log + PDH readback (not published)
+2026-10-18,36864,2.5,20.10,1.23,1.80,26.7,28.3,maintainer governor.log + PDH readback (not published)
