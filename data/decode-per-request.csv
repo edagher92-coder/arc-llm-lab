@@ -1,0 +1,9 @@
+config,request,decode_tok_s,kv_window_tokens,source
+DFlash2 n=7 ub256 q8 draft KV,code task 1,49.1,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 2,47.1,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 3,58.0,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 4,56.4,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 5,53.0,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 6,56.5,65536,raw/tune.txt row n7 ub256 dkv-q8
+DFlash2 n=7 ub256 q8 draft KV,code task 7,52.7,65536,raw/tune.txt row n7 ub256 dkv-q8
+stock llama.cpp Vulkan no drafter,llama-bench tg32 empty context,16.05,,raw/compare-f16.txt
