@@ -1,0 +1,63 @@
+# UNTESTED SKETCH - NOT COMPILED, NOT RUN. Hand-written against the reconstructed tree
+# (b11524 + PR#29357 61cc4c2/1a5137a). Line offsets approximate. Intended for a scratch
+# build only; production engine must not be replaced by default.
+# Purpose: split the uninstrumented ~112 ms/round remainder into named buckets.
+# Output: one line per N rounds via LOG_INF, plus totals at slot release.
+--- a/common/speculative.cpp
++++ b/common/speculative.cpp
+@@ struct common_speculative_impl_draft_dflash : public common_speculative_impl {
++    // [INSTR] cumulative microseconds per bucket
++    struct { int64_t sync_feat = 0, concat = 0, inject = 0, draft = 0, sync_lattice = 0, select = 0;
++             int64_t n_inject_tok = 0, n_rounds = 0; } instr;
+@@ bool process(const common_batch & batch_in) override {
+-                for (uint32_t k = 0; k < target_layer_ids_n; ++k) {
+-                    const float * layer = llama_get_embeddings_layer_inp(ctx_tgt, (uint32_t) target_layer_ids[k]);
++                const int64_t t0 = ggml_time_us();
++                llama_synchronize(ctx_tgt);                       // [INSTR] isolate the wait for target verify + async readback
++                const int64_t t1 = ggml_time_us();
++                instr.sync_feat += t1 - t0;
++                for (uint32_t k = 0; k < target_layer_ids_n; ++k) {
++                    const float * layer = llama_get_embeddings_layer_inp(ctx_tgt, (uint32_t) target_layer_ids[k]); // now no-wait
+@@
+-                const int32_t rc = llama_process(ctx_dft, LLAMA_PROCESS_TYPE_DECODE, batch_inject.get());
++                const int64_t t2 = ggml_time_us();
++                instr.concat += t2 - t1;
++                const int32_t rc = llama_process(ctx_dft, LLAMA_PROCESS_TYPE_DECODE, batch_inject.get());
++                llama_synchronize(ctx_dft);                       // [INSTR] adds a sync point: attributes inject GPU time, perturbs overlap
++                instr.inject += ggml_time_us() - t2;
++                instr.n_inject_tok += n_chunk;
+@@ void draft(common_speculative_draft_params_vec & dparams) override {
+-        int ret = llama_process(ctx_dft, LLAMA_PROCESS_TYPE_DECODE, batch.get());
++        const int64_t t3 = ggml_time_us();
++        int ret = llama_process(ctx_dft, LLAMA_PROCESS_TYPE_DECODE, batch.get());
++        llama_synchronize(ctx_dft);                               // [INSTR]
++        const int64_t t4 = ggml_time_us();
++        instr.draft += t4 - t3;
++        instr.n_rounds++;
+@@
+-                const float * lattice = llama_get_embeddings_nextn(ctx_dft);
++                const int64_t t5 = ggml_time_us();
++                const float * lattice = llama_get_embeddings_nextn(ctx_dft);
++                instr.sync_lattice += ggml_time_us() - t5;
++                const int64_t t6 = ggml_time_us();
+@@ (after the selector loop)
++                instr.select += ggml_time_us() - t6;
++                if (instr.n_rounds % 64 == 0) {
++                    LOG_INF("dflash-instr rounds=%lld inject_tok=%lld us/round sync_feat=%.0f concat=%.0f inject=%.0f draft=%.0f sync_lat=%.0f select=%.0f\n",
++                        (long long) instr.n_rounds, (long long) instr.n_inject_tok,
++                        instr.sync_feat/(double)instr.n_rounds, instr.concat/(double)instr.n_rounds, instr.inject/(double)instr.n_rounds,
++                        instr.draft/(double)instr.n_rounds, instr.sync_lattice/(double)instr.n_rounds, instr.select/(double)instr.n_rounds);
++                }
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ (around target decode of the verify batch, ~L4180)
++        const int64_t t_v0 = ggml_time_us();                     // [INSTR] host time to enqueue target verify
+         ret = llama_process(ctx_tgt, ...);
++        slot.instr_verify_enqueue_us += ggml_time_us() - t_v0;   // GPU completion is captured by sync_feat above
+@@ (where drafts are generated, ~L3400)
++        if (draft.empty()) slot.instr_empty_draft_steps++;       // [INSTR] explains the ~56 tokens not covered by rounds
+# Notes:
+# - The added llama_synchronize() calls REMOVE CPU/GPU overlap. Report results as an attribution
+#   profile, never as throughput. Compare the sum of buckets with the uninstrumented ms/round.
+# - Pair with GGML_VK_PERF_LOGGER=1 in a separate run for per-op GPU time (FA path names,
+#   mat-vec column counts, scalar FA in the q8_0 draft context).
