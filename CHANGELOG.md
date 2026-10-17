@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — 2026-10-18 field report and governor v4.3
+
+Imported selectively from three maintainer hand-off archives (Claude and Codex sessions, 15–18 Oct). Measured results, researched-only material and rejected proposals are kept apart and labelled.
+
+**Findings** ([FIELD-REPORT-20261018](docs/FIELD-REPORT-20261018.md))
+- Dedicated free VRAM is not a real fit. At a 57,344 window llama-server spilled 2.90 GiB into WDDM shared memory and decode fell to 20–22 tok/s. At 36,864 it ran at 26.7–28.3 tok/s with 1.23 GiB shared. On a busy desktop, 36–40K is now the stated safe window; larger windows are being re-qualified, not withdrawn.
+- Open regression: `llama-bench tg32` is 16.0 → 13.0 tok/s on the same command (12 → 17 Oct), and warm decode is 43–48 → 28 tok/s. The cause is not found; the checks come first in [ROADMAP](docs/ROADMAP.md) (E0).
+- q8_0 main KV is rejected by measurement: at 25K depth, prompt reading −53% and generation −57%, with 0.27 GiB saved. Raw logs are in `data/raw/ctxlab-20261017/`.
+
+**Governor**
+- v3 → **v4.3** ([governor/README.md](governor/README.md)): null-safe sensing, pressure hysteresis, never unloads mid-request, KV slot save/restore (`slotlib.ps1`), power-plan hysteresis, footprint calibration, and Ollama's bundled `llama-server.exe` is no longer counted as the model. Fixes the published v3 loop crash (`needLog` uninitialised) when the governor starts with no model loaded.
+- `profiles.json`: MAX/BALANCED `free_margin_gib` 1.35 → 2.5 and `auto.others_vram_max_gib` 2.5. ThinkingCap is the default variant, with `--spec-draft-p-min 0.5` and `--slot-save-path`.
+- Tests: `test_governor.ps1` 111/0, `test_ctx.ps1` 7/7 (its function extraction now uses the PowerShell AST), and pytest `govpolicy`/`slotpolicy` 53/0.
+
+**Agents and docs**
+- [agents/codex-lean/](agents/codex-lean/README.md): an opt-in `CODEX_HOME` that cuts Codex's start-up prompt from 12,235 to 3,010 tokens (measured). Not yet run on the 100-task eval.
+- [CODEX-COMPAT.md](docs/CODEX-COMPAT.md): 26 request types against llama-server. Named and `required` `tool_choice` are not enforced; `text.format` is ignored on `/v1/responses` (top-level `response_format` works).
+- [TRIED-AND-REJECTED.md](docs/TRIED-AND-REJECTED.md) and [ROADMAP.md](docs/ROADMAP.md) (E0–E5, each with pass/fail and rollback).
+- [docs/research/](docs/research/README.md): a source-level study of the engine (DFlash per-round timing, coopmat/#30503, context budget) and an UNTESTED instrumentation diff and reasoning resolver. **Researched, not run on the card.**
+- New data: `kv-cache-depth-20261017.csv`, `footprint-variants-20261017.csv`, `context-spill-20261018.csv`. Tuning-log rows 24–27 added.
+- README: a status note, a "What's new" line, context guidance corrected to 36–40K on a busy desktop, and the governor margin text updated.
+- Not imported: the outside "optimisation pack" (defective patch, unsafe build script; see TRIED-AND-REJECTED), private machine logs and live configs, and duplicate copies of the research pack.
+
 ## Unreleased — 2026-10-17 field report
 
 - README front page refresh: hero banner, a four-step "recipe" for Qwen3.8-27B at 50+ tok/s on a B60 (copy-paste server line), the per-request decode headline (mean 53.3, 47-58 tok/s, from the existing `tune.txt` run) with its context caveats stated up front, and a project-scale card.

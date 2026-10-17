@@ -18,7 +18,17 @@
 
 > **The fine print, up front.** 53 tok/s is per-request server decode with short prompts and a 65,536-token KV window allocated ([tune.txt](data/raw/tune.txt)). With 30-37K tokens of real conversation in the window, agent turns generate about 42 tok/s ([bench-history.csv](data/raw/bench-history.csv)). On 17 October a 53K window on a contended desktop fell to 22 tok/s, and 50-60K without loss is not yet qualified ([field report](docs/OPERATING-PROFILES-20261017.md)). Single runs on one workstation.
 
-**17 October field report:** [B60 throughput recovery, desktop-safe AUTO profiles and context trade-offs](docs/OPERATING-PROFILES-20261017.md). Dated local observations; not a new benchmark headline or an installable runtime update.
+> [!IMPORTANT]
+> **Status, 18 October 2026.** The headline figures were measured on 10–16 October, and each links to its raw log. Since then, two findings have changed how we size the server:
+>
+> - **Large windows can spill.** Windows can push part of a process into *shared* system memory even while the card still reports free VRAM. At a 57K window, 2.9 GiB spilled and decode fell to 20–22 tok/s. Until the per-process budget is mapped, **36–40K is the safe window on a busy desktop**. The governor's margin is now 2.5 GiB.
+> - **There is an open regression.** The same box is currently slower: 28 tok/s warm at a 36K window, against 43–48 on 15–16 October. `llama-bench` without the drafter is 19% lower on the same command. The cause hasn't been found; the checks are in the [roadmap](docs/ROADMAP.md).
+>
+> Details are in the [18 October field report](docs/FIELD-REPORT-20261018.md); the earlier [17 October report](docs/OPERATING-PROFILES-20261017.md) covers GPU contention.
+
+**What's new:** [governor v4.3](governor/README.md) with 170+ tests · [Codex/llama-server compatibility matrix](docs/CODEX-COMPAT.md) · [lean Codex home](agents/codex-lean/README.md) (start-up prompt 12,235 → 3,010 tokens) · [tried and rejected](docs/TRIED-AND-REJECTED.md) · [roadmap](docs/ROADMAP.md) · [engine research](docs/research/README.md) (researched, not run on the card)
+
+**Jump to:** [Recipe](#the-recipe-qwen38-27b-at-50-toks-on-an-arc-b60) · [Measured numbers](#measured-numbers) · [Quick start](#quick-start) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Versions](#versions-used) · [Add your card](#add-your-card) · [FAQ](#faq)
 
 ## The recipe: Qwen3.8-27B at 50+ tok/s on an Arc B60
 
@@ -41,7 +51,7 @@ llama-server -m Qwen3.8-27B-UD-Q4_K_M.gguf -ngl 99 -fa on -c 65536 -ctk f16 -ctv
 ```
 
 - Build the engine first with `engine\build.ps1` ([Quick start](#quick-start)): the prefill speed-up needs the vendored Intel FA patches; the drafter alone works on stock llama.cpp b11524.
-- If your desktop uses more than about 1 GiB of VRAM, drop `-c` to 57344 or 61440. The [governor](governor/) does this sizing for you at every load.
+- If your desktop uses more than about 1 GiB of VRAM, use a smaller `-c`. On a busy desktop 36864–40960 is the safe range until you have checked that llama-server isn't spilling into shared memory ([how to check](docs/FIELD-REPORT-20261018.md#1-dedicated-free-vram-is-not-a-real-fit)). The [governor](governor/) does this sizing for you at every load.
 - Free the card before you benchmark: `ollama ps`, then `ollama stop <model>` for anything listed, and close other GPU-heavy apps.
 - Optional: `--spec-draft-p-min 0.5` added a further 4.6% in eval-suite throughput (42.0 -> 43.94 tok/s, [tuning log](docs/TUNING-LOG.md) row 17).
 
@@ -57,7 +67,7 @@ llama-server -m Qwen3.8-27B-UD-Q4_K_M.gguf -ngl 99 -fa on -c 65536 -ctk f16 -ctv
 
 ## What you get
 
-- **A local coding model on a roughly A$1,000-1,240 Intel card.** Qwen3.8-27B (the ThinkingCap build is the default) on an Arc Pro B60 24GB: 53 tok/s mean per-request decode (47-58), 42-44 tok/s eval-suite throughput, 57-64K context. Prices are dated in [the card table](#which-intel-card-and-which-model-fits).
+- **A local coding model on a roughly A$1,000-1,240 Intel card.** Qwen3.8-27B (the ThinkingCap build is the default) on an Arc Pro B60 24GB: 53 tok/s mean per-request decode (47-58), 42-44 tok/s eval-suite throughput, 64K context on a quiet desktop (36-40K while the PC is in use; see the status note above). Prices are dated in [the card table](#which-intel-card-and-which-model-fits).
 - **Local video generation.** LTX-2.5 text-to-video and image-to-video with sound through ComfyUI on XPU, a queue that hands the GPU from the LLM to ComfyUI and back, and an ffmpeg "finish at 1080p/2K/4K" step. See [docs/VIDEO-GEN.md](docs/VIDEO-GEN.md).
 - **A phone Studio.** A web app over Tailscale (never public): live GPU/VRAM telemetry, render progress and history, a Qwen code tab, installable as a PWA. PIN-gated approvals, with an optional 90-day remembered device. See [docs/GATEWAY.md](docs/GATEWAY.md) and [docs/STUDIO-P2-CONTRACTS.md](docs/STUDIO-P2-CONTRACTS.md).
 - **A Claude Code partner.** `ask_local` (stand-alone `qwen_mcp.py`) hands first-pass code and review tasks to the local model; Claude stays the gate. See [docs/LOCAL-LLM.md](docs/LOCAL-LLM.md).
@@ -105,11 +115,9 @@ Linux notes: [engine/build-linux.sh](engine/build-linux.sh) builds the same engi
 
 ## Guides
 
-[Setup](docs/SETUP.md) · [Tuning log](docs/TUNING-LOG.md) · [Video generation](docs/VIDEO-GEN.md) · [Upscale / finish](docs/UPSCALE.md) · [Studio contracts](docs/STUDIO-P2-CONTRACTS.md) · [Phone tool gateway](docs/GATEWAY.md) · [Local LLM delegation (`ask_local`)](docs/LOCAL-LLM.md) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Reliability](docs/RELIABILITY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Intel FA](docs/INTEL-FA.md) · [FAQ](docs/FAQ.md) · [Interactive benchmarks](https://edagher92-coder.github.io/arc-llm-lab/)
+[Setup](docs/SETUP.md) · [Tuning log](docs/TUNING-LOG.md) · [Video generation](docs/VIDEO-GEN.md) · [Upscale / finish](docs/UPSCALE.md) · [Studio contracts](docs/STUDIO-P2-CONTRACTS.md) · [Phone tool gateway](docs/GATEWAY.md) · [Local LLM delegation (`ask_local`)](docs/LOCAL-LLM.md) · [Token efficiency](docs/TOKEN-EFFICIENCY.md) · [Tool calling](docs/TOOL-CALLING.md) · [Reliability](docs/RELIABILITY.md) · [Chat UI, voice and tools](docs/PLATFORM.md) · [Intel FA](docs/INTEL-FA.md) · [Codex compatibility](docs/CODEX-COMPAT.md) · [Field report, 18 Oct](docs/FIELD-REPORT-20261018.md) · [Tried and rejected](docs/TRIED-AND-REJECTED.md) · [Roadmap](docs/ROADMAP.md) · [Engine research](docs/research/README.md) · [FAQ](docs/FAQ.md) · [Interactive benchmarks](https://edagher92-coder.github.io/arc-llm-lab/)
 
 If this is useful, a star helps other Arc owners find it. Questions or something wrong? [Open an issue](https://github.com/edagher92-coder/arc-llm-lab/issues/new/choose).
-
-**Jump to:** [Results](#results-on-one-arc-pro-b60-24gb) · [Which card?](#which-intel-card-and-which-model-fits) · [Other B60 results](#how-it-compares-with-other-b60-results) · [Full Windows setup](#quick-start-windows-11-in-full) · [Versions](#versions-used) · [FAQ](#faq) · [Add your card](#add-your-card)
 
 ## Results on one Arc Pro B60 24GB
 
@@ -118,7 +126,7 @@ If this is useful, a star helps other Arc owners find it. Questions or something
 | Generation speed | 16 tok/s ‡ (no drafter) | **42.3 tok/s** ‡ (DFlash2 draft model, n=7; eval-suite throughput, wall-clock) | [compare-f16.txt](data/raw/compare-f16.txt), [tune.txt](data/raw/tune.txt) |
 | Reading new input at 32K context | 118 tok/s | **420 tok/s** | [compare-f16.txt](data/raw/compare-f16.txt) |
 | 3 agent turns at 30–37K context | 201 s † | **55–57 s** § | [server-test.txt](data/raw/server-test.txt), [bench-history.csv](data/raw/bench-history.csv) |
-| Context window | n/a | up to **64K** (57–61K typical while the PC is in use) ¶ | [vram-budget-64k.csv](data/vram-budget-64k.csv) |
+| Context window | n/a | up to **64K** on a quiet desktop (36–40K safe while the PC is in use) ¶ | [vram-budget-64k.csv](data/vram-budget-64k.csv) |
 | 100-task hidden-checker agent eval, 32K window | n/a | **97/100** Claude Code (1.54 completed tasks/min) · **95/100** Codex ¶¶ | [RELIABILITY.md](docs/RELIABILITY.md) |
 
 ¶¶ Sustained 10-step sessions at 48K/64K: Codex **10/10** and **10/10**, Claude Code **10/10** and **9/10**. Single runs; 95% CI 91.5–99% for 97/100. Detail in [Reliability](#reliability-not-just-speed).
@@ -130,7 +138,7 @@ All speed figures are single runs (-r 1) unless noted.
 ‡ 42.3 tok/s is eval-suite throughput (wall-clock, prompt processing included): generated tokens divided by total wall-clock across the 8 eval requests (7 coding tasks and 1 web page), in the `n7 ub256 dkv-q8` row of [tune.txt](data/raw/tune.txt). The per-request server decode speeds in that run were 47–58 tok/s, mean 53.3. We quote 42.3 as the conservative headline. 16 tok/s is `llama-bench` `tg32` on an empty context with no draft model (16.05 in [compare-f16.txt](data/raw/compare-f16.txt)), a different measurement, so the two are not like-for-like.<br>
 † Stock engine with the drafter, observed before logging was in place; the raw log was not retained. Re-run planned. Treat as an observation, not a reproducible measurement ([what we have no raw log for](data/raw/README.md#not-retained)).<br>
 § 54.9 s on the first Intel FA build; 56.7 s on the final tuned configuration at 57,344 context; an intermediate run at 61,440 context took 52.2 s. All three are in the logs ([agent-turns.csv](data/agent-turns.csv)).<br>
-¶ 64K (65,536) is the configured maximum and the VRAM budget in the CSV. Context is sized from the VRAM free at each load; the logged runs loaded 61,440 and 57,344 tokens.
+¶ 64K (65,536) is the configured maximum and the VRAM budget in the CSV. Context is sized from the VRAM free at each load; the logged runs loaded 61,440 and 57,344 tokens. Shared-memory use wasn't recorded for those runs. On 18 October a 57,344 window spilled 2.9 GiB into shared memory on a busy desktop, so larger windows are being re-qualified ([field report](docs/FIELD-REPORT-20261018.md)).
 
 Test PC: Ryzen 7 3700X, B550, 32 GB DDR4, Windows 11, Intel Arc Pro B60 24GB. B60 prices in Australia (a snapshot, not a recommendation): A$1,240 for an ASRock B60 Creator ([gpuprix](https://gpuprix.com/australia/gpus/arc-pro-b60), updated 2026-10-07) and A$999 including GST for an ASRock Arc Pro B60 Passive 24GB OEM card (PCCaseGear, 2026-10-10; a passive card has no fan of its own and needs strong airflow).
 
@@ -213,7 +221,7 @@ Other people publish Qwen3.8-27B numbers for the same card, so we put them side 
 
 1. **Intel's flash-attention prefill kernel makes long-context agents usable, but only with an f16 KV cache.** It reads prompts 3.6× faster at 32K depth (118 to 420 tok/s) and gains nothing with a q4 KV cache (101 versus 101). The kernel comes from llama.cpp [PR #29357](https://github.com/ggml-org/llama.cpp/pull/29357), which its author **closed without merging** on 2026-09-25 and whose branch was later force-pushed. This repo therefore vendors the two commits in [engine/patches/](engine/patches/) with checksums and attribution, and the build applies them to b11524. → [docs/INTEL-FA.md](docs/INTEL-FA.md)
 2. **Speculative decoding is the biggest single win for generation.** A small DFlash2 draft model takes a 27B dense model from 16 to 42 tok/s with identical output quality on our seven coding tasks. → [docs/TUNING-LOG.md](docs/TUNING-LOG.md)
-3. **Keep a margin of free VRAM (the governor keeps 1.35 to 3 GiB, depending on profile) and turn llama.cpp's auto-fit off.** The one run that fell short (draft length 15, 0.96 GiB free) dropped from 42 to 27 tok/s, but two other runs at 1.04 and 0.71 GiB free did not, so the exact threshold is not established ([details](docs/TUNING-LOG.md)). On Windows auto-fit quietly spills into shared memory.
+3. **Keep a margin of free VRAM (the governor keeps 2.5 GiB in MAX and BALANCED, 3 GiB in LEAN), turn llama.cpp's auto-fit off, and watch shared memory.** Windows gives each process a dedicated-memory budget below the card's total, and allocations beyond it go to system memory over PCIe. Free VRAM can look fine while the model slows down: a 57K window spilled 2.9 GiB and fell to 20–22 tok/s. Read the process's `Shared Usage` counter, not just free VRAM ([field report](docs/FIELD-REPORT-20261018.md#1-dedicated-free-vram-is-not-a-real-fit)).
 4. **`-ub 256` plus a q8 draft KV cache frees 0.55 GiB at no speed cost.** That is the difference between 57K and 64K of context.
 5. **Make context overflow an error, not a silent loss.** We pass `--no-context-shift` explicitly (it is also the default in b11524), so a conversation that outgrows the server's context gets an HTTP 400 instead of quietly dropping old tokens, and the agent wrappers size their window to server context minus 8K so the client compacts first. Compaction is done by Claude Code or Codex, and a summary can still lose detail; the sustained-session test in [docs/RELIABILITY.md](docs/RELIABILITY.md) checks for that.
 
@@ -349,6 +357,6 @@ Got an A770, B580, B570, B50, B70, B60 or another Intel GPU? Run [bench/arc-benc
 - Qwen models and [Unsloth](https://huggingface.co/unsloth) GGUFs.
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Kokoro](https://github.com/thewh1teagle/kokoro-onnx) and [Open WebUI](https://docs.openwebui.com/).
 
-Built and measured by **Elie Dagher**, with Claude as engineering pair. MIT licensed ([LICENSE](LICENSE)). To cite this repository, use [CITATION.cff](CITATION.cff) (GitHub's "Cite this repository" button reads it).
+Built and measured by **Elie Dagher**, with Claude and Codex as engineering pairs. The source-level engine study in [docs/research/](docs/research/README.md) was prepared with Gemini. MIT licensed ([LICENSE](LICENSE)). To cite this repository, use [CITATION.cff](CITATION.cff) (GitHub's "Cite this repository" button reads it).
 
 <sub>This repository is about running local LLMs on Intel Arc GPUs (Arc Pro B60, B580, B570, B50, B70 and A770, Battlemage and Xe2) with llama.cpp on Vulkan: 24GB VRAM setups, Qwen 27B coding agents, benchmarks against Ollama and LM Studio, and flash-attention and speculative-decoding results.</sub>
