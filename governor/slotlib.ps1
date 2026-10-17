@@ -358,7 +358,9 @@ function SlotSave($s, $id, $port, $modelPath, $ctx, $variant = $null) {
       SlotLog "SAVE $($meta.n_tokens) tokens, $gib GiB in $ms ms ($id)"
     }
     # a request may have arrived during the (multi-second) save: re-read the slot before letting the caller unload
-    $g2 = SlotUnloadGate (SlotGetSlot $base)
+    $slot2 = SlotGetSlot $base
+    if ($null -eq $slot2) { SlotLog 'unload postponed: /slots unreadable after the slot save (state unknown, failing closed)'; return $false }
+    $g2 = SlotUnloadGate $slot2
     if (-not $g2.ok) { SlotLog "unload postponed: a request started during the slot save ($($g2.reason))"; return $false }
     return $true
   } catch {

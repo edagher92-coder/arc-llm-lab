@@ -18,7 +18,7 @@ The governor keeps the local Qwen server sized to what the PC is doing. It picks
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File governor\test_governor.ps1   # 111 passed, 0 failed
-powershell -NoProfile -ExecutionPolicy Bypass -File governor\test_ctx.ps1        # 7/7
+powershell -NoProfile -ExecutionPolicy Bypass -File governor\test_ctx.ps1        # 11/11
 python -m pytest governor -q                                                       # 53 passed
 ```
 

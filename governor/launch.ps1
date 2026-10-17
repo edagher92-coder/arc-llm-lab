@@ -77,8 +77,11 @@ else {
   # learned footprint the base_gib/kv model misses (governor writes calib.json at each post-launch baseline); never negative
   $overhead = 0.0; $calEnabled = $true; try { if ($cfg.calibration.enabled -is [bool]) { $calEnabled = $cfg.calibration.enabled } } catch {}
   $maxOver = 1.5; try { if ($cfg.calibration.max_overhead_gib) { $maxOver = [double]$cfg.calibration.max_overhead_gib } } catch {}
+  # an entry only counts for the model file + engine it was learned with (same fingerprint rule as governor.ps1 CalibEntry)
+  $fpSize = ''; try { $fpSize = [string](Get-Item -LiteralPath ([string]$v.model) -ErrorAction Stop).Length } catch {}
+  $fp = '{0}|{1}|{2}' -f [string]$v.model, $fpSize, [string]$cfg.exe
   if ($calEnabled) { try { $cal = Get-Content "$dir\calib.json" -Raw -ErrorAction Stop | ConvertFrom-Json; $ce = $cal.PSObject.Properties[$v.id]
-                           if ($ce -and ($null -ne $ce.Value.overhead_gib)) { $overhead = [math]::Round([math]::Max(0.0, [math]::Min($maxOver, [double]$ce.Value.overhead_gib)), 2) } } catch {} }
+                           if ($ce -and ($null -ne $ce.Value.overhead_gib) -and ([string]$ce.Value.fingerprint -eq $fp)) { $overhead = [math]::Round([math]::Max(0.0, [math]::Min($maxOver, [double]$ce.Value.overhead_gib)), 2) } } catch {} }
   $targetGiB = $cfg.vram.total_gib - $p.free_margin_gib - $others
   $kib = ($targetGiB - $v.base_gib - $overhead) * 1MB   # GiB->KiB = *1MB
   $ctx = 0; if ($kib -gt 0) { $ctx = [int]([math]::Floor($kib / $kvKiB / 4096) * 4096) }

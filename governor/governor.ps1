@@ -20,8 +20,8 @@ $ErrorActionPreference = 'Continue'
 $dir = 'C:\AI\governor'
 $swap = 'http://127.0.0.1:8090'
 $model = 'qwen3.8-27b'                         # default variant (prewarm target)
-$ids = @('qwen3.8-27b', 'qwen3.8-27b-turbo', 'qwen3.8-27b-long', 'qwen3.8-27b-big')    # governed 27B variants
-$ports = @{ 'qwen3.8-27b' = 10001; 'qwen3.8-27b-turbo' = 10003; 'qwen3.8-27b-long' = 10004; 'qwen3.8-27b-big' = 10005 }
+$ids = @('qwen3.8-27b', 'qwen3.8-27b-turbo', 'qwen3.8-27b-long', 'qwen3.8-27b-big', 'qwen3.8-27b-base')    # governed 27B variants
+$ports = @{ 'qwen3.8-27b' = 10001; 'qwen3.8-27b-turbo' = 10003; 'qwen3.8-27b-long' = 10004; 'qwen3.8-27b-big' = 10005; 'qwen3.8-27b-base' = 10006 }
 $script:curId = $model; $script:curPort = 10001
 $task = 'Local Qwen (llama-swap)'
 $script:vramTotalGib = 23.88                   # Arc Pro B60 heap 0 (vulkaninfo); overridden by profiles.json vram.total_gib
@@ -352,7 +352,12 @@ $script:baseline = $null; $script:baseStable = 0; $script:baseStarted = $null
 $script:refitPrevCtx = $null; $script:refitOthers = $null; $script:refitBlocked = $false
 function VariantOf($id) { return (Try1 { $cfg.variants.PSObject.Properties | ForEach-Object { $_.Value } | Where-Object { $_.id -eq $id } | Select-Object -First 1 } $null) }
 function CalibRead { $c = ReadJsonFile "$dir\calib.json"; if ($null -eq $c) { return [pscustomobject]@{} }; return $c }
-function CalibEntry($id) { $c = CalibRead; $pr = $c.PSObject.Properties[$id]; if ($pr) { return $pr.Value }; return $null }
+# A learned overhead is only valid for the model file and engine it was measured with: entries carry a fingerprint
+# (model path | file size | engine exe) and are ignored when it differs or is missing (launch.ps1 applies the same rule).
+function CalibFingerprint($vv) { $sz = ''; try { $sz = [string](Get-Item -LiteralPath ([string]$vv.model) -ErrorAction Stop).Length } catch {}; return ('{0}|{1}|{2}' -f [string]$vv.model, $sz, [string]$cfg.exe) }
+function CalibEntry($id) { $c = CalibRead; $pr = $c.PSObject.Properties[$id]; if (-not $pr) { return $null }
+  $vv = VariantOf $id; if ($vv -and ([string]$pr.Value.fingerprint -ne (CalibFingerprint $vv))) { return $null }
+  return $pr.Value }
 function CalibWrite($id, $entry) {
   try {
     $c = CalibRead
@@ -641,7 +646,7 @@ while ($true) {
           $prev = $null; $pe = CalibEntry $script:curId; if ($pe) { $prev = Try1 { [double]$pe.overhead_gib } $null }
           $cal = GovCalibrate $prev $s.vram_llama_gib $vv.base_gib $m.n_ctx $vv.kv_kib_per_token $alpha $maxO
           $n = 1; if ($pe) { $n = (Try1 { [int]$pe.samples } 0) + 1 }
-          CalibWrite $script:curId ([ordered]@{ overhead_gib = $cal.overhead; last_delta_gib = $cal.delta; predicted_gib = $cal.predicted; measured_gib = $s.vram_llama_gib; ctx = [int]$m.n_ctx; others_gib = $s.vram_others_gib; free_gib = $s.vram_free_gib; samples = $n; updated = $now.ToString('s') })
+          CalibWrite $script:curId ([ordered]@{ fingerprint = (CalibFingerprint $vv); overhead_gib = $cal.overhead; last_delta_gib = $cal.delta; predicted_gib = $cal.predicted; measured_gib = $s.vram_llama_gib; ctx = [int]$m.n_ctx; others_gib = $s.vram_others_gib; free_gib = $s.vram_free_gib; samples = $n; updated = $now.ToString('s') })
         }
         $calTxt = ''; if ($cal) { $calTxt = (' predicted={0} measured={1} delta={2:+0.00;-0.00} overhead->{3}' -f $cal.predicted, $s.vram_llama_gib, $cal.delta, $cal.overhead) }
         Log ("BASELINE ctx={0} others={1} free={2} llama={3}{4}" -f $m.n_ctx, $s.vram_others_gib, $s.vram_free_gib, $s.vram_llama_gib, $calTxt)
