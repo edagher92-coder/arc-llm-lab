@@ -1,0 +1,23 @@
+id,route,request_json,expected_enable_thinking,expected_effort,expected_budget,expected_error,rationale
+P01,code,{},false,,,,code route default = no thinking
+P02,code,"{""chat_template_kwargs"":{""enable_thinking"":false}}",false,,,,MCP coding request preserved
+P03,code,"{""chat_template_kwargs"":{""enable_thinking"":true}}",true,medium,0,,explicit caller wins over route default; budget from code route default
+P04,general,{},true,medium,1536,,omitted effort must NOT become xhigh
+P05,plan,{},true,medium,2048,,omitted effort must NOT become xhigh
+P06,vision,{},true,low,1024,,
+P07,general,"{""reasoning_effort"":""xhigh""}",true,xhigh,1536,,explicit top-level effort kept
+P08,general,"{""chat_template_kwargs"":{""reasoning_effort"":""low""}}",true,low,1536,,nested effort preserved (pack router would clobber this)
+P09,general,"{""reasoning_effort"":""xhigh"",""chat_template_kwargs"":{""reasoning_effort"":""low""}}",,,,PolicyError,conflict rejected instead of silent server-side overwrite
+P10,general,"{""reasoning_effort"":""high""}",true,xhigh,1536,,high maps to xhigh visibly
+P11,general,"{""reasoning_effort"":""none""}",false,,,,none disables thinking
+P12,general,"{""reasoning_effort"":""none"",""chat_template_kwargs"":{""enable_thinking"":true}}",,,,PolicyError,contradiction rejected
+P13,general,"{""reasoning_budget_tokens"":512,""thinking_budget_tokens"":4096}",,,,PolicyError,budget conflict rejected
+P14,general,"{""thinking_budget_tokens"":4096}",true,medium,4096,,legacy alias honoured
+P15,general,"{""reasoning_budget_tokens"":-1}",true,medium,-1,,explicit -1 kept explicit (server would otherwise fall to CLI default)
+P16,general,"{""thinking"":{""type"":""enabled"",""budget_tokens"":2000}}",true,medium,2000,,Anthropic shape
+P17,general,"{""thinking"":{""type"":""disabled""}}",false,,,,Anthropic disabled
+P18,code,"{""reasoning_effort"":""low""}",false,,,,effort alone does not enable thinking in code route (matches server: only none toggles)
+P19,general,"{""reasoning_effort"":""ultra""}",,,,PolicyError,unknown effort rejected
+P20,general,"{""chat_template_kwargs"":{""enable_thinking"":""false""}}",,,,PolicyError,string boolean rejected (server also rejects quoted string)
+P21,general,"{""reasoning"":{""effort"":""low""}}",true,low,1536,,Responses API shape
+P22,code,"{""enable_thinking"":false,""chat_template_kwargs"":{""enable_thinking"":true}}",,,,PolicyError,top vs nested enable_thinking conflict
