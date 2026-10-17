@@ -69,7 +69,7 @@ The only honest route to a smaller KV cache is engine work, not a flag: a valid 
 
 ## 4. What changed in this repo
 
-- [governor/](../governor/) is now **v4.3**. It has null-safe sensing, pressure hysteresis, no unload while a request is in flight, KV slot save/restore, power-plan hysteresis, footprint calibration, and a process-path filter so Ollama's bundled `llama-server.exe` is never counted as the model. Tests: `test_governor.ps1` 111/0, pytest 53/0, `test_ctx.ps1` 7/7.
+- [governor/](../governor/) is now **v4.3**. It has null-safe sensing, pressure hysteresis, no unload while a request is in flight, KV slot save/restore, power-plan hysteresis, footprint calibration, and a process-path filter so Ollama's bundled `llama-server.exe` is never counted as the model. Tests: `test_governor.ps1` 111/0, pytest 53/0, `test_ctx.ps1` 11/11.
 - `governor/profiles.json`: the MAX and BALANCED `free_margin_gib` is **2.5** (was 1.35), and `auto.others_vram_max_gib` is 2.5.
 - [agents/codex-lean/](../agents/codex-lean/README.md): an opt-in Codex home that cuts Codex's start-up prompt from 12,235 to 3,010 tokens (measured). The first cold turn went from 33 s to 8 s.
 - [CODEX-COMPAT.md](CODEX-COMPAT.md): which OpenAI request features this llama-server honours, ignores or drops, from 22 request shapes against the live server.
