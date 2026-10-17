@@ -1,5 +1,7 @@
 # arc-llm-lab: a local 27B coding model and local AI video on one Intel Arc GPU
 
+**17 October field report:** [B60 throughput recovery, desktop-safe AUTO profiles and context trade-offs](docs/OPERATING-PROFILES-20261017.md). Dated local observations; not a new benchmark headline or an installable runtime update.
+
 **A 27B coding model at 42-58 tok/s, local video generation and a phone control panel, all on a single Intel Arc Pro B60 24GB, with the raw logs, versions and caveats published.** Tuned llama.cpp on Vulkan, Intel's flash-attention prefill kernel, DFlash2 speculative decoding, LTX-2.5 video through ComfyUI on XPU, and a way to use the local model from Claude Code.
 
 [![Self-test CI status](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml/badge.svg)](https://github.com/edagher92-coder/arc-llm-lab/actions/workflows/selftest.yml)

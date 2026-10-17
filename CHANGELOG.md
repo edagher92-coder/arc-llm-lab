@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — 2026-10-17 field report
+
+- Added a dated maintainer report covering local throughput recovery, desktop coexistence, the corrected deferred-prewarm admission gap, and measured context/latency trade-offs.
+- Preserved existing benchmark headlines and runtime source. Local test/review/activation evidence is explicitly separate from public source parity; larger-context and whole-project productivity gains remain unqualified.
+
 ## 2.3.0 - 2026-10-12
 Covers `ed9aafd..HEAD`. Only figures measured in this repo are quoted; everything else is marked as not measured.
 
