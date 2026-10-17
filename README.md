@@ -15,7 +15,6 @@
 [![Model](https://img.shields.io/badge/model-Qwen3.8--27B%20Q4__K__M-4F7BFF)](#versions-used)
 [![Interactive benchmarks](https://img.shields.io/badge/interactive-benchmarks-B26FE0)](https://edagher92-coder.github.io/arc-llm-lab/)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/edagher92-coder/arc-llm-lab?style=flat)](https://github.com/edagher92-coder/arc-llm-lab/stargazers)
 
 > **The fine print, up front.** 53 tok/s is per-request server decode with short prompts and a 65,536-token KV window allocated ([tune.txt](data/raw/tune.txt)). With 30-37K tokens of real conversation in the window, agent turns generate about 42 tok/s ([bench-history.csv](data/raw/bench-history.csv)). On 17 October a 53K window on a contended desktop fell to 22 tok/s, and 50-60K without loss is not yet qualified ([field report](docs/OPERATING-PROFILES-20261017.md)). Single runs on one workstation.
 
