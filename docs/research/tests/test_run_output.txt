@@ -1,0 +1,32 @@
+test_P01 (__main__.Matrix.test_P01) ... ok
+test_P02 (__main__.Matrix.test_P02) ... ok
+test_P03 (__main__.Matrix.test_P03) ... ok
+test_P04 (__main__.Matrix.test_P04) ... ok
+test_P05 (__main__.Matrix.test_P05) ... ok
+test_P06 (__main__.Matrix.test_P06) ... ok
+test_P07 (__main__.Matrix.test_P07) ... ok
+test_P08 (__main__.Matrix.test_P08) ... ok
+test_P09 (__main__.Matrix.test_P09) ... ok
+test_P10 (__main__.Matrix.test_P10) ... ok
+test_P11 (__main__.Matrix.test_P11) ... ok
+test_P12 (__main__.Matrix.test_P12) ... ok
+test_P13 (__main__.Matrix.test_P13) ... ok
+test_P14 (__main__.Matrix.test_P14) ... ok
+test_P15 (__main__.Matrix.test_P15) ... ok
+test_P16 (__main__.Matrix.test_P16) ... ok
+test_P17 (__main__.Matrix.test_P17) ... ok
+test_P18 (__main__.Matrix.test_P18) ... ok
+test_P19 (__main__.Matrix.test_P19) ... ok
+test_P20 (__main__.Matrix.test_P20) ... ok
+test_P21 (__main__.Matrix.test_P21) ... ok
+test_P22 (__main__.Matrix.test_P22) ... ok
+test_canonical_budget_ignored (__main__.PackRouterRegression.test_canonical_budget_ignored) ... ok
+test_first_turn_simple_gets_xhigh (__main__.PackRouterRegression.test_first_turn_simple_gets_xhigh) ... ok
+test_input_mutated (__main__.PackRouterRegression.test_input_mutated) ... ok
+test_nested_effort_clobbered (__main__.PackRouterRegression.test_nested_effort_clobbered) ... ok
+test_no_thinking_code_mode_gets_effort_injected (__main__.PackRouterRegression.test_no_thinking_code_mode_gets_effort_injected) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.004s
+
+OK

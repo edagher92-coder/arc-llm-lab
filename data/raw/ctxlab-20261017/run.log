@@ -1,0 +1,80 @@
+16:08:48 GPU-exclusive begin: mode OFF + unload
+16:08:56 baseline VRAM: {"adapter_dedicated_gib":2.42,"free_gib":21.46,"dwm_dedicated_gib":5.37}
+16:08:56 bench ctk=f16 ctv=f16 d=0 r=3
+16:09:23 bench ctk=f16 ctv=f16 d=16384,32768 r=1
+16:11:37 bench ctk=q8_0 ctv=q8_0 d=0 r=3
+16:12:01 bench ctk=q8_0 ctv=q8_0 d=16384 r=1
+16:13:17 GPU-exclusive end: mode AUTO + load
+16:13:42 load: qwen3.8-27b loaded in 22.3 s
+16:13:47 status: Mode AUTO | profile LEAN | model starting | ctx  | quiet 0 min | PC: idle 7s | RAM free 11.36 GB | VRAM used 22.43/23.9 GiB (model 3.52, others 18.91) | CPU others 18% | Governor: none (not loaded (starting)) | pressure 0s | agent active | DEGRADED: loop errors 0 (streak 0, heals 0) last_error= |   sense: model starting: keeping last good others
+16:38:41 GPU-exclusive begin: mode OFF + unload
+16:38:49 baseline VRAM: {"adapter_dedicated_gib":1.8,"free_gib":22.08,"dwm_dedicated_gib":5.32}
+16:38:49 bench ctk=q8_0 ctv=q8_0 d=32768 r=1
+16:41:50 GPU-exclusive end: mode AUTO + load
+16:42:16 load: qwen3.8-27b loaded in 23.3 s
+16:42:21 status: Mode AUTO | profile LEAN | model starting | ctx  | quiet 0 min | PC: idle 240s | RAM free 11.42 GB | VRAM used 17.24/23.9 GiB (model 0, others 18.79) | CPU others 37% | Governor: none (not loaded (starting)) | pressure 0s | agent active | DEGRADED: loop errors 0 (streak 0, heals 0) last_error= |   sense: model starting: keeping last good others
+16:43:33 GPU-exclusive begin: mode OFF + unload
+16:43:40 baseline VRAM: {"adapter_dedicated_gib":1.85,"free_gib":22.03,"dwm_dedicated_gib":5.32}
+16:43:40 launch prod-mmproj-draft-ub256
+16:44:20 done prod-mmproj-draft-ub256 load=16.7s ded=19.14 shr=1.68 free=2.89 gen=29.86
+16:44:20 launch nommproj-draft-ub256
+16:45:00 done nommproj-draft-ub256 load=16.6s ded=19.14 shr=1.68 free=2.84 gen=33.33
+16:45:00 launch nommproj-nodraft-ub256
+16:45:46 done nommproj-nodraft-ub256 load=14.6s ded=17.69 shr=0.7 free=4.33 gen=16.39
+16:45:46 launch nommproj-draft-ub128
+16:46:24 done nommproj-draft-ub128 load=14.6s ded=18.98 shr=1.66 free=3.04 gen=28.66
+16:46:24 launch nommproj-draft-ub512
+16:47:05 done nommproj-draft-ub512 load=16.6s ded=19.5 shr=1.72 free=2.51 gen=25.70
+16:47:05 launch nommproj-draft-ub256-b512
+16:47:46 done nommproj-draft-ub256-b512 load=16.6s ded=19.14 shr=1.65 free=2.87 gen=26.58
+16:47:46 launch nommproj-draftcpu-ub256
+16:48:32 done nommproj-draftcpu-ub256 load=14.6s ded=18.99 shr=1.77 free=3.03 gen=16.66
+16:48:32 launch nommproj-draft-ub256-ot2cpu
+16:49:09 done nommproj-draft-ub256-ot2cpu load=15.6s ded=19.53 shr=1.29 free=2.55 gen=31.90
+16:49:09 launch nommproj-draft-ub256-q8kv
+16:49:45 done nommproj-draft-ub256-q8kv load=16.6s ded=19.11 shr=0.75 free=2.97 gen=46.10
+16:49:45 GPU-exclusive end: mode AUTO + load
+16:50:12 load: qwen3.8-27b loaded in 24.2 s
+16:50:17 status: Mode AUTO | profile MAX | model starting | ctx  | quiet 0 min | PC: idle 721s | RAM free 11.19 GB | VRAM used 17.19/23.9 GiB (model 15.39, others 1.8) | CPU others 29% | Governor: none (not loaded (starting)) | pressure 0s | agent active | DEGRADED: loop errors 0 (streak 0, heals 0) last_error= |   sense: model starting: keeping last good others
+16:52:52 GPU-exclusive begin: mode OFF + unload
+16:53:00 baseline VRAM: {"adapter_dedicated_gib":1.81,"free_gib":22.07,"dwm_dedicated_gib":5.32}
+16:53:00 depth launch kv=f16,q8_0
+16:54:33 GPU-exclusive begin: mode OFF + unload
+16:54:39 baseline VRAM: {"adapter_dedicated_gib":1.85,"free_gib":22.03,"dwm_dedicated_gib":5.51}
+16:54:39 GPU-exclusive begin: mode OFF + unload
+16:54:45 baseline VRAM: {"adapter_dedicated_gib":1.85,"free_gib":22.03,"dwm_dedicated_gib":5.51}
+16:54:45 depth launch kv=f16
+16:55:31 GPU-exclusive begin: mode OFF + unload
+16:56:00 baseline VRAM: {"adapter_dedicated_gib":1.89,"free_gib":21.99,"dwm_dedicated_gib":5.51}
+16:56:00 depth launch kv=f16
+16:56:22 depth kv=f16 idle VRAM: ded=19.65 shr=1.69 free=2.35
+16:56:34 depth kv=f16 short run1 prompt_n=3862 pp=480.2 gen=16.90 wall=10 ded=19.74 shr=1.92
+16:56:38 depth kv=f16 short run2 prompt_n=260 pp=288.5 gen=20.20 wall=1.7 ded=19.74 shr=1.92
+16:56:40 depth kv=f16 long run1 prompt_n= pp= gen= wall= ded=19.74 shr=1.92
+16:56:42 depth kv=f16 long run2 prompt_n= pp= gen= wall= ded=19.74 shr=1.92
+16:56:45 depth launch kv=q8_0
+16:57:09 depth kv=q8_0 idle VRAM: ded=19.38 shr=0.75 free=2.61
+16:57:22 depth kv=q8_0 short run1 prompt_n=3862 pp=418.9 gen=22.09 wall=10.3 ded=19.51 shr=0.98
+16:57:25 depth kv=q8_0 short run2 prompt_n=260 pp=270.2 gen=29.63 wall=1.6 ded=19.51 shr=0.98
+16:57:28 depth kv=q8_0 long run1 prompt_n= pp= gen= wall= ded=19.51 shr=0.98
+16:57:30 depth kv=q8_0 long run2 prompt_n= pp= gen= wall= ded=19.51 shr=0.98
+16:57:33 GPU-exclusive end: mode AUTO + load
+16:58:04 load: qwen3.8-27b loaded in 28.7 s
+16:58:10 status: Mode AUTO | profile MAX | model starting | ctx  | quiet 0 min | PC: idle 1190s | RAM free 11.19 GB | VRAM used 17.26/23.9 GiB (model 15.37, others 1.89) | CPU others 38% | Governor: none (not loaded (starting)) | pressure 0s | agent active | DEGRADED: loop errors 0 (streak 0, heals 0) last_error= |   sense: model starting: keeping last good others
+16:58:32 GPU-exclusive begin: mode OFF + unload
+16:58:40 baseline VRAM: {"adapter_dedicated_gib":1.87,"free_gib":22.01,"dwm_dedicated_gib":5.51}
+16:58:40 depth launch kv=f16
+16:59:02 depth kv=f16 idle VRAM: ded=19.65 shr=1.69 free=2.34
+16:59:20 depth kv=f16 short run1 prompt_n=3875 pp=473.1 gen=30.93 wall=16.5 ded=19.74 shr=1.92
+16:59:33 depth kv=f16 short run2 prompt_n=260 pp=330.6 gen=27.22 wall=10.2 ded=19.74 shr=1.92
+17:00:44 depth kv=f16 long run1 prompt_n=25243 pp=428.2 gen=25.48 wall=69 ded=19.75 shr=1.92
+17:00:58 depth kv=f16 long run2 prompt_n=260 pp=270.0 gen=22.96 wall=12.1 ded=19.75 shr=1.92
+17:01:01 depth launch kv=q8_0
+17:01:21 depth kv=q8_0 idle VRAM: ded=19.38 shr=0.75 free=2.62
+17:01:40 depth kv=q8_0 short run1 prompt_n=3875 pp=413.1 gen=33.82 wall=16.9 ded=19.51 shr=0.98
+17:01:51 depth kv=q8_0 short run2 prompt_n=260 pp=274.6 gen=30.62 wall=9.3 ded=19.51 shr=0.98
+17:04:23 depth kv=q8_0 long run1 prompt_n=25243 pp=199.2 gen=10.93 wall=150.1 ded=19.62 shr=0.98
+17:04:52 depth kv=q8_0 long run2 prompt_n=260 pp=108.2 gen=10.49 wall=26.8 ded=19.62 shr=0.98
+17:04:55 GPU-exclusive end: mode AUTO + load
+17:05:33 load: qwen3.8-27b loaded in 35 s
+17:05:39 status: Mode AUTO | profile MAX | model LOADED (BALANCED) | ctx 45056 | quiet 0.3 min | PC: idle 1653s | RAM free 6.38 GB | VRAM used 20.82/23.9 GiB (model 18.94, others 1.88) | CPU others 17% | Governor: none (steady) | pressure 0s | agent active

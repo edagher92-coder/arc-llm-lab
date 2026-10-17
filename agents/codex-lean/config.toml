@@ -1,0 +1,78 @@
+# Lean Codex home for the local Qwen (Arc Pro B60). Deploy to C:\AI\codex-local\home and run Codex with
+# CODEX_HOME=C:\AI\codex-local\home (see codex-qwen-lean.cmd). A separate CODEX_HOME is what removes the 26 plugins,
+# 7 MCP servers, the 21 KB global AGENTS.md and the ~/.codex/skills tree from every request.
+# MEASURED 2026-10-17 (llama-server /metrics, "Reply OK" in an empty project):
+#   ~/.codex + qwen-lean profile : 12,235 prompt tokens, 33 s wall (cold)
+#   this home, stock instructions:  7,150 (agents/goals tools off: ~4,900 est. from request bytes)
+#   this home, compact instructions: 3,010 prompt tokens, 1.6 s when cached   <- VERIFIED
+model          = "qwen3.8-27b:code"   # thinking off; the governor's default variant (f16 KV, Intel FA, DFlash2)
+model_provider = "qwen-b60"
+model_reasoning_effort  = "low"
+model_reasoning_summary = "none"
+hide_agent_reasoning    = true
+model_verbosity         = "low"
+
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+
+# Window: the governor sizes ctx per load (32768-65536, --no-context-shift => overflow is a hard 400).
+# codex-qwen-lean.cmd overrides these two with the live value from `qwen window` (ctx - 8192) and 75% of it.
+model_context_window           = 32768
+model_auto_compact_token_limit = 24000
+tool_output_token_limit        = 3000
+
+web_search            = "disabled"     # llama.cpp drops web_search tools
+project_doc_max_bytes = 8192           # AGENTS.md cap per file (default 32 KiB)
+
+# Replaces Codex's 17.3 KB stock system prompt (~4K tokens) with a 1.2 KB one. VERIFIED to take effect (request capture).
+# Risk: untested on the eval suite; keep the stock prompt by commenting this line out (prompt then ~4.9K tokens).
+model_instructions_file = 'C:\AI\codex-local\home\instructions-compact.md'
+include_permissions_instructions = false
+include_apps_instructions = false
+include_collaboration_mode_instructions = false
+
+developer_instructions = "Local Qwen. Context is small: read only what you need, keep tool output short, valid JSON tool arguments, one step at a time."
+
+[agents]
+enabled = false                        # removes the multi_agent_v1 namespace tool (10 KB of schema) - VERIFIED by capture
+
+[features]
+memories = false
+multi_agent = false                    # (INFERRED name; harmless if unknown)
+collaboration_modes = false            # (INFERRED name)
+goals = false                          # goals tools disappeared together with [agents] enabled=false; name INFERRED
+apply_patch_freeform = false
+
+[tools]
+view_image = false                     # the schema still ships (371 bytes); harmless
+
+[model_providers.qwen-b60]
+name = "Local Qwen on Arc B60"
+base_url = "http://127.0.0.1:8090/v1"
+env_key = "LOCAL_QWEN_KEY"
+wire_api = "responses"
+stream_idle_timeout_ms = 900000
+request_max_retries = 1
+stream_max_retries = 1
+
+# Codex writes six system skills into any new CODEX_HOME; switch them off (each listing costs tokens).
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\imagegen\SKILL.md'
+enabled = false
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\openai-docs\SKILL.md'
+enabled = false
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\plugin-creator\SKILL.md'
+enabled = false
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\review-agent\SKILL.md'
+enabled = false
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\skill-creator\SKILL.md'
+enabled = false
+[[skills.config]]
+path = 'C:\AI\codex-local\home\skills\.system\skill-installer\SKILL.md'
+enabled = false
+# Still injected: a truncated list of ~/.agents/skills (about 700 tokens). Codex reads that directory from the user
+# profile, not CODEX_HOME; moving rarely used skills out of ~/.agents/skills is the only way to drop it.

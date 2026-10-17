@@ -1,0 +1,119 @@
+{
+  "tps_native": 37.8338,
+  "tokens_per_round": 5.0306,
+  "drafted_per_round": 5.6245,
+  "accepted_per_round": 3.9061,
+  "acceptance_rate": 0.6945,
+  "tokens_explained_by_rounds": 2247,
+  "tokens_unexplained": 57,
+  "ms_per_round": 132.9651,
+  "draft_ms_per_round": 20.8188,
+  "remainder_ms_per_round": 112.1463,
+  "draft_share": 0.1566,
+  "wall_minus_native_s": 0.866,
+  "fwd_floor_ms[emb_on_gpu]": 38.2509,
+  "nonspec_tps_ceiling[emb_on_gpu]": 26.1432,
+  "fwd_floor_ms[emb_cpu_q4k]": 36.6825,
+  "nonspec_tps_ceiling[emb_cpu_q4k]": 27.2609,
+  "fwd_floor_ms[emb_cpu_q6k]": 35.9637,
+  "nonspec_tps_ceiling[emb_cpu_q6k]": 27.8058,
+  "round_ms_needed_at_current_tpr[40]": 125.7642,
+  "tpr_needed_at_current_round_ms[40]": 5.3186,
+  "round_ms_needed_at_current_tpr[45]": 111.7904,
+  "tpr_needed_at_current_round_ms[45]": 5.9834,
+  "round_ms_needed_at_current_tpr[50]": 100.6114,
+  "tpr_needed_at_current_round_ms[50]": 6.6483,
+  "ideal_round_ms(verify_floor+draft)": 59.0697,
+  "ideal_tps_at_current_tpr": 85.1633,
+  "remainder_minus_verify_floor_ms": 73.8954,
+  "UNKNOWN_split": "target verify GPU time, feature readback (GPU->host), CPU concat, inject upload + inject decode, synchronize waits, lattice readback, CPU selector argmax, sampling/accept, server loop overhead"
+}
+{
+  "original MAX14/draft7": {
+    "mean": 41.803,
+    "sd": 2.678,
+    "min": 38.79,
+    "max": 43.91,
+    "all_ge_40": false
+  },
+  "MMVQ override removed": {
+    "mean": 36.697,
+    "sd": 0.607,
+    "min": 36.01,
+    "max": 37.16,
+    "all_ge_40": false
+  },
+  "8 workers (BALANCED, not isolated)": {
+    "mean": 39.483,
+    "sd": 2.931,
+    "min": 37.28,
+    "max": 42.81,
+    "all_ge_40": false
+  },
+  "MAX14/draft5": {
+    "mean": 39.893,
+    "sd": 1.932,
+    "min": 37.68,
+    "max": 41.24,
+    "all_ge_40": false
+  }
+}
+{
+  "native_tps_if_first_token_excluded": 37.8173
+}
+{
+  "n_extract=5": {
+    "bytes_per_token_KiB": 100.0,
+    "per_round_MiB_one_direction": 0.6469193504366813,
+    "per_round_ms_transfer_at_practical_pcie": [
+      0.068,
+      0.048
+    ],
+    "prefill_GiB_one_direction": {
+      "2048": 0.195,
+      "8192": 0.781,
+      "32768": 3.125
+    },
+    "prefill_s_one_direction_at_practical_pcie": {
+      "2048": [
+        0.021,
+        0.015
+      ],
+      "8192": [
+        0.084,
+        0.06
+      ],
+      "32768": [
+        0.336,
+        0.24
+      ]
+    }
+  },
+  "n_extract=8": {
+    "bytes_per_token_KiB": 160.0,
+    "per_round_MiB_one_direction": 1.0350709606986899,
+    "per_round_ms_transfer_at_practical_pcie": [
+      0.109,
+      0.078
+    ],
+    "prefill_GiB_one_direction": {
+      "2048": 0.312,
+      "8192": 1.25,
+      "32768": 5.0
+    },
+    "prefill_s_one_direction_at_practical_pcie": {
+      "2048": [
+        0.034,
+        0.024
+      ],
+      "8192": [
+        0.134,
+        0.096
+      ],
+      "32768": [
+        0.537,
+        0.383
+      ]
+    }
+  }
+}

@@ -17,6 +17,7 @@ If a number in a document points here, the line it comes from is in one of these
 | [build.log](build.log) | The Intel FA engine build | [engine/build.ps1](../../engine/build.ps1) | Compiler and commit versions, glslc capability lines |
 | [governor.log](governor.log) | The governor's launch and decision log for the day | [governor/](../../governor/) | Profile and context choices |
 | [config-history/](config-history/) | Copies of `governor/profiles.json` taken before the Intel FA switch and before the 64K tuning | `qwen snapshot` | What changed between configurations |
+| [ctxlab-20261017/](ctxlab-20261017/README.md) | 17 Oct context lab: `llama-bench` f16 vs q8_0 KV at depth, llama-server depth runs with the drafter, and a 9-variant VRAM footprint sweep with per-process **shared** usage | maintainer ctxlab scripts (not published) | [kv-cache-depth-20261017.csv](../kv-cache-depth-20261017.csv), [footprint-variants-20261017.csv](../footprint-variants-20261017.csv), [FIELD-REPORT-20261018](../../docs/FIELD-REPORT-20261018.md) |
 
 ## Read these before quoting a number
 

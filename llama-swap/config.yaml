@@ -72,6 +72,13 @@ models:
     ttl: 3600
     aliases: ["qwen-long", "long"]
 
+  "qwen3.8-27b-base":
+    name: "Qwen3.8 27B BASE - the original UD-Q4_K_M quant (pre-ThinkingCap default), DFlash2, vision; kept for A/B comparison"
+    cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant base
+    proxy: http://127.0.0.1:10006
+    ttl: 3600
+    aliases: ["qwen-base", "base"]
+
   "qwen3.6-35b-a3b":
     name: "Qwen3.6 35B-A3B fast (text only, 128k ctx)"
     cmd: >-

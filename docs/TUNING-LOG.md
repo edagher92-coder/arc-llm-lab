@@ -27,6 +27,10 @@ Every change, in order, with the number it produced. Each **Data** entry names a
 | 21 | Qwen's template only accepts `reasoning_effort` of xhigh / medium / low | other values give HTTP 500; "high" maps to xhigh | v3 bench |
 | 22 | Windows audit: dwm.exe VRAM with two 3440x1440 monitors | dwm holds 2.6 GB of the 24 GB. Dropping both monitors to 1920x1080 did **not** shrink it (2.6 -> 3.3 GB right after the change, 2.8 GB a minute later). See [DISPLAY-POLICY.md](DISPLAY-POLICY.md) | observed on the PC |
 | 23 | Intel graphics services | Graphics Software Service 15 MB RAM, shader distributor 3 MB, PROSet monitoring small; no overlay process was running and none held VRAM. Switching them off is a tidy-up, not a speed-up | observed on the PC |
+| 24 | q8_0 main KV vs f16 at depth, with the drafter (window 40,960, 17 Oct) | 25K-token prompt: prompt reading 428 -> 199 tok/s (−53%), generation 25.5 -> 10.9 (−57%); saves only 0.27 GiB. **Main KV stays f16** | ctxlab-20261017/server-depth-*.log |
+| 25 | VRAM footprint sweep at 32K, nine variants, dedicated **and shared** memory recorded (17 Oct) | No-mmproj 0 GiB saved; drafter on CPU and no drafter both fall to ~16 tok/s; `-ot` two layers to CPU uses *more* VRAM; the fastest run had the least shared memory (q8_0 KV, 0.75 GiB shared, 46.1 tok/s short request) | ctxlab-20261017/run.log |
+| 26 | Governor margin 1.35 -> 2.5 GiB (18 Oct) | At 1.35 the fit chose 57,344 and llama-server spilled 2.90 GiB to shared memory: 20–22 tok/s. At 2.5: 36,864, 1.23 GiB shared, 26.7–28.3 tok/s. Dedicated free VRAM is not a real fit ([field report](FIELD-REPORT-20261018.md)) | observed (governor.log not published) |
+| 27 | Throughput regression (open) | `llama-bench tg32` 16.0 (12 Oct) -> 13.0 (17 Oct) on the same command; warm decode 43–48 (15–16 Oct) -> 28 (18 Oct). Cause not found yet ([roadmap E0](ROADMAP.md#e0-real-vram-budget-and-the-regression)) | ctxlab-20261017/kv-batch1.md; observed |
 
 ## Settings that matter (final)
 

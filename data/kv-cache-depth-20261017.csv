@@ -1,0 +1,11 @@
+tool,kv_cache,depth_tokens,prompt_tokens,prompt_tok_s,gen_tok_s,drafter,ctx,source
+llama-bench,f16,0,512,484.53,13.01,none,,raw/ctxlab-20261017/kv-batch1.md
+llama-bench,f16,16384,512,378.60,14.39,none,,raw/ctxlab-20261017/kv-batch1.md
+llama-bench,f16,32768,512,354.27,12.69,none,,raw/ctxlab-20261017/kv-batch1.md
+llama-bench,q8_0,0,512,587.56,15.68,none,,raw/ctxlab-20261017/kv-batch1.md
+llama-bench,q8_0,16384,512,197.66,11.53,none,,raw/ctxlab-20261017/kv-batch1.md
+llama-bench,q8_0,32768,512,122.83,9.51,none,,raw/ctxlab-20261017/kv-batch2.md
+llama-server,f16,0,3875,473.11,30.93,DFlash2 n=7,40960,raw/ctxlab-20261017/server-depth-f16.log
+llama-server,f16,25243,25243,428.15,25.48,DFlash2 n=7,40960,raw/ctxlab-20261017/server-depth-f16.log
+llama-server,q8_0,0,3875,413.14,33.82,DFlash2 n=7,40960,raw/ctxlab-20261017/server-depth-q8_0.log
+llama-server,q8_0,25243,25243,199.16,10.93,DFlash2 n=7,40960,raw/ctxlab-20261017/server-depth-q8_0.log

@@ -1,0 +1,10 @@
+variant,ctx,dedicated_gib,shared_gib,adapter_free_gib,gen_tok_s,note,source
+production (mmproj + DFlash2 + -ub 256),32768,19.14,1.68,2.89,29.86,,raw/ctxlab-20261017/run.log
+no mmproj,32768,19.14,1.68,2.84,33.33,mmproj lives CPU-side: 0 GiB saved,raw/ctxlab-20261017/run.log
+no drafter,32768,17.69,0.70,4.33,16.39,saves 1.45 GiB but loses the drafter,raw/ctxlab-20261017/run.log
+-ub 128,32768,18.98,1.66,3.04,28.66,,raw/ctxlab-20261017/run.log
+-ub 512,32768,19.50,1.72,2.51,25.70,,raw/ctxlab-20261017/run.log
+-ub 256 -b 512,32768,19.14,1.65,2.87,26.58,,raw/ctxlab-20261017/run.log
+drafter on CPU,32768,18.99,1.77,3.03,16.66,,raw/ctxlab-20261017/run.log
+-ot blk.(62|63)=CPU,32768,19.53,1.29,2.55,31.90,more dedicated not less,raw/ctxlab-20261017/run.log
+q8_0 main KV,32768,19.11,0.75,2.97,46.10,short prompt only; q8_0 KV collapses at depth (kv-cache-depth-20261017.csv),raw/ctxlab-20261017/run.log
