@@ -27,6 +27,10 @@ Every change, in order, with the number it produced. Each **Data** entry names a
 | 21 | Qwen's template only accepts `reasoning_effort` of xhigh / medium / low | other values give HTTP 500; "high" maps to xhigh | v3 bench |
 | 22 | Windows audit: dwm.exe VRAM with two 3440x1440 monitors | dwm holds 2.6 GB of the 24 GB. Dropping both monitors to 1920x1080 did **not** shrink it (2.6 -> 3.3 GB right after the change, 2.8 GB a minute later). See [DISPLAY-POLICY.md](DISPLAY-POLICY.md) | observed on the PC |
 | 23 | Intel graphics services | Graphics Software Service 15 MB RAM, shader distributor 3 MB, PROSet monitoring small; no overlay process was running and none held VRAM. Switching them off is a tidy-up, not a speed-up | observed on the PC |
+| 24 | Throughput regression, 17-18 Oct: warm 300-token check fell to 28 tok/s (47 on 15 Oct) with no config change. Checked: ECC **off**, GPU at 2400 MHz and 65 °C under load, no GPU/VRAM/fan tuning, driver unchanged, power plan High performance | a **Windows restart** (uptime was 2 d 13 h) restored it: 42.1 / 44.8 / 46.2 tok/s on the same check. Cause INFERRED: graphics memory manager state after a long uptime | observed on the PC (2026-10-18) |
+| 25 | Context sweep: the exact production command line on a spare port, governor off, other apps holding 1.55-1.66 GiB of VRAM. Per size: 3 short code requests, then one request with the context 80% full (code-like filler) | 32K: 54-57 short, **48.2** deep (26K tokens, prompt 456 tok/s). 40K: 51-57 / **46.3** (32.6K, 439). 48K: 50-54 / **43.6** (39K, 421), 1.05 GiB left free. 56K: **31-33 / 22.4**, 1.9 GiB in shared memory. The cliff is between 48K and 56K: 56K would have needed to leave about 0.6 GiB free, and the driver moved about 1 GiB to system memory instead. The 0.96 GiB of "shared" seen at every size is the vision projector held in system memory (`--no-mmproj-offload`, 0.87 GiB file), not a spill | [data/ctx-sweep-20261018.jsonl](../data/ctx-sweep-20261018.jsonl), [bench/ctx-sweep.py](../bench/ctx-sweep.py) |
+| 26 | Governor free-VRAM margin 2.5 -> **1.2 GiB** (MAX and BALANCED), host-RAM prompt cache `-cram` 2048 (MAX) / 4096 (BALANCED) -> **6144 MiB** for both, so a 40K agent prompt (about 2.5 GiB of KV) fits in the cache when two agents take turns on the one slot | the governor now loads **45,056** with other apps at 1.64 GiB (1.35 GiB left free), 49,152 when the desktop is light, and steps down when other apps grow. Warm check after the change: 45.1 / 50.1 / 47.2 tok/s | governor.log (2026-10-18 04:04) |
+| 27 | Codex wrapper: client cap 32,768 -> 65,536 and compaction at 90% of the window (was 85%) | Codex now gets the server's real window minus 8K (36,864 at a 45,056 load) and compacts at about 33K instead of 27.8K | [agents/codex-qwen.cmd](../agents/codex-qwen.cmd) |
 
 ## Settings that matter (final)
 
@@ -37,7 +41,7 @@ GGML_VK_FORCE_MMVQ=1
 llama-server -m Qwen3.8-27B-UD-Q4_K_M.gguf --mmproj mmproj-F16.gguf --no-mmproj-offload -a qwen3.8-27b
   --host 127.0.0.1 --port 10001
   -c <sized at each load, 32768 to 65536> -ctk f16 -ctv f16
-  -t <8 BALANCED | 14 MAX | 4 LEAN>  -tb <same as -t>  -cram <4096 BALANCED | 8192 MAX | 1024 LEAN>
+  -t <8 BALANCED | 14 MAX | 4 LEAN>  -tb <same as -t>  -cram <6144 BALANCED | 6144 MAX | 1024 LEAN>
   --prio <-1 BELOW-NORMAL | 0 NORMAL>
   -ngl 99 -fa on -lm dio -np 1 -fit off --jinja --chat-template-file qwen38-template.jinja
   --cache-reuse 256 --metrics --no-context-shift
