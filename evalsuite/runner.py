@@ -1,5 +1,5 @@
 """arc-llm-lab runner: runs the 100-task suite against Claude Code (claude-qwen) or Codex (codex-qwen), unattended.
-Usage:  python runner.py --agent claude|codex [--run NAME] [--cap 32768] [--ids a,b] [--cats coding,tool] [--limit N]
+Usage:  python runner.py --agent claude|codex [--run NAME] [--cap 32768] [--ids a,b] [--cats coding,tool] [--limit N] [--max-turns 25]
 Resumable: re-running with the same --run skips tasks already recorded in results/<run>.jsonl.
 Each task gets a fresh workspace, a hard timeout, and a hidden checker run AFTER the agent exits."""
 import argparse, json, os, re, shutil, subprocess, sys, threading, time, traceback, urllib.request
@@ -57,6 +57,39 @@ def kill_tree(pid):
     try: subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=NOWIN, timeout=30)
     except subprocess.TimeoutExpired: pass
 
+LOCK = os.environ.get("QWEN_LOCK_PATH", r"C:\AI\locks\qwen-engine.lock")
+LOCK_SCRIPT = os.environ.get("QWEN_LOCK_SCRIPT", r"C:\AI\locks\qwen-lock.ps1")
+
+def release_killed_lock(work):
+    """After a kill, drop the engine lock (agents/locks/qwen-lock.ps1) if the killed launcher for this workdir still
+    holds it. The lock script's release is compare-and-delete and only acts for the recorded holder PID."""
+    try:
+        lk = jload(LOCK)
+        if not lk or work.lower() not in str(lk.get("note", "")).lower() or not os.path.exists(LOCK_SCRIPT): return
+        pid = int(lk.get("pid") or 0)
+        alive = subprocess.run(["tasklist", "/FI", "PID eq %d" % pid, "/NH"], capture_output=True, text=True, creationflags=NOWIN, timeout=30).stdout
+        if str(pid) in alive: return
+        subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", LOCK_SCRIPT, "release", "-HolderPid", str(pid)],
+                       capture_output=True, creationflags=NOWIN, timeout=60)
+    except Exception:
+        pass
+
+CODEX_TURN_TYPES = ("command_execution", "file_change", "mcp_tool_call")
+
+def codex_turns_so_far(logf):
+    """Count completed tool/edit items in the live `codex exec --json` stream (same rule as parse_codex)."""
+    n = 0
+    try:
+        with open(logf, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if '"item.completed"' not in line: continue
+                try: e = json.loads(line)
+                except Exception: continue
+                if (e.get("item") or {}).get("type") in CODEX_TURN_TYPES: n += 1
+    except Exception:
+        pass
+    return n
+
 def agent_cmd(agent, ws, last):
     if agent == "claude":
         return ('"%s\\claude-qwen.cmd" -p --output-format json --max-turns 40 --permission-mode acceptEdits '
@@ -87,14 +120,15 @@ def parse_codex(out, last):
         try: e = json.loads(line)
         except Exception: continue
         t = e.get("type", "")
-        if t == "item.completed" and (e.get("item") or {}).get("type") in ("command_execution", "file_change", "mcp_tool_call"): turns += 1
+        if t == "item.completed" and (e.get("item") or {}).get("type") in CODEX_TURN_TYPES: turns += 1
         if t == "turn.completed":
             u = e.get("usage") or {}; it += u.get("input_tokens", 0) or 0; ct += u.get("cached_input_tokens", 0) or 0; ot += u.get("output_tokens", 0) or 0
         if t == "turn.failed": err = json.dumps(e)[:300]  # a plain "error" event can be a recovered retry; only a failed turn fails the run
     return dict(final=final, turns=turns, subtype="error" if err else "ok", is_error=bool(err), error=err, in_tok=it, cached_tok=ct, out_tok=ot)
 
-def classify(passed, timed_out, info, out, rc):
+def classify(passed, timed_out, info, out, rc, turn_capped=False):
     if passed: return None
+    if turn_capped: return "max_turns"
     # The run "failed" only if the agent itself reported an error or exited non-zero. A clean exit (rc 0, no error) with a failed
     # checker is a wrong/missing result, even if the raw log contains retry noise or digits such as 503 inside token counts.
     failed_run = bool(info.get("is_error")) or rc not in (0, None)
@@ -107,7 +141,7 @@ def classify(passed, timed_out, info, out, rc):
     if (info.get("final") or "").strip().endswith("?"): return "asked_user"
     return "wrong_result"
 
-def run_task(t, agent, run, cap, resdir):
+def run_task(t, agent, run, cap, resdir, max_turns=0):
     work = os.path.join(HERE, "work", run, t["id"])
     shutil.rmtree(work, ignore_errors=True)
     SUITE.materialize(t, work)
@@ -117,15 +151,23 @@ def run_task(t, agent, run, cap, resdir):
     env = dict(os.environ, QWEN_CLIENT_CAP=str(cap))
     r0 = running(); port = r0.get("port", 10001); m0 = metrics(port)
     smp = Sampler(); smp.start()
-    t0 = time.time(); timed_out = False
+    t0 = time.time(); timed_out = False; turn_capped = False
+    deadline = t0 + t["timeout"]
     with open(pf, "rb") as fin, open(logf, "wb") as fout:
         p = subprocess.Popen(agent_cmd(agent, work, last), cwd=work, stdin=fin, stdout=fout, stderr=subprocess.STDOUT, shell=True, env=env, creationflags=NOWIN)
-        try:
-            rc = p.wait(timeout=t["timeout"])
-        except subprocess.TimeoutExpired:
-            timed_out = True; kill_tree(p.pid); time.sleep(2); rc = None
+        while True:
+            try:
+                rc = p.wait(timeout=2); break
+            except subprocess.TimeoutExpired:
+                pass
+            # Codex exec has no --max-turns: stop a looping agent once it passes the cap (passing tasks use <= 12).
+            if max_turns and agent == "codex" and codex_turns_so_far(logf) > max_turns:
+                turn_capped = True; kill_tree(p.pid); time.sleep(2); rc = None; break
+            if time.time() >= deadline:
+                timed_out = True; kill_tree(p.pid); time.sleep(2); rc = None; break
     wall = round(time.time() - t0, 1)
     smp.stop = True
+    if turn_capped or timed_out: release_killed_lock(work)
     out = open(logf, encoding="utf-8", errors="replace").read()
     info = parse_claude(out) if agent == "claude" else parse_codex(out, last)
     r1 = running(); m1 = metrics(r1.get("port", port))
@@ -141,7 +183,8 @@ def run_task(t, agent, run, cap, resdir):
     else:
         checker_error = False
     rec = dict(run=run, agent=agent, cap=cap, suite=SUITE.SUITE_VERSION, id=t["id"], cat=t["cat"], passed=bool(passed), reason=(why or "")[:600],
-               failure="checker_error" if checker_error else classify(passed, timed_out, info, out, rc), pass_after_timeout=bool(passed and timed_out), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
+               failure="checker_error" if checker_error else classify(passed, timed_out, info, out, rc, turn_capped), pass_after_timeout=bool(passed and timed_out), wall_s=wall, check_s=round(time.time() - c0, 1), rc=rc, timed_out=timed_out,
+               turn_capped=turn_capped, max_turns=max_turns, event_log=os.path.relpath(logf, HERE),
                turns=info.get("turns"), subtype=info.get("subtype"), client_in_tok=info.get("in_tok"), client_cached_tok=info.get("cached_tok"), client_out_tok=info.get("out_tok"),
                srv_prompt_tok=d("prompt_tokens_total"), srv_cached_tok=d("prompt_tokens_cached_total"), srv_gen_tok=d("tokens_predicted_total"),
                srv_prompt_s=rnd(d("prompt_seconds_total")), srv_gen_s=rnd(d("tokens_predicted_seconds_total")),
@@ -167,6 +210,7 @@ def main():
     ap.add_argument("--agent", required=True, choices=["claude", "codex"])
     ap.add_argument("--run"); ap.add_argument("--cap", type=int, default=32768)
     ap.add_argument("--ids"); ap.add_argument("--cats"); ap.add_argument("--limit", type=int)
+    ap.add_argument("--max-turns", type=int, default=25, help="codex only: stop after N tool/edit items (0 = no cap)")
     a = ap.parse_args()
     run = a.run or "%s-%dk" % (a.agent, a.cap // 1024)
     resdir = os.path.join(HERE, "results"); os.makedirs(resdir, exist_ok=True)
@@ -186,7 +230,7 @@ def main():
     for i, t in enumerate(ts, 1):
         json.dump(dict(run=run, current=t["id"], index=i, total=len(ts), passed_this_session=npass, pid=os.getpid(), time=datetime.now().isoformat(timespec="seconds")), open(prog, "w"))
         try:
-            rec = run_task(t, a.agent, run, a.cap, resdir)
+            rec = run_task(t, a.agent, run, a.cap, resdir, a.max_turns)
             npass += rec["passed"]
             print("[%d/%d] %-28s %s %6.1fs %s" % (i, len(ts), t["id"], "PASS" if rec["passed"] else "FAIL", rec["wall_s"], rec["failure"] or ""), flush=True)
         except Exception:

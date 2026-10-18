@@ -15,7 +15,7 @@ models:
     name: "Qwen3.8 27B FAST - Intel FA engine, f16 KV, up to 64K ctx (57-61K typical), DFlash2, vision, AUTO profile"
     cmd: powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/AI/governor/launch.ps1 -Variant default
     proxy: http://127.0.0.1:10001
-    ttl: 7200          # backstop only; the governor manages unloading
+    ttl: 0             # never auto-unload here: the governor owns unloads and saves the KV slot first (llama-swap's ttl did not). An explicit 0 is not replaced by globalTTL (only an unset ttl is).
     aliases: ["qwen", "local", "default"]
     # Use-case presets on the SAME loaded model (no reload). Pick one by model name:
     #   qwen3.8-27b          general: thinking on, capped at 2k thinking tokens, Qwen thinking sampling
