@@ -35,13 +35,19 @@ set "GITW="
 if /i "%~1"=="exec" if not "%QWEN_GIT_WRITE%"=="0" for /f "usebackq delims=" %%g in (`git rev-parse --absolute-git-dir 2^>nul`) do set "GITDIR=%%g"
 rem git prints C:/x/.git; pass the native C:\x\.git form to the Windows sandbox
 if defined GITDIR set "GITDIR=%GITDIR:/=\%"
-if defined GITDIR set "GITW=-c sandbox_workspace_write.writable_roots=['%GITDIR%']"
 rem For exec, overrides must come AFTER the subcommand: a root-level -c sandbox_workspace_write override is ignored
 rem when exec gets -s (VERIFIED 18 Oct: root placement -> .git still denied; after "exec" -> branch created).
 if /i not "%~1"=="exec" goto :interactive
-set "REST=%*"
-call set "REST=%%REST:*exec=%%"
-codex exec -c model_context_window=%WIN% -c model_auto_compact_token_limit=%COMPACT% %GITW% %REST%
+rem The sandbox cannot read ~/.config/git, so git warned "unable to access ...git/ignore" on every call: point it at an
+rem empty folder for unattended runs only.
+set "XDG_CONFIG_HOME=%CODEX_HOME%\xdg"
+rem codex-qwen-exec.mjs inserts the overrides after "exec" and passes the rest through as already-split arguments.
+rem (cmd cannot drop "exec" from the arguments safely: re-parsing them ran text after an ampersand inside a quoted
+rem prompt, and shift-based loops split key="value" on the equals sign. Git dirs with spaces stay one argument.)
+set "QWEN_WIN=%WIN%"
+set "QWEN_COMPACT_AT=%COMPACT%"
+set "QWEN_GITDIR=%GITDIR%"
+node "%~dp0codex-qwen-exec.mjs" %*
 set "RC=%ERRORLEVEL%"
 goto :release
 :interactive
