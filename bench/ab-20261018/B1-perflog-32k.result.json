@@ -1,0 +1,34 @@
+{
+    "label":  "B1-perflog-32k",
+    "kv":  "f16",
+    "ctx":  32768,
+    "exe":  "C:\\AI\\llama.cpp\\vulkan-intelfa\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  16.2,
+    "healthy":  true,
+    "dedicated_gib":  20.08,
+    "shared_gib":  0.75,
+    "adapter_used_gib":  22.17,
+    "free_gib":  1.73,
+    "pp":  [
+
+           ],
+    "tps":  [
+                17.10
+            ],
+    "ttft_s":  [
+                   0.926
+               ],
+    "draft_accept":  [
+                         0.622
+                     ],
+    "rounds":  [
+                   461.0
+               ],
+    "ms_per_round":  [
+                         292.2
+                     ],
+    "tps_mean":  17.1,
+    "shared_gib_after":  0.97
+}

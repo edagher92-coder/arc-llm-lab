@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - 2026-10-18 Codex lock-in and engine A/B
+
+- **Codex is the one harness.** `agents/codex-qwen.cmd` now runs the lean Codex home ([agents/codex-lean-home/](agents/codex-lean-home/), about 3K base prompt tokens) with a preflight that takes a shared engine lock (`agents/locks/qwen-lock.ps1`, `C:\AI\locks\qwen-engine.lock`) so only one Qwen job runs at a time; `claude-qwen` takes the same lock. The old heavy launcher is kept as `codex-qwen-full.cmd`. Details: [docs/CODEX-QWEN.md](docs/CODEX-QWEN.md).
+- **evalsuite, same 19 tasks:** old home 13/19; lean home 15/19 and 49% faster on the 12 tasks both passed (930 s -> 477 s), 85% fewer server prompt tokens; after five traced fixes the acceptance run scored **18/19, all 19 in 711 s** (old: 2,140 s), and the last failure (money rounding) passed 3/3 after a tighter rule. Raw rows in `data/codex-eval-20261018/`.
+- Fixes found from the Codex event logs: PowerShell `>` writes UTF-16; the compact prompt's own patch example taught a stray space; Codex's Windows sandbox keeps `.git` read-only and a root-level `writable_roots` override is ignored under `exec -s` (now placed after `exec`, unattended runs only); repeat-the-failing-command loops; float money rounding; positional CSV parsing.
+- **Engine A/B on production Vulkan 11526 (ctx 32768, 3-seed contract, `bench/ab-20261018/`):** f16 KV baseline 38.95 / 43.01 / 44.16 tok/s (mean 42.04), pp 471 (2K) / 520 (8K). q8_0 main KV with DFlash2: 34.34 / 33.62 / 37.52 (mean 35.16, -16%), pp 433 / 381, saves 0.94 GiB: **rejected again**, so 48K/56K q8_0 was not run.
+- **DFlash round attribution (GGML_VK_PERF_LOGGER):** 125.2 ms/round of GPU time against 128.3 ms/round wall, so the host readback/injection/sync gap is about 3 ms: the round is kernel-bound. The verify graph (101 ms/round) is n=8 mat-vec over Q4_K/Q6_K at about 160 GB/s, about 35% of the card's 456 GB/s; that kernel efficiency is the remaining lever, not the DFlash bridge.
+- **SYCL fork review (valarauca/llama.cpp `feature/intel`, MIT):** source audit only, not built. Its large prefill gains target Q4_0/Q8_0; Q4_K/Q6_K get about 20% faster matmul, so the 2x prompt-speed gate for this Q4_K_M model was not expected to pass (INFERRED +10-30%), and speculative decoding on SYCL has an open upstream issue (#23203). Parked; the earlier 1.2% figure came from a Vulkan port of one idea, not the SYCL build.
+- **B60 tuning:** no published evidence that the Pro driver exposes power, clock or memory controls; the card runs at about 141 W of a 200 W cap at its 2.4 GHz clock, so power-limit raises would not help. Nothing changed.
+
 ## Unreleased — 2026-10-18 context tune
 
 - Context sweep on the production launch line (32K/40K/48K/56K, short and 80%-full requests): speed holds to 48K (43.6 tok/s with 39K tokens in context) and falls off at 56K (22.4 tok/s, about 1 GiB moved to system memory). New `bench/ctx-sweep.py`, raw results in `data/ctx-sweep-20261018.jsonl`, tuning-log rows 24-27.

@@ -1,0 +1,51 @@
+{
+    "label":  "A0-f16-32k",
+    "kv":  "f16",
+    "ctx":  32768,
+    "exe":  "C:\\AI\\llama.cpp\\vulkan-intelfa\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  16.2,
+    "healthy":  true,
+    "dedicated_gib":  20.08,
+    "shared_gib":  0.75,
+    "adapter_used_gib":  22.17,
+    "free_gib":  1.73,
+    "pp":  [
+               {
+                   "prompt_n":  2076,
+                   "prompt_tps":  471.2
+               },
+               {
+                   "prompt_n":  8199,
+                   "prompt_tps":  520.1
+               }
+           ],
+    "tps":  [
+                38.95,
+                43.01,
+                44.16
+            ],
+    "ttft_s":  [
+                   1.128,
+                   0.382,
+                   0.391
+               ],
+    "draft_accept":  [
+                         0.622,
+                         0.683,
+                         0.713
+                     ],
+    "rounds":  [
+                   461.0,
+                   423.0,
+                   413.0
+               ],
+    "ms_per_round":  [
+                         128.3,
+                         126.6,
+                         126.3
+                     ],
+    "tps_mean":  42.04,
+    "shared_gib_after":  0.99
+}

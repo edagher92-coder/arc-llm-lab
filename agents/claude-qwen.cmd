@@ -1,55 +1,33 @@
 @echo off
-rem Claude Code (real CLI) on the local Qwen3.8-27B (Arc B60, llama-swap, loads on request).
-rem Usage: claude-qwen [claude args]. Default preset qwen3.8-27b:code (fast agent turns, no thinking).
-rem Deep planning: set QWEN_MODEL=qwen3.8-27b:plan   Balanced: qwen3.8-27b   Huge docs: qwen3.8-27b-long
+rem claude-qwen: Claude Code running on the local Qwen3.8-27B (ELZYDLAB Arc B60) through llama-swap's
+rem Anthropic-compatible /v1/messages endpoint. --bare keeps the prompt small (no plugins, hooks, connectors,
+rem CLAUDE.md auto-discovery). Your normal "claude" command and settings are not changed.
+rem Usage: claude-qwen [claude args]     e.g.  claude-qwen      or   claude-qwen -p "explain this repo"
+rem Add context explicitly if you want it: --add-dir . (CLAUDE.md), --mcp-config <file>
 setlocal
-if "%QWEN_MODEL%"=="" set "QWEN_MODEL=qwen3.8-27b:code"
-if "%QWEN_BASE%"=="" set "QWEN_BASE=http://127.0.0.1:8090"
-set "CLAUDE_BIN="
-if exist "%USERPROFILE%\.local\bin\claude.exe" set "CLAUDE_BIN=%USERPROFILE%\.local\bin\claude.exe"
-if not defined CLAUDE_BIN for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "$r=@($env:APPDATA+'\Claude\claude-code')+@(Get-ChildItem ($env:LOCALAPPDATA+'\Packages') -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName+'\LocalCache\Roaming\Claude\claude-code' }); ($r | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem $_ -Recurse -Force -Filter claude.exe -ErrorAction SilentlyContinue } | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName"`) do set "CLAUDE_BIN=%%p"
-if not defined CLAUDE_BIN ( echo Claude Code not found. Install it: powershell -c "irm https://claude.ai/install.ps1 | iex" & exit /b 2 )
 if "%LOCAL_QWEN_KEY%"=="" for /f "usebackq delims=" %%k in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('LOCAL_QWEN_KEY','User')"`) do set "LOCAL_QWEN_KEY=%%k"
-if not defined LOCAL_QWEN_KEY ( echo LOCAL_QWEN_KEY is not set - see docs\SETUP.md step 3. & exit /b 3 )
-set "ANTHROPIC_BASE_URL=%QWEN_BASE%"
-set "ANTHROPIC_AUTH_TOKEN=%LOCAL_QWEN_KEY%"
-set "ANTHROPIC_API_KEY="
-set "ANTHROPIC_MODEL=%QWEN_MODEL%"
-set "ANTHROPIC_DEFAULT_OPUS_MODEL=%QWEN_MODEL%"
-set "ANTHROPIC_DEFAULT_SONNET_MODEL=%QWEN_MODEL%"
-set "ANTHROPIC_DEFAULT_HAIKU_MODEL=%QWEN_MODEL%"
-set "CLAUDE_CODE_SUBAGENT_MODEL=%QWEN_MODEL%"
-rem Live context window from the governor (loaded ctx or expected ctx, minus 8k headroom)
-set "QWEN_WIN=50000"
-set "WINARG="
-if /i "%QWEN_MODEL%"=="qwen3.8-27b-long" set "WINARG=long"
-for /f "usebackq delims=" %%w in (`powershell -NoProfile -ExecutionPolicy Bypass -File C:\AI\governor\qwen.ps1 window %WINARG%`) do set "QWEN_WIN=%%w"
-if "%QWEN_CLIENT_CAP%"=="" set "QWEN_CLIENT_CAP=32768"
-if %QWEN_WIN% GTR %QWEN_CLIENT_CAP% set "QWEN_WIN=%QWEN_CLIENT_CAP%"
-if /i "%QWEN_MODEL%"=="qwen3.8-27b-big" set "QWEN_WIN=120000"
-set "CLAUDE_CODE_MAX_CONTEXT_TOKENS=%QWEN_WIN%"
-rem Efficient sessions: 8k output reserve (more room before auto-compact), capped tool output
-set "CLAUDE_CODE_MAX_OUTPUT_TOKENS=8000"
-set "BASH_MAX_OUTPUT_LENGTH=15000"
-set "MAX_MCP_OUTPUT_TOKENS=8000"
-set "CLAUDE_CODE_ATTRIBUTION_HEADER=0"
+rem One Qwen job at a time: preflight takes C:\AI\locks\qwen-engine.lock (kind claude) and prints "<window> <lockHolderPid>".
+set "WIN=" & set "LOCKPID=0"
+for /f "usebackq tokens=1,2" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -File C:\AI\codex-local\preflight.ps1 -Kind claude`) do (
+  set "WIN=%%a"
+  set "LOCKPID=%%b"
+)
+if not defined WIN set "WIN=28672"
+set "ANTHROPIC_BASE_URL=http://127.0.0.1:8090"
+set "ANTHROPIC_API_KEY=%LOCAL_QWEN_KEY%"
+set "ANTHROPIC_AUTH_TOKEN="
+set "ANTHROPIC_MODEL=qwen3.8-27b:code"
+set "ANTHROPIC_DEFAULT_OPUS_MODEL=qwen3.8-27b:code"
+set "ANTHROPIC_DEFAULT_SONNET_MODEL=qwen3.8-27b:code"
+set "ANTHROPIC_DEFAULT_HAIKU_MODEL=qwen3.8-27b:code"
+set "ANTHROPIC_SMALL_FAST_MODEL=qwen3.8-27b:code"
+set "CLAUDE_CODE_SUBAGENT_MODEL=qwen3.8-27b:code"
+set "CLAUDE_CODE_MAX_OUTPUT_TOKENS=8192"
 set "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1"
-set "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1"
-rem (The "v2" extra settings tested on 2026-10-10 scored lower - 93/100 vs 97/100 - and are not used. See docs/RELIABILITY.md.)
 set "API_TIMEOUT_MS=900000"
-rem Compaction is governed by CLAUDE_CODE_MAX_CONTEXT_TOKENS above. CLAUDE_CODE_AUTO_COMPACT_WINDOW is deliberately NOT set:
-rem its documented valid range is 100000-1000000, so the 32K-57K windows used here are out of range.
-rem Browser tools (playwright) are opt-in: set QWEN_BROWSER=1 and create C:\AI\claude-local\mcp-browser.json yourself (not shipped: browser tool schemas are large and load on every turn)
-set "MCPFILE=C:\AI\claude-local\mcp.json"
-if "%QWEN_BROWSER%"=="1" if exist "C:\AI\claude-local\mcp-browser.json" (set "MCPFILE=C:\AI\claude-local\mcp-browser.json") else (echo mcp-browser.json not found in C:\AI\claude-local - continuing without browser tools.)
-rem DEFAULT = FAST mode: full core toolset (Bash Read Edit Write Glob Grep WebFetch Agent TodoWrite + context7) with a compact local system prompt instead of Claude Code's ~19k-token one.
-rem   set QWEN_FULL=1   standard Claude Code prompt (lean config dir, hooks/skills discovery)
-if "%QWEN_FULL%"=="1" goto full
-set "CLAUDE_CONFIG_DIR=C:\AI\claude-local"
-"%CLAUDE_BIN%" --model %QWEN_MODEL% --system-prompt-file C:\AI\claude-local\LOCAL-SYSTEM.md --tools "Bash,Read,Edit,Write,Glob,Grep,WebFetch,Agent,TodoWrite" --mcp-config "%MCPFILE%" --strict-mcp-config %*
-goto done
-:full
-set "CLAUDE_CONFIG_DIR=C:\AI\claude-local"
-"%CLAUDE_BIN%" --model %QWEN_MODEL% --mcp-config "%MCPFILE%" --disallowedTools WebSearch %*
-:done
-endlocal
+set "SET_FILE=%LOCALAPPDATA%\Temp\claude-qwen-settings.json"
+> "%SET_FILE%" echo {"autoCompactWindow": %WIN%, "autoCompactEnabled": true}
+claude --bare --model qwen3.8-27b:code --settings "%SET_FILE%" %*
+set "RC=%ERRORLEVEL%"
+if not "%LOCKPID%"=="0" powershell -NoProfile -ExecutionPolicy Bypass -File C:\AI\locks\qwen-lock.ps1 release -HolderPid %LOCKPID% >nul 2>&1
+endlocal & exit /b %RC%
