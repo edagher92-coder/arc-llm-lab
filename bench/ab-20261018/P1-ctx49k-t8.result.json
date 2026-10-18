@@ -1,0 +1,48 @@
+{
+    "label":  "P1-ctx49k-t8",
+    "kv":  "f16",
+    "ctx":  49152,
+    "exe":  "C:\\AI\\llama.cpp\\vulkan-intelfa-kq2-20261018\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  16.2,
+    "healthy":  true,
+    "dedicated_gib":  20.15,
+    "shared_gib":  1.69,
+    "adapter_used_gib":  22.3,
+    "free_gib":  1.6,
+    "pp":  [
+
+           ],
+    "tps":  [
+                26.40
+            ],
+    "ttft_s":  [
+                   0.760
+               ],
+    "draft_accept":  [
+                         0.622
+                     ],
+    "rounds":  [
+                   461.0
+               ],
+    "ms_per_round":  [
+                         189.3
+                     ],
+    "tps_mean":  26.4,
+    "greedy":  {
+                   "label":  "P1-ctx49k-t8",
+                   "hashes":  [
+                                  "cb262bd4ed63eae7",
+                                  "ddce5fe8551d4957",
+                                  "22220fe1d4624289"
+                              ],
+                   "tps":  [
+                               30.48,
+                               13.12,
+                               41.82
+                           ]
+               },
+    "oc":  "freq_offset=0.0 volt_offset=0.0 power=100.0 temp_limit=100.0 vram=19.000 | clock=2400MHz temp=62.0C vram_clock=2375 vram_eff=19.0",
+    "shared_gib_after":  1.92
+}

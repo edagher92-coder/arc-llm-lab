@@ -1,0 +1,7 @@
+llama-server running: False
+lock: busy: bench pid 24988 since 2026-10-18T13:21:25 (Phase 4 A/B benchmarks (Claude))
+adapter dedicated used now: 2.14 GiB (others only)
+13:24:30 P1-ctx49k-t8: tps=26.40 ms/round=189.3 ded=20.15 shared=1.69/1.92 adapter=22.3 greedy=cb262bd4ed63eae7,ddce5fe8551d4957,22220fe1d4624289
+13:26:14 P2-ctx32k-t14: tps=47.15 ms/round=105.9 ded=20.08 shared=0.75/0.98 adapter=22.22 greedy=cb262bd4ed63eae7,ddce5fe8551d4957,22220fe1d4624289
+13:28:58 P3-ctx40k-t8: tps=26.43 ms/round=189.0 ded=19.65 shared=1.69/1.92 adapter=21.79 greedy=cb262bd4ed63eae7,ddce5fe8551d4957,22220fe1d4624289
+probe done

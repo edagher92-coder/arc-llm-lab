@@ -1,0 +1,444 @@
+From 03f9be495f14cc6d07d3649f07f399b053c96999 Mon Sep 17 00:00:00 2001
+From: "Codex (ELZYDLAB)" <codex@elzydlab.local>
+Date: Sun, 18 Oct 2026 13:50:55 +1100
+Subject: [PATCH 3/4] vulkan: fuse the Gated DeltaNet state snapshot copy into
+ the GDN shader
+
+The recurrent-rollback path copies the K per-token GDN states into the cache after every gated_delta_net node. This writes them from the shader directly when the copy is the only reader (bounded pattern match in ggml_vk_build_graph), with test-backend-ops coverage. Speed-neutral on an Arc Pro B60 with Qwen3.8-27B + DFlash2, kept for the reduced copy traffic.
+
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan-common.h b/ggml/src/ggml-vulkan/ggml-vulkan-common.h
+index a642c5516..d5c3392ef 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan-common.h
++++ b/ggml/src/ggml-vulkan/ggml-vulkan-common.h
+@@ -125,7 +125,7 @@ void ggml_vk_rwkv_wkv6(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_t
+ void ggml_vk_rwkv_wkv7(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
+ void ggml_vk_gated_linear_attn(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
+ void ggml_vk_lightning_indexer(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
+-void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
++void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst, ggml_tensor * cache);
+ void ggml_vk_ssm_scan(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
+ void ggml_vk_ssm_conv(ggml_backend_vk_context * ctx, vk_context& subctx, const struct ggml_cgraph * cgraph, int node_idx);
+ void ggml_vk_opt_step_adamw(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst);
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan-push-constants.h b/ggml/src/ggml-vulkan/ggml-vulkan-push-constants.h
+index 257fda92e..7a30ddee9 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan-push-constants.h
++++ b/ggml/src/ggml-vulkan/ggml-vulkan-push-constants.h
+@@ -703,6 +703,7 @@ struct vk_op_gated_delta_net_push_constants {
+     uint32_t neq1, rq3;
+     float scale;
+     uint32_t K;
++    uint32_t state_stride;
+ };
+ 
+ struct vk_op_ssm_scan_push_constants {
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan.cpp b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+index a2818cdb4..90bc3fad1 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -3758,7 +3758,7 @@ void ggml_vk_load_shaders(vk_device& device, vk_pipeline requested) {
+ 
+             for (uint32_t kda = 0; kda < 2; kda++) {
+                 ggml_vk_create_pipeline(device, device->pipeline_gated_delta_net[si][kda],
+-                    gdn_names[si][kda], gdn_len, gdn_data, "main", 7, sizeof(vk_op_gated_delta_net_push_constants),
++                    gdn_names[si][kda], gdn_len, gdn_data, "main", 8, sizeof(vk_op_gated_delta_net_push_constants),
+                     wg_denoms, {S_V, kda, gdn_subgroup_size, lanes_per_column}, 1, true, use_subgroup_ops, gdn_subgroup_size);
+             }
+         }
+@@ -10259,7 +10259,7 @@ void ggml_vk_lightning_indexer(ggml_backend_vk_context * ctx, vk_context& subctx
+         pc, {n_tiles_kv, n_tiles_t, n_streams});
+ }
+ 
+-void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst) {
++void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx, ggml_tensor * dst, ggml_tensor * cache) {
+     const ggml_tensor * src_q     = dst->src[0];
+     const ggml_tensor * src_v     = dst->src[2];
+     const ggml_tensor * src_beta  = dst->src[4];
+@@ -10274,7 +10274,8 @@ void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx,
+     // K (snapshot slot count) is an op param; state holds s0 only [S_v, S_v, H, n_seqs].
+     const uint32_t K = (uint32_t)ggml_get_op_params_i32(dst, 0);
+ 
+-    const uint32_t s_off = S_v * H * n_tokens * n_seqs;
++    const uint32_t s_off = cache ? 0 : S_v * H * n_tokens * n_seqs;
++    const uint32_t state_stride = cache ? (uint32_t)(cache->nb[2] / sizeof(float)) : S_v * S_v * H * n_seqs;
+ 
+     vk_pipeline pipeline = ggml_vk_op_get_pipeline(ctx, dst->src[0], dst->src[1], dst->src[2], dst, dst->op);
+     GGML_ASSERT(pipeline != nullptr);
+@@ -10282,6 +10283,7 @@ void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx,
+     ggml_pipeline_request_descriptor_sets(ctx, pipeline, 1);
+ 
+     vk_subbuffer dst_buf = ggml_vk_tensor_subbuffer(ctx, dst);
++    vk_subbuffer state_buf = cache ? ggml_vk_tensor_subbuffer(ctx, cache) : dst_buf;
+     vk_subbuffer src_buf[6] = {};
+     for (int i = 0; i < 6; i++) {
+         src_buf[i] = ggml_vk_tensor_subbuffer(ctx, dst->src[i]);
+@@ -10308,11 +10310,11 @@ void ggml_vk_gated_delta_net(ggml_backend_vk_context * ctx, vk_context& subctx,
+         sb1, sb2, sb3,
+         neq1, rq3,
+         scale,
+-        K
++        K, state_stride
+     };
+ 
+     ggml_vk_dispatch_pipeline(ctx, subctx, pipeline,
+-        {src_buf[0], src_buf[1], src_buf[2], src_buf[3], src_buf[4], src_buf[5], dst_buf},
++        {src_buf[0], src_buf[1], src_buf[2], src_buf[3], src_buf[4], src_buf[5], dst_buf, state_buf},
+         pc, { H, n_seqs, S_v });
+ }
+ 
+@@ -12757,7 +12759,8 @@ bool ggml_vk_build_graph(ggml_backend_vk_context * ctx, ggml_cgraph * cgraph, in
+         break;
+ 
+     case GGML_OP_GATED_DELTA_NET:
+-        ggml_vk_gated_delta_net(ctx, compute_ctx, node);
++        ggml_vk_gated_delta_net(ctx, compute_ctx, node,
++                ctx->num_additional_fused_ops ? cgraph->nodes[node_idx + ctx->num_additional_fused_ops] : nullptr);
+ 
+         break;
+ 
+@@ -14138,6 +14141,97 @@ bool ggml_vk_tensors_overlap(const ggml_tensor * a, const ggml_tensor * b, bool
+     return false;
+ }
+ 
++static int ggml_vk_fuse_gdn_cache(ggml_backend_vk_context * ctx, const ggml_cgraph * cgraph, int node_idx) {
++    const ggml_tensor * gdn = cgraph->nodes[node_idx];
++    if (gdn->op != GGML_OP_GATED_DELTA_NET || gdn->type != GGML_TYPE_F32 ||
++        (gdn->flags & GGML_TENSOR_FLAG_OUTPUT) || !(gdn->flags & GGML_TENSOR_FLAG_COMPUTE) ||
++        !ggml_is_contiguous(gdn) || ctx->device->uma ||
++        ggml_node_get_use_count(cgraph, node_idx) != 2) {
++        return 0;
++    }
++
++    const ggml_tensor * v = gdn->src[2];
++    const int64_t K = ggml_get_op_params_i32(gdn, 0);
++    const int64_t S = v->ne[0];
++    const int64_t H = v->ne[1];
++    const int64_t T = v->ne[2];
++    if (K <= 1 || S <= 0 || S > 128 || H <= 0 || H > UINT32_MAX / (S * S) ||
++        T <= 0 || T > UINT32_MAX / (S * H) || v->ne[3] != 1) {
++        return 0;
++    }
++    const size_t D = (size_t)(S * S * H);
++    const size_t written = (size_t)std::min<int64_t>(T, K);
++    const size_t tail_off = (size_t)(S * H * T) * sizeof(float);
++    if ((uint64_t)ggml_nelements(gdn) > UINT32_MAX) {
++        return 0;
++    }
++
++    const ggml_tensor * tail = nullptr;
++    const ggml_tensor * attn = nullptr;
++    const ggml_tensor * cpy = nullptr;
++    int skip = 0;
++    // Bound the search; use counts reject any unaccounted reader outside this window.
++    for (int j = node_idx + 1; j < cgraph->n_nodes && j <= node_idx + 12; ++j) {
++        const ggml_tensor * n = cgraph->nodes[j];
++        if (n->src[0] == gdn) {
++            if (n->op != GGML_OP_VIEW || n->view_src != gdn || n->type != GGML_TYPE_F32) {
++                return 0;
++            }
++            if (n->view_offs == tail_off && !tail) {
++                if (!ggml_is_contiguous(n) || ggml_node_get_use_count(cgraph, j) != 1 ||
++                    (n->flags & GGML_TENSOR_FLAG_OUTPUT) || ggml_nbytes(n) != D * written * sizeof(float)) {
++                    return 0;
++                }
++                tail = n;
++            } else if (n->view_offs == 0 && !attn && ggml_nbytes(n) <= tail_off) {
++                attn = n;
++            } else {
++                return 0;
++            }
++        }
++        if (!cpy) {
++            if (n->op == GGML_OP_CPY) {
++                cpy = n;
++                skip = j - node_idx;
++            } else if (!ggml_op_is_empty(n->op)) {
++                return 0;
++            } else if ((n->flags & GGML_TENSOR_FLAG_OUTPUT) && n != attn) {
++                return 0;
++            }
++        }
++        if (cpy && tail && attn) {
++            break;
++        }
++    }
++    if (!cpy || !tail || !attn || cpy->src[0] != tail || skip >= 13 ||
++        (cpy->flags & GGML_TENSOR_FLAG_OUTPUT) || !(cpy->flags & GGML_TENSOR_FLAG_COMPUTE)) {
++        return 0;
++    }
++
++    const ggml_tensor * cache = cpy->src[1];
++    if (!cache || cache->op != GGML_OP_VIEW || cache->type != GGML_TYPE_F32 ||
++        cache->ne[0] != (int64_t)D || cache->ne[1] != 1 || cache->ne[2] != (int64_t)written || cache->ne[3] != 1 ||
++        cache->nb[0] != sizeof(float) || cache->nb[1] != D * sizeof(float) ||
++        cache->nb[2] % sizeof(float) || cache->nb[2] < D * sizeof(float) ||
++        cache->nb[2] / sizeof(float) > UINT32_MAX / written ||
++        !cache->buffer || !cache->data || get_misalign_bytes(ctx, cache) != 0 ||
++        ggml_nbytes(cache) > ctx->device->properties.limits.maxStorageBufferRange) {
++        return 0;
++    }
++    const size_t offset = ggml_vk_tensor_buffer_offset(ctx, cache);
++    const size_t allocation = ggml_backend_buffer_get_size(cache->buffer);
++    if (offset > allocation || ggml_nbytes(cache) > allocation - offset ||
++        ggml_vk_tensors_overlap(cache, gdn, false)) {
++        return 0;
++    }
++    for (int s = 0; s < 6; ++s) {
++        if (!gdn->src[s]->buffer || ggml_vk_tensors_overlap(cache, gdn->src[s], false)) {
++            return 0;
++        }
++    }
++    return skip;
++}
++
+ bool ggml_vk_can_fuse_rms_norm_mul_rope(ggml_backend_vk_context * ctx, const struct ggml_cgraph * cgraph,
+                                                int node_idx) {
+     const ggml_tensor *rms = cgraph->nodes[node_idx + 0];
+@@ -14400,7 +14494,13 @@ static ggml_status ggml_backend_vk_graph_compute(ggml_backend_t backend, ggml_cg
+         const char *fusion_string {};
+         if (!ctx->device->disable_fusion) {
+             uint32_t num_adds = ggml_vk_fuse_multi_add(ctx, cgraph, i);
+-            if (num_adds) {
++            const int gdn_cache_ops = ggml_vk_fuse_gdn_cache(ctx, cgraph, i);
++            if (gdn_cache_ops) {
++                ctx->num_additional_fused_ops = gdn_cache_ops;
++                ctx->fused_ops_write_mask = 1;
++                fusion_string = "GDN_CACHE";
++                std::fill_n(op_srcs_fused_elementwise, gdn_cache_ops + 1, false);
++            } else if (num_adds) {
+                 ctx->num_additional_fused_ops = num_adds - 1;
+                 fusion_string = "MULTI_ADD";
+                 std::fill_n(op_srcs_fused_elementwise, ctx->num_additional_fused_ops + 1, true);
+diff --git a/ggml/src/ggml-vulkan/vulkan-shaders/gated_delta_net.comp b/ggml/src/ggml-vulkan/vulkan-shaders/gated_delta_net.comp
+index 0e384330b..b53c19b05 100644
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/gated_delta_net.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/gated_delta_net.comp
+@@ -32,6 +32,7 @@ layout(push_constant) uniform Parameters {
+     uint neq1, rq3;
+     float scale;
+     uint K;
++    uint state_stride;
+ };
+ 
+ layout(binding = 0) readonly  buffer QBuf     { FLOAT_TYPE data_q[];     };
+@@ -41,6 +42,7 @@ layout(binding = 3) readonly  buffer GBuf     { FLOAT_TYPE data_g[];     };
+ layout(binding = 4) readonly  buffer BetaBuf  { FLOAT_TYPE data_beta[];  };
+ layout(binding = 5) readonly  buffer StateBuf { FLOAT_TYPE data_state[]; };
+ layout(binding = 6)           buffer DstBuf   { FLOAT_TYPE data_dst[];   };
++layout(binding = 7)           buffer StateOutBuf { FLOAT_TYPE data_state_out[]; };
+ 
+ #if !USE_SUBGROUP_ADD && !USE_SUBGROUP_CLUSTERED
+ shared FLOAT_TYPE temp[SUBGROUP_SIZE];
+@@ -106,7 +108,6 @@ void main() {
+     const uint state_in_base       = (seq_id * H + head_id) * state_size;
+     // output state layout per slot: same per-(seq,head) offset as the single-slot case.
+     const uint state_out_base      = (seq_id * H + head_id) * state_size;
+-    const uint state_size_per_snap = state_size * H * n_seqs;
+ 
+     FLOAT_TYPE s_shard[ROWS_PER_LANE];
+     [[unroll]] for (uint r = 0; r < ROWS_PER_LANE; r++) {
+@@ -173,9 +174,9 @@ void main() {
+         if (K > 1u) {
+             const int target_slot = int(n_tokens) - 1 - int(t);
+             if (target_slot >= 0 && target_slot < int(K)) {
+-                const uint slot_base = s_off + uint(target_slot) * state_size_per_snap + state_out_base;
++                const uint slot_base = s_off + uint(target_slot) * state_stride + state_out_base;
+                 [[unroll]] for (uint r = 0; r < ROWS_PER_LANE; r++) {
+-                    data_dst[slot_base + col * S_V + r * LANES_PER_COLUMN + lane] = s_shard[r];
++                    data_state_out[slot_base + col * S_V + r * LANES_PER_COLUMN + lane] = s_shard[r];
+                 }
+             }
+         }
+@@ -183,7 +184,7 @@ void main() {
+ 
+     if (K == 1u) {
+         [[unroll]] for (uint r = 0; r < ROWS_PER_LANE; r++) {
+-            data_dst[s_off + state_out_base + col * S_V + r * LANES_PER_COLUMN + lane] = s_shard[r];
++            data_state_out[s_off + state_out_base + col * S_V + r * LANES_PER_COLUMN + lane] = s_shard[r];
+         }
+     }
+ }
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 9a8d46bfd..5f65cfa17 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -4877,17 +4877,37 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+     const int64_t n_seq_tokens;
+     const int64_t n_seqs;
+     const int64_t K; // snapshot slot count (>1)
++    const int64_t cache_mem_size;
++    const int64_t cache_offset;
++    const int64_t cache_heads;
++    const int64_t kv_head;
++    const bool    kda;
++    const bool    second_tail_reader;
++    const bool    mark_gdn_output;
++    const bool    mark_tail_output;
++    const bool    misaligned_cache;
++    const bool    cache_overlaps_state;
+ 
+-    ggml_tensor * cpy_node = nullptr;
++    ggml_tensor * cache_full = nullptr;
++    ggml_tensor * attn       = nullptr;
++    ggml_tensor * out        = nullptr;
+ 
+     std::string vars() override {
+-        return VARS_TO_STR6(type, head_count, head_size, n_seq_tokens, n_seqs, K);
++        return VARS_TO_STR16(type, head_count, head_size, n_seq_tokens, n_seqs, K,
++                cache_mem_size, cache_offset, cache_heads, kv_head, kda, second_tail_reader,
++                mark_gdn_output, mark_tail_output, misaligned_cache, cache_overlaps_state);
+     }
+ 
+     test_gated_delta_net_cache_fusion(ggml_type type = GGML_TYPE_F32,
+             int64_t head_count = 4, int64_t head_size = 32, int64_t n_seq_tokens = 2, int64_t n_seqs = 1,
+-            int64_t K = 2)
+-        : type(type), head_count(head_count), head_size(head_size), n_seq_tokens(n_seq_tokens), n_seqs(n_seqs), K(K) {}
++            int64_t K = 2, int64_t cache_mem_size = 0, int64_t cache_offset = 0,
++            int64_t cache_heads = 1, int64_t kv_head = 0, bool kda = false,
++            bool second_tail_reader = false, bool mark_gdn_output = false, bool mark_tail_output = false,
++            bool misaligned_cache = false, bool cache_overlaps_state = false)
++        : type(type), head_count(head_count), head_size(head_size), n_seq_tokens(n_seq_tokens), n_seqs(n_seqs), K(K),
++          cache_mem_size(cache_mem_size), cache_offset(cache_offset), cache_heads(cache_heads), kv_head(kv_head),
++          kda(kda), second_tail_reader(second_tail_reader), mark_gdn_output(mark_gdn_output),
++          mark_tail_output(mark_tail_output), misaligned_cache(misaligned_cache), cache_overlaps_state(cache_overlaps_state) {}
+ 
+     ggml_tensor * build_graph(ggml_context * ctx) override {
+         const int64_t S_v = head_size;
+@@ -4895,6 +4915,8 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+         const int64_t H_k = head_count;
+         const int64_t D   = S_v * S_v * H_v;
+         const int64_t n_written = std::min<int64_t>(n_seq_tokens, K);
++        const int64_t cache_size = cache_mem_size ? cache_mem_size : cache_offset + n_written;
++        const int64_t cache_head_count = std::max<int64_t>(cache_heads, kv_head + n_seqs);
+ 
+         ggml_tensor * q     = ggml_new_tensor_4d(ctx, type, head_size, H_k, n_seq_tokens, n_seqs);
+         ggml_tensor * k     = ggml_new_tensor_4d(ctx, type, head_size, H_k, n_seq_tokens, n_seqs);
+@@ -4902,21 +4924,30 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+         ggml_set_name(q, "q");
+         ggml_set_name(k, "k");
+         ggml_set_name(v, "v");
+-        ggml_tensor * g     = ggml_new_tensor_4d(ctx, type, 1, H_v, n_seq_tokens, n_seqs);
++        ggml_tensor * g     = ggml_new_tensor_4d(ctx, type, kda ? S_v : 1, H_v, n_seq_tokens, n_seqs);
+         ggml_tensor * beta  = ggml_new_tensor_4d(ctx, type, 1, H_v, n_seq_tokens, n_seqs);
+-        ggml_tensor * state = ggml_new_tensor_4d(ctx, type, head_size, head_size, H_v, n_seqs);
++        ggml_tensor * cache_storage = ggml_new_tensor_3d(ctx, type, D, cache_head_count, cache_size);
++        ggml_tensor * state = cache_overlaps_state
++            ? ggml_view_4d(ctx, cache_storage, S_v, S_v, H_v, n_seqs,
++                    ggml_row_size(type, S_v), ggml_row_size(type, S_v * S_v),
++                    ggml_row_size(type, D), 0)
++            : ggml_new_tensor_4d(ctx, type, head_size, head_size, H_v, n_seqs);
+         ggml_set_name(g,     "g");
+         ggml_set_name(beta,  "beta");
+         ggml_set_name(state, "state");
++        ggml_set_name(cache_storage, "cache_storage");
+ 
+         q = ggml_l2_norm(ctx, q, 1e-6f);
+         k = ggml_l2_norm(ctx, k, 1e-6f);
+ 
+         ggml_tensor * gdn_out = ggml_gated_delta_net(ctx, q, k, v, g, beta, state, K);
+         ggml_set_name(gdn_out, "gdn_out");
++        if (mark_gdn_output) {
++            gdn_out->flags |= GGML_TENSOR_FLAG_OUTPUT;
++        }
+ 
+         // attn scores view (first part of the gdn output)
+-        ggml_tensor * attn = ggml_view_4d(ctx, gdn_out,
++        attn = ggml_view_4d(ctx, gdn_out,
+                 S_v, H_v, n_seq_tokens, n_seqs,
+                 ggml_row_size(gdn_out->type, S_v),
+                 ggml_row_size(gdn_out->type, S_v * H_v),
+@@ -4930,22 +4961,39 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+                 ggml_row_size(gdn_out->type, D),
+                 ggml_row_size(gdn_out->type, D * n_seqs),
+                 ggml_row_size(gdn_out->type, attn_score_elems));
+-
+-        // recurrent cache view [D, n_seqs, n_written]
+-        ggml_tensor * cache = ggml_new_tensor_3d(ctx, type, D, n_seqs, n_written);
+-        ggml_set_name(cache, "cache");
+-        ggml_tensor * dst = ggml_view_3d(ctx, cache,
++        ggml_tensor * tail_reader = second_tail_reader
++            ? ggml_view_3d(ctx, gdn_out,
++                    D, n_seqs, n_written,
++                    ggml_row_size(gdn_out->type, D),
++                    ggml_row_size(gdn_out->type, D * n_seqs),
++                    ggml_row_size(gdn_out->type, attn_score_elems))
++            : nullptr;
++        if (mark_tail_output) {
++            src->flags |= GGML_TENSOR_FLAG_OUTPUT;
++        }
++
++        // recurrent cache view [D, n_seqs, n_written] in a larger cache backing
++        const size_t cache_view_offset = cache_offset * cache_storage->nb[2] + kv_head * cache_storage->nb[1]
++            + (misaligned_cache ? sizeof(float) : 0);
++        ggml_tensor * cache = ggml_view_3d(ctx, cache_storage,
+                 D, n_seqs, n_written,
+-                ggml_row_size(cache->type, D),
+-                ggml_row_size(cache->type, D * n_seqs), 0);
++                ggml_row_size(type, D), cache_storage->nb[2], cache_view_offset);
++        ggml_set_name(cache, "cache");
+ 
+-        ggml_tensor * cpy = ggml_cpy(ctx, src, dst);
++        ggml_tensor * cpy = ggml_cpy(ctx, src, cache);
+         ggml_set_name(cpy, "gdn_cache_cpy");
+-        cpy_node = cpy;
+ 
+-        // read the cpy output (not the plain dst view, which would not pull the cpy into the graph)
+-        // so that neither the gdn nor the cpy is the graph output
+-        ggml_tensor * out = ggml_sum(ctx, cpy);
++        cache_full = ggml_dup(ctx, cache_storage);
++        ggml_set_name(cache_full, "cache_full");
++
++        // Keep the cpy first in graph order, then read the full backing and the attention view.
++        out = ggml_concat(ctx,
++                ggml_reshape_1d(ctx, ggml_cont(ctx, cpy), ggml_nelements(cpy)),
++                ggml_reshape_1d(ctx, cache_full, ggml_nelements(cache_full)), 0);
++        if (tail_reader) {
++            out = ggml_concat(ctx, out, ggml_reshape_1d(ctx, tail_reader, ggml_nelements(tail_reader)), 0);
++        }
++        out = ggml_concat(ctx, out, ggml_reshape_1d(ctx, attn, ggml_nelements(attn)), 0);
+         return out;
+     }
+ 
+@@ -4955,7 +5003,7 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+     }
+ 
+     bool run_whole_graph() override { return true; }
+-    std::vector<ggml_tensor *> fusion_test_nodes() override { return { cpy_node }; }
++    std::vector<ggml_tensor *> fusion_test_nodes() override { return { cache_full, attn, out }; }
+ 
+     uint64_t op_flops(ggml_tensor * t) override {
+         GGML_UNUSED(t);
+@@ -4975,8 +5023,8 @@ struct test_gated_delta_net_cache_fusion : public test_case {
+                 init_tensor_uniform(t, 0.0f, 1.0f);
+             } else if (strcmp(t->name, "v") == 0) {
+                 init_tensor_uniform(t, -0.3f, 5.0f);
+-            } else if (strcmp(t->name, "cache") == 0) {
+-                init_tensor_uniform(t, 0.0f, 0.0f);
++            } else if (strcmp(t->name, "cache_storage") == 0) {
++                init_tensor_uniform(t, 7.0f, 7.0f);
+             } else {
+                 init_tensor_uniform(t);
+             }
+@@ -11791,6 +11839,23 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+     test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 8, 32,   4, 2, 4));
+     test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 4, 32,   8, 1, 4));
+ 
++    // Direct GDN snapshot writeback: padded cache slots at a nonzero KV head and token offset.
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 1, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 2, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 7, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 9, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 128, 8, 1, 8, 16, 3, 4, 2));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 32, 8, 1, 8, 16, 3, 4, 2, true));
++
++    // Do not fuse when the GDN output has another tail reader, is an output, or cannot use the direct cache layout.
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 16, 3, 4, 2, false, true));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 16, 3, 4, 2, false, false, true));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 16, 3, 4, 2, false, false, false, true));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 16, 3, 4, 2, false, false, false, false, true));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 1, 8, 8, 0, 1, 0, false, false, false, false, false, true));
++    test_cases.emplace_back(new test_gated_delta_net_cache_fusion(GGML_TYPE_F32, 2, 16, 8, 2, 8, 16, 3, 4, 1));
++
+ #if 0
+     // these tests are disabled to save execution time, sbut they can be handy for debugging
+     test_cases.emplace_back(new test_llama(2, true));

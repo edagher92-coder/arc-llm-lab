@@ -27,6 +27,9 @@ jobs:
       - name: Validate all 100 hidden checkers (untouched must fail, reference must pass)
         working-directory: evalsuite
         run: python selftest.py --ci
+      - name: Runner turn cap, acceptance set and trust pruning (offline)
+        working-directory: evalsuite
+        run: python check_runner.py
 
 
   gateway:

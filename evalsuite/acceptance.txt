@@ -1,0 +1,30 @@
+# Codex (codex-qwen) acceptance set, one id per line. 19 original (all passed on kq2, run codex-kq2-accept3)
+# + 8 added 2026-10-19 (passed on the pre-kq2 engine in codex-32k; first kq2 run pending).
+code-merge_intervals
+debug-pager
+tool-sha256
+files-version-bump
+long-config-path
+biz-gst-invoice
+recover-encoding
+code-gst
+debug-bsearch
+tool-git-branch
+files-refactor-rename
+long-find-caller
+biz-bank-rec
+recover-missing-dir
+debug-csvout
+tool-unique-suburbs
+files-extract-emails
+biz-price-update
+recover-circular-import
+# added 2026-10-19
+files-tabs-to-spaces
+files-license-header
+long-needle-log
+long-contract-clause
+long-count-decorated
+tool-json-sum
+recover-wrong-path
+code-csvparse

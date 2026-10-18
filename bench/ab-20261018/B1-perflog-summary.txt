@@ -1,0 +1,15 @@
+Test B (18 Oct 2026 11:23) - DFlash per-round attribution, production Vulkan 11526, f16 KV, ctx 32768, seed 4242, 2304 tokens.
+GGML_VK_PERF_LOGGER=1 (frequency 1); logger serialises submissions, so its own wall (292 ms/round, 17.1 tok/s) is not a speed figure.
+Same seed without logger (A0 run 1): 128.3 ms/round, 461 rounds, acceptance 0.622, 38.95 tok/s - identical rounds/acceptance.
+Parsed with parse_perflog.py (raw 2.8 MB log not kept):
+  target verify graph (497 matmuls, 48 GDN, 16 FA), 1.00/round ... 101.2 ms/round GPU
+     MUL_MAT_VEC q4_K 17408x5120 n=8  22.62 | q4_K 5120x17408 n=8 12.61 | CPY 6.42 | q6_K 17408x5120 5.48
+     q6_K 5120x6144 4.53 | q6_K lm_head 248320x5120 n=8 4.48 | q4_K 10240x5120 4.46 | q4_K 6144x5120 2.83
+  draft graph (69 matmuls, 5 FA), 1.07/round ........................ 17.6 ms/round GPU
+     q6_K lm_head 248320x5120 n=8 6.08 | FLASH_ATTN_EXT 2.97 | q4_K 17408x5120 2.92 | ...
+  feature inject graph, 1.07/round ................................... 0.9 ms/round GPU
+  single-token / prompt graphs ....................................... 5.4 ms/round GPU
+  GPU total 125.2 ms/round vs wall 128.3 ms/round  ->  host readback/injection/sync gap ~3.1 ms/round
+Conclusion: the round is GPU-kernel bound, not host/sync bound (gap < 5 ms, directive threshold). The verify mat-vec
+(n=8 columns) reads ~16 GB of weights per round in ~101 ms = ~160 GB/s, about 35 % of the B60's 456 GB/s: kernel
+efficiency at n=8 on Xe2 is the real lever (engine work, scratch build), not the DFlash bridge.

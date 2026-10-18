@@ -1,0 +1,54 @@
+From cfcb17b7ef64e7c75bb48981f905edc47dbd9642 Mon Sep 17 00:00:00 2001
+From: Elie <lellodagher@gmail.com>
+Date: Sun, 18 Oct 2026 13:51:17 +1100
+Subject: [PATCH 4/4] vulkan: Intel Xe2 - two rows per workgroup for K-quant
+ integer-dot mat-vec
+
+rm_kq_int 1 -> 2 on Intel. Arc Pro B60, test-backend-ops perf m=4096 k=14336 n=8: q4_K 178.6 -> 133.8 us, q6_K 288 -> 253 us. End to end with Qwen3.8-27B Q4_K_M + DFlash2 (verify batch of 8): 42.12 -> 51.22 tok/s, greedy output token-identical, test-backend-ops MUL_MAT/MUL_MAT_ID/GDN 695/695. Adds GGML_VK_TUNE_RM_* and GGML_VK_TUNE_MMVQ_WG env overrides for tuning (unset = defaults).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/ggml/src/ggml-vulkan/ggml-vulkan.cpp b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+index 90bc3fad1..215162538 100644
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -2888,6 +2888,23 @@ void ggml_vk_load_shaders(vk_device& device, vk_pipeline requested) {
+     } else if (device->vendor_id == VK_VENDOR_ID_INTEL) {
+         rm_stdq = 2;
+         rm_stdq_int = 2;
++        // ELZYDLAB 18 Oct 2026, Arc Pro B60 (Xe2): 2 rows per workgroup for the K-quant MMVQ shaders.
++        // test-backend-ops perf, m=4096 k=14336: q4_K n=8 178.6 -> 133.8 us, q6_K n=8 288 -> 253 us; end to end
++        // (Qwen3.8-27B Q4_K_M + DFlash2, 3 seeds) 42.12 -> 51.22 tok/s with token-identical output.
++        rm_kq_int = 2;
++    }
++    // Scratch tuning knobs (ELZYDLAB 18 Oct 2026): rows per workgroup for the mat-vec shaders, read once at load.
++    {
++        auto env_u = [](const char * name, uint32_t cur) -> uint32_t {
++            const char * v = getenv(name);
++            if (!v) return cur;
++            const int x = atoi(v);
++            return (x >= 1 && x <= 16) ? (uint32_t)x : cur;
++        };
++        rm_stdq     = env_u("GGML_VK_TUNE_RM_STDQ", rm_stdq);
++        rm_kq       = env_u("GGML_VK_TUNE_RM_KQ", rm_kq);
++        rm_stdq_int = env_u("GGML_VK_TUNE_RM_STDQ_INT", rm_stdq_int);
++        rm_kq_int   = env_u("GGML_VK_TUNE_RM_KQ_INT", rm_kq_int);
+     }
+     // RDNA3/4: above four columns, static 4 rows for all types bench faster than the default
+     const bool is_rdna3_or_4 = device->vendor_id == VK_VENDOR_ID_AMD && (device->architecture == AMD_RDNA3 || device->architecture == AMD_RDNA4);
+@@ -5627,7 +5644,14 @@ static vk_pipeline ggml_vk_get_dequantize_mul_mat_vec(ggml_backend_vk_context *
+ 
+     if (b_type == GGML_TYPE_Q8_1) {
+         if (ctx->device->vendor_id == VK_VENDOR_ID_INTEL) {
+-            dmmv_wg = DMMV_WG_SIZE_SUBGROUP;
++            // Scratch tuning knob: GGML_VK_TUNE_MMVQ_WG = 0 subgroup (default), 1 large (4x subgroup), 2 = heuristic,
++            // 3 = large for Q6_K only (microbench 18 Oct: q6_K n=8 237 us large+kq2 vs 259 us subgroup+kq2; q4_K best subgroup)
++            static const int mmvq_wg = getenv("GGML_VK_TUNE_MMVQ_WG") ? atoi(getenv("GGML_VK_TUNE_MMVQ_WG")) : 0;
++            if (mmvq_wg == 1 || (mmvq_wg == 3 && a_type == GGML_TYPE_Q6_K)) {
++                dmmv_wg = DMMV_WG_SIZE_LARGE;
++            } else if (mmvq_wg != 2) {
++                dmmv_wg = DMMV_WG_SIZE_SUBGROUP;
++            }
+         }
+         return ctx->device->pipeline_dequant_mul_mat_vec_q8_1_f32[dmmv_wg][a_type][num_cols-1];
+     }

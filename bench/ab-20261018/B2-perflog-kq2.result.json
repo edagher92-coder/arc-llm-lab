@@ -1,0 +1,35 @@
+{
+    "label":  "B2-perflog-kq2",
+    "kv":  "f16",
+    "ctx":  32768,
+    "exe":  "D:\\build\\vk-tune-20261018-build\\bin\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  16.2,
+    "healthy":  true,
+    "dedicated_gib":  20.08,
+    "shared_gib":  0.75,
+    "adapter_used_gib":  22.26,
+    "free_gib":  1.64,
+    "pp":  [
+
+           ],
+    "tps":  [
+                19.14
+            ],
+    "ttft_s":  [
+                   1.003
+               ],
+    "draft_accept":  [
+                         0.622
+                     ],
+    "rounds":  [
+                   461.0
+               ],
+    "ms_per_round":  [
+                         261.1
+                     ],
+    "tps_mean":  19.14,
+    "oc":  "freq_offset=0.0 volt_offset=0.0 power=100.0 temp_limit=100.0 vram=19.000 | clock=2400MHz temp=59.0C vram_clock=2375 vram_eff=19.0",
+    "shared_gib_after":  0.98
+}
