@@ -1,2 +1,4 @@
 0ea89aa76253dc37e655e4612e480bd46fdb673671c5c161ef8e6a4e847e64ec  0001-vulkan-Intel-customized-FA-shader-for-prefill-usage.patch
 a6389b3571e9a6f08c4630e948beb1c0d82488cc3b84b9ba18be5998741f14f2  0002-vulkan-adding-check-of-max_bias-logit_softcap-for-In.patch
+35c622fc30fa9c152324cea86eaf5321b7462fcc484fccbb03fa9179e93dffcc  0003-vulkan-fuse-the-Gated-DeltaNet-state-snapshot-copy-i.patch
+03d333aa94d5f63eb89c8b78a782db792e557585159d4bf767d2fcf3cf5320d7  0004-vulkan-Intel-Xe2-two-rows-per-workgroup-for-K-quant-.patch

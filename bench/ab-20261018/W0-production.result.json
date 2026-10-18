@@ -1,0 +1,65 @@
+{
+    "label":  "W0-production",
+    "kv":  "f16",
+    "ctx":  32768,
+    "exe":  "C:\\AI\\llama.cpp\\vulkan-intelfa\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  18.2,
+    "healthy":  true,
+    "dedicated_gib":  20.08,
+    "shared_gib":  0.75,
+    "adapter_used_gib":  22.12,
+    "free_gib":  1.78,
+    "pp":  [
+               {
+                   "prompt_n":  2076,
+                   "prompt_tps":  490.1
+               },
+               {
+                   "prompt_n":  8199,
+                   "prompt_tps":  520.3
+               }
+           ],
+    "tps":  [
+                39.11,
+                43.19,
+                44.06
+            ],
+    "ttft_s":  [
+                   0.977,
+                   0.353,
+                   0.551
+               ],
+    "draft_accept":  [
+                         0.622,
+                         0.683,
+                         0.713
+                     ],
+    "rounds":  [
+                   461.0,
+                   423.0,
+                   413.0
+               ],
+    "ms_per_round":  [
+                         127.7,
+                         126.1,
+                         126.6
+                     ],
+    "tps_mean":  42.12,
+    "greedy":  {
+                   "label":  "W0-production",
+                   "hashes":  [
+                                  "cb262bd4ed63eae7",
+                                  "ddce5fe8551d4957",
+                                  "22220fe1d4624289"
+                              ],
+                   "tps":  [
+                               42.91,
+                               16.98,
+                               54.6
+                           ]
+               },
+    "oc":  "freq_offset=0.0 volt_offset=0.0 power=100.0 temp_limit=100.0 vram=19.000 | clock=2400MHz temp=64.0C vram_clock=2375 vram_eff=19.0",
+    "shared_gib_after":  0.99
+}

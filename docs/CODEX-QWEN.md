@@ -26,6 +26,15 @@ cannot ask, so `codex-qwen` adds the current repo's `.git` as a writable root (`
 | Lean home, first run (18 Oct, ctx 40-49K) | 15/19 | 477 s (same 12 tasks, -49%) | 53,455 (-85%) |
 | Lean home + all fixes, acceptance run (18 Oct 11:31) | **18/19** (all 19 in 711 s) | | 26,537 (-93%) |
 | Then the money rule tightened: `biz-price-update` + `biz-gst-invoice` x3 | **6/6** | | |
+| New engine (kq2) + governor spill fix, ctx 32K, first run (18 Oct 13:46) | 17/19 (all 19 in 540 s) | | 27,238 |
+| Plus two rules: unindented patch example, 5-cent step rounding | 18/19 (all 19 in 500 s) | | 23,439 |
+| Plus two rules: edge cases beyond the given tests, stray-space check in every patched file; the three flaky tasks x3 first | **9/9**, then **19/19 (all 19 in 521 s)** | | 20,765 |
+
+On the kq2 engine the server's generation time for the whole set fell from 394 s (acceptance run) to 194-216 s.
+The two first-run failures on the new engine were the stray-space patch (`+ version = ...` in `pyproject.toml`,
+which TOML still parses) and a 5-cent rounding answer of 3.23 instead of 3.25; the one after that was a binary-search
+fix that passed the given test but crashed on a value larger than all. Each got one generic rule in
+[instructions-compact.md](../agents/codex-lean-home/instructions-compact.md).
 
 The one acceptance failure was `biz-price-update` (3.225 rounded to 3.20 with floats although `Decimal` was imported);
 it passed 3 of 3 after the rule "build Decimals from the text, never float()/round() money, hand-check one row".

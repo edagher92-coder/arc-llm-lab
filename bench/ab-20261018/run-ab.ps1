@@ -11,7 +11,8 @@ param(
     [string[]]$Extra = @(),
     [hashtable]$Env = @{ GGML_VK_FORCE_MMVQ = '1' },
     [double]$AbortBelowTps = 0,
-    [switch]$SkipPP
+    [switch]$SkipPP,
+    [switch]$Greedy
 )
 $ErrorActionPreference = 'Stop'
 $out = 'C:\AI\bench\ab-20261018'
@@ -45,6 +46,9 @@ $adapter = (Get-Counter '\GPU Adapter Memory(*)\Dedicated Usage').CounterSamples
 $result.adapter_used_gib = [math]::Round($adapter.Maximum / 1GB, 2)
 $result.free_gib = [math]::Round(23.9 - $result.adapter_used_gib, 2)
 
+# warm-up: pipelines with new specialisation constants compile lazily on first use; exercise prefill and every
+# DFlash column count once so the measured runs below are warm (identical treatment for every config)
+foreach ($w in 1..2) { try { $wb = @{ model = 'qwen3.8-27b'; messages = @(@{ role = 'user'; content = ('Summarise this service log in five bullet points. ' + ('The technician replaced the auger seal, cleaned the condenser and recorded compressor temperatures. ' * 60)) }); max_tokens = 400; temperature = 0.2; seed = 7; chat_template_kwargs = @{ enable_thinking = $false } } | ConvertTo-Json -Depth 5; Invoke-RestMethod "$base/v1/chat/completions" -Method Post -Body $wb -ContentType 'application/json' -TimeoutSec 600 | Out-Null } catch {} }
 # prompt-processing probe: fresh prompts of ~2048 and ~8192 tokens, no cache, 1 token out
 $para = 'The service technician inspected the slushie machine, recorded the compressor temperature, cleaned the auger, replaced the worn seal and logged the parts used for the invoice. '
 $pp = @()
@@ -70,10 +74,14 @@ $result.draft_accept = @($rows | % { $d = $_.native_counter_deltas; if ($d.spec_
 $result.rounds = @($rows | % { $_.native_counter_deltas.spec_decode_num_drafts_total })
 $result.ms_per_round = @($rows | % { $d = $_.native_counter_deltas; if ($d.spec_decode_num_drafts_total) { [math]::Round($_.timings.predicted_ms / $d.spec_decode_num_drafts_total, 1) } })
 if ($result.tps.Count) { $result.tps_mean = [math]::Round(($result.tps | measure -Average).Average, 2) }
+if ($Greedy) { $g = & $py "$out\greedy_check.py" $Label 2>&1 | Select-Object -Last 1; try { $result.greedy = ($g | ConvertFrom-Json) } catch { $result.greedy = "$g" } }
+$result.oc = (& 'D:\build\igcl\probe\oc_set.exe' get | Select-Object -Last 1)
 $set2 = (Get-Counter '\GPU Process Memory(*)\Shared Usage').CounterSamples | ? { $_.InstanceName -like "pid_$($p.Id)_*" }
 $result.shared_gib_after = [math]::Round((($set2 | measure CookedValue -Sum).Sum) / 1GB, 2)
 Stop-Process -Id $p.Id -Force
 Start-Sleep 3
 $result | ConvertTo-Json -Depth 4 | Set-Content "$out\$Label.result.json"
 $result | ConvertTo-Json -Depth 4 -Compress
+
+
 

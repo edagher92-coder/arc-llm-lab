@@ -1,0 +1,65 @@
+{
+    "label":  "K2-kq2",
+    "kv":  "f16",
+    "ctx":  32768,
+    "exe":  "D:\\build\\vk-tune-20261018-build\\bin\\llama-server.exe",
+    "extra":  "",
+    "env":  "GGML_VK_FORCE_MMVQ=1",
+    "load_s":  18.2,
+    "healthy":  true,
+    "dedicated_gib":  20.08,
+    "shared_gib":  0.75,
+    "adapter_used_gib":  22.12,
+    "free_gib":  1.78,
+    "pp":  [
+               {
+                   "prompt_n":  2076,
+                   "prompt_tps":  366.4
+               },
+               {
+                   "prompt_n":  8199,
+                   "prompt_tps":  412.9
+               }
+           ],
+    "tps":  [
+                41.96,
+                52.28,
+                53.35
+            ],
+    "ttft_s":  [
+                   1.097,
+                   0.355,
+                   0.318
+               ],
+    "draft_accept":  [
+                         0.622,
+                         0.683,
+                         0.713
+                     ],
+    "rounds":  [
+                   461.0,
+                   423.0,
+                   413.0
+               ],
+    "ms_per_round":  [
+                         119.0,
+                         104.1,
+                         104.5
+                     ],
+    "tps_mean":  49.2,
+    "greedy":  {
+                   "label":  "K2-kq2",
+                   "hashes":  [
+                                  "cb262bd4ed63eae7",
+                                  "ddce5fe8551d4957",
+                                  "22220fe1d4624289"
+                              ],
+                   "tps":  [
+                               53.87,
+                               24.4,
+                               74.47
+                           ]
+               },
+    "oc":  "freq_offset=0.0 volt_offset=0.0 power=100.0 temp_limit=100.0 vram=19.000 | clock=2400MHz temp=64.0C vram_clock=2375 vram_eff=19.0",
+    "shared_gib_after":  0.99
+}

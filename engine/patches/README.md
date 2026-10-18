@@ -29,6 +29,17 @@ git am /path/to/arc-llm-lab/engine/patches/0001-*.patch /path/to/arc-llm-lab/eng
 
 If `git am` complains about identity, add `-c user.name=x -c user.email=x@x` after `git`.
 
+## ELZYDLAB patches 0003-0004 (18 Oct 2026)
+
+These two apply on top of 0001-0002 (the same base) and are what the production engine `vulkan-intelfa-kq2-20261018` runs. `build.ps1` applies every `*.patch` here in name order after checking [SHA256SUMS](SHA256SUMS).
+
+| File | Author | What it does |
+|---|---|---|
+| `0003-vulkan-fuse-the-Gated-DeltaNet-state-snapshot-copy-i.patch` | Codex (ELZYDLAB) | Writes the recurrent-rollback GDN state snapshots from the GDN shader instead of a separate copy, with `test-backend-ops` coverage. Speed-neutral on the B60; kept because it is correct and removes copy traffic. |
+| `0004-vulkan-Intel-Xe2-two-rows-per-workgroup-for-K-quant-.patch` | Elie (with Claude) | `rm_kq_int` 1 -> 2 on Intel: two rows per workgroup for the K-quant integer-dot mat-vec shaders. On the Arc Pro B60, n=8 mat-vec (the DFlash2 verify batch) at m=4096 k=14336: q4_K 178.6 -> 133.8 us, q6_K 288 -> 253 us. End to end with Qwen3.8-27B Q4_K_M + DFlash2: 42.12 -> 51.22 tok/s (3 seeds), token-identical greedy output, `test-backend-ops` MUL_MAT / MUL_MAT_ID / GDN 695/695. Also adds `GGML_VK_TUNE_RM_*` and `GGML_VK_TUNE_MMVQ_WG` environment overrides for tuning; unset means the defaults above. |
+
+Measured only on one Arc Pro B60 (Xe2, Windows 11, driver 32.0.101.8976). Other Intel GPUs (Alchemist, Lunar Lake) are untested with 0004: please report results. Data: [bench/ab-20261018/](../../bench/ab-20261018/) (K*, W*, S* rows) and [docs/TUNING-LOG.md](../../docs/TUNING-LOG.md) rows 34-36.
+
 ## If the upstream status changes
 
 Intel's separate decode-focused Xe flash-attention kernels (PR #24406) are already merged upstream. This prefill shader is not. When it, or an equivalent, is merged into mainline llama.cpp, use an official release and drop this directory.
