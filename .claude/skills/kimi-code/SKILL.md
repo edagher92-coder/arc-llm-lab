@@ -34,7 +34,7 @@ kimi -List                # show available Kimi tags
 
 The tools land on both machines via the father sync (`.claude/tools/` in every
 repo) or `bootstrap.ps1`. A laptop without its own daemon can use the server
-hub: `$env:CLAUDE_KIMI_OLLAMA_URL = 'http://<your-machine>.<your-tailnet>.ts.net:11434'`.
+hub: `$env:CLAUDE_KIMI_OLLAMA_URL = 'http://elzydlab.tail76b098.ts.net:11434'`.
 
 ## Hard rules
 
