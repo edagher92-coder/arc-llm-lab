@@ -87,24 +87,24 @@ resident models either way, so VRAM is freed on the spot.
 
 ## Main server + Tailscale (multi-PC)
 Both the bridge and the classifier hook read **`CLAUDE_ROUTER_OLLAMA_URL`**
-(default `http://localhost:11434`). Run Ollama on one **main server** (<your-machine>)
+(default `http://localhost:11434`). Run Ollama on one **main server** (elzydlab)
 and point every other PC at it over Tailscale — no per-PC Ollama install:
 
-1. **Main server (<your-machine>):** run Ollama listening on the Tailscale interface —
+1. **Main server (elzydlab):** run Ollama listening on the Tailscale interface —
    set `OLLAMA_HOST=0.0.0.0` (env var / service config) and restart Ollama.
 2. **Every PC (incl. the main one, for consistency):** set
    ```
-   CLAUDE_ROUTER_OLLAMA_URL=http://<your-machine>.<your-tailnet>.ts.net:11434
+   CLAUDE_ROUTER_OLLAMA_URL=http://elzydlab.tail76b098.ts.net:11434
    ```
-   (or the Tailscale IP `http://100.x.y.z:11434`). The hook + bridge then use
+   (or the Tailscale IP `http://100.122.28.89:11434`). The hook + bridge then use
    the shared hub. On the main server itself you can leave it as `localhost`.
 3. Install the kit on each PC with `bash claude-defaults/bootstrap.sh --user`.
 
 ### Alternate hub — a second PC
-A second PC is also reachable on the tailnet at `100.x.y.z`. Point a machine at
-it the same way instead of <your-machine>:
+A second PC is also reachable on the tailnet at `100.81.52.33`. Point a machine at
+it the same way instead of elzydlab:
 ```
-CLAUDE_ROUTER_OLLAMA_URL=http://100.x.y.z:11434
+CLAUDE_ROUTER_OLLAMA_URL=http://100.81.52.33:11434
 ```
 That PC needs Ollama running with `OLLAMA_HOST=0.0.0.0` for this to work, same as
 the main server. (Only relevant on a machine actually on the tailnet — a cloud

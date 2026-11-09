@@ -35,7 +35,7 @@ Also on AWS Bedrock via the `openai/v1/responses` path.
 
 **Ollama bases** (`CLAUDE_ROUTER_OLLAMA_URL`, `CLAUDE_KIMI_OLLAMA_URL`):
 Ollama Cloud `https://ollama.com`, or the Tailscale hub
-`http://<your-machine>.<your-tailnet>.ts.net:11434`. Heavy/mid models never live on a
+`http://elzydlab.tail76b098.ts.net:11434`. Heavy/mid models never live on a
 daily-use PC's GPU — a workstation hosts at most `llama3.2:3b` as the routing
 classifier's floor.
 
@@ -124,11 +124,11 @@ unattended automation uses our own APIs (group 4) rather than a connector.
 
 | Service | Endpoint | Key(s) | Notes |
 |---|---|---|---|
-| **Meta Graph — Ads** | `graph.facebook.com/v25.0` | `META_ADS_TOKEN`, `META_AD_ACCOUNT_ID` (`act_<AD_ACCOUNT_ID>`) | `/snowflow-ads` + `ads-manage.yml`. **PAUSED-only launches; budget changes need an explicit YES; never delete a campaign (archive).** Token never committed. |
+| **Meta Graph — Ads** | `graph.facebook.com/v25.0` | `META_ADS_TOKEN`, `META_AD_ACCOUNT_ID` (`act_179081790`) | `/snowflow-ads` + `ads-manage.yml`. **PAUSED-only launches; budget changes need an explicit YES; never delete a campaign (archive).** Token never committed. |
 | **Meta Graph — pages/posting** | `graph.facebook.com/v25.0` | `META_PAGE_ACCESS_TOKEN`, `META_PAGE_ID` | `automation/poster.mjs` (FB + IG), `ads-report.mjs` (read-only daily pull) |
 | **Meta Graph — WhatsApp** | `graph.facebook.com/v21.0` | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | Sam webhook ingress |
 | **Sam webhook** | Cloudflare Worker (`automation/sam-webhook/`) | `SAM_APP_SECRET`, `SAM_VERIFY_TOKEN`, `SAM_CONSOLE_TOKEN` | Meta/WhatsApp/Vapi ingress → email/Excel |
-| **Vapi (Phone Sam)** | `api.vapi.ai/assistant`, `/call` | `VAPI_PRIVATE_KEY`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` | Answers <PHONE>; `vapi-register.yml` runs from a runner that can reach it |
+| **Vapi (Phone Sam)** | `api.vapi.ai/assistant`, `/call` | `VAPI_PRIVATE_KEY`, `VAPI_ASSISTANT_ID`, `VAPI_WEBHOOK_SECRET` | Answers 0450 878 787; `vapi-register.yml` runs from a runner that can reach it |
 | **ElevenLabs** | via Vapi | `ELEVENLABS_API_KEY` | Charlie voice |
 | **Resend** | `api.resend.com/emails` | `RESEND_API_KEY` | Transactional email out of the Worker + Vapi webhooks |
 | **Twilio** | `api.twilio.com` | `TWILIO_AUTH_TOKEN` | SMS path |

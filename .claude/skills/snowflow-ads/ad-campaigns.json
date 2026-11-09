@@ -8,7 +8,7 @@
     "Range ad (Active 1) is a CAROUSEL: card 1 SFX3 (triple slush), card 2 F2-E (flagship pump), card 3 SFG1 (entry, from $2,000). Set each card's image_url to that machine's real cdn.shopify.com photo URL. Pre-Summer ad uses an SFX3 photo; Service ad (the winter LEAD) uses a real service/condenser photo.",
     "WINTER 2026 PIVOT (29 Jun): EOFY ad retired — the $20K write-off dies 30 Jun, reverts to $1K from 1 Jul, so all 'write it off' language is gone. Set is now Service & Repair (LEAD, $12/day), The Range (evergreen, $8/day), Pre-Summer Lead Time (buy-ahead + hire, $5/day) = $25/day total. Objective stays Engagement + CONVERSATIONS optimization (Click-to-Message → Sam qualifies). Full creative + visual specs: ads/winter-2026-adset.md. Targeting/budget/measurement logic: ads/corrected-ad-logic.md. Activate 1 Jul once META_ADS_TOKEN is refreshed (the secret is currently UNSET — Actions runs fail)."
   ],
-  "ad_account": "act_<AD_ACCOUNT_ID>",
+  "ad_account": "act_179081790",
   "page_id": "REPLACE_WITH_SNOWFLOW_PAGE_ID",
   "instagram_actor_id": "REPLACE_WITH_SNOWFLOW_IG_ID_OR_REMOVE",
   "campaigns": [
@@ -38,19 +38,19 @@
                 {
                   "headline": "F2-E pump",
                   "description": "Soft serve · froyo · açaí · $23,995",
-                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=<META_ID>",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=1779074484",
                   "link": "https://www.snowflow.com.au/collections/acai-frozen-yoghurt-soft-serve/products/f2-e?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-f2e"
                 },
                 {
                   "headline": "SFX3 triple slush",
                   "description": "3 bowls · top slush · $4,100",
-                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=<META_ID>",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=1768453898",
                   "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-sfx3"
                 },
                 {
                   "headline": "SFG1 slush",
                   "description": "Entry single-bowl · from $2,000",
-                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/5-scaled.webp?v=<META_ID>",
+                  "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/5-scaled.webp?v=1756711823",
                   "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=range2026&utm_content=card-sfg1"
                 }
               ]
@@ -76,7 +76,7 @@
               "description": "Beat the summer lead times",
               "cta": "MESSAGE_PAGE",
               "link": "https://www.snowflow.com.au?utm_source=meta&utm_medium=cpc&utm_campaign=winter2026&utm_content=ad-3-presummer",
-              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=<META_ID>"
+              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/SFX3Front.png?v=1768453898"
             }
           ]
         },
@@ -99,7 +99,7 @@
               "description": "Every brand · Sydney metro",
               "cta": "MESSAGE_PAGE",
               "link": "https://www.snowflow.com.au/services?utm_source=meta&utm_medium=cpc&utm_campaign=winter2026&utm_content=ad-1-service",
-              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=<META_ID>"
+              "image_url": "https://cdn.shopify.com/s/files/1/0941/8067/1783/files/F2_FRONT.jpg?v=1779074484"
             }
           ]
         }
