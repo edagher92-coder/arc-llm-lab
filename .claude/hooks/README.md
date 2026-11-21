@@ -47,7 +47,7 @@ tiers on Ollama Cloud or the hub (see `tools/README.md`).
 
 **Clients (each PC, one command):**
 ```powershell
-.\bootstrap.ps1 -OllamaHub http://<your-machine>.<your-tailnet>.ts.net:11434
+.\bootstrap.ps1 -OllamaHub http://elzydlab.tail76b098.ts.net:11434
 ```
 This persists `CLAUDE_ROUTER_OLLAMA_URL` (User env var), verifies the hub is
 reachable and has the classifier model, and skips all local model installs.
