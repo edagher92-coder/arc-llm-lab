@@ -48,6 +48,12 @@ adversarial verification of important outputs.
 
 **How to delegate well (the operating contract):**
 
+- **Worker tiers (Elie, 2026-11-20): Sonnet executes, Opus checks, Fable only
+  when needed.** Delegated execution work (building, editing, drafting,
+  fan-out) runs on `claude-sonnet-5`. Checks, reviews and validations of that
+  work run on Opus 5. Fable is used only when a slice genuinely needs frontier
+  reasoning or cannot be solved by a verified Sonnet then Opus attempt; never as
+  the default worker.
 - **Cheapest-capable per slice, escalate on doubt.** Pick the lowest tier that
   can do the slice to standard; when torn between two tiers, round **UP**. Ladder:
   Haiku (mechanical) → Sonnet (normal work) → GLM/Kimi bridge (bulk non-stakes) →
@@ -141,7 +147,7 @@ The required observable standard is:
 - make honest progress claims at meaningful checkpoints;
 - finish only when the definition of done is verified.
 
-Use Opus 5 at high effort as the default main-session model (Elie's decision, 2026-07-24: Opus 5 ships at the same $5/$25 per Mtok as Opus 4.8 with near-Fable capability, so the old Sonnet-first default no longer buys quality headroom for its saving). For the hardest bounded coding, agentic, debugging, or adversarial-review pass, use xhigh effort when the active Claude Code surface supports it. Sonnet 5 remains the efficiency workhorse for delegated subagent and routine fan-out work. Use Fable for genuinely frontier-scale work, a failed verified Opus attempt, or explicit user selection.
+Use Opus 5 at high effort as the default main-session model (Elie's decision, 2026-07-24: Opus 5 ships at the same $5/$25 per Mtok as Opus 4.8 with near-Fable capability, so the old Sonnet-first default no longer buys quality headroom for its saving). For the hardest bounded coding, agentic, debugging, or adversarial-review pass, use xhigh effort when the active Claude Code surface supports it. Delegated workers follow the worker-tier rule (Elie, 2026-11-20): Sonnet 5 executes, Opus 5 checks and validates, and Fable is used only when a slice genuinely needs it or a verified Sonnet then Opus attempt could not solve it.
 
 ## Skills and plugins
 
@@ -151,10 +157,21 @@ Use Opus 5 at high effort as the default main-session model (Elie's decision, 20
 - Marketplace plugins may be installed without being enabled. Enable a pack only when its capabilities are needed.
 - Do not silently add autonomous loops, broad MCP permissions, or always-on agents.
 
+## GitHub Actions budget (Elie, 2026-11-20)
+
+CI minutes are a hard monthly limit and have been exceeded. In every repo:
+
+- Validate locally first (the repo's own suites, by exit code), then let CI run **once per finished batch**.
+- Work on a **draft** PR (drafts run no CI where the repo is set up that way); mark it ready once, when the whole batch is done.
+- After a PR is ready, do not push one-off fixes, nits or optional review findings: collect them and ship them together in the next batch. Only a red required check or a blocking security finding justifies another push.
+- Never re-run, re-trigger or poll CI to kick it; one run per batch, and wait for its result event.
+
 ## Model selection
 
 - `claude-opus-5` is the pinned default main-session model (2026-07-24: same $5/$25 as Opus 4.8, near-Fable capability); do not silently replace it with an unpinned `opus` alias or demote it.
-- `claude-sonnet-5` is the pinned efficiency workhorse for delegated subagent and routine fan-out work — the main loop rides Opus 5, the fan-out stays cheap.
+- `claude-sonnet-5` is the pinned execution model for every delegated worker (building, editing, drafting, fan-out); the main loop rides Opus 5, the fan-out stays cheap.
+- Opus 5 does the checks: reviews, validation and adversarial verification of worker output.
+- Fable workers only when needed: a slice that needs frontier reasoning, or one a verified Sonnet then Opus attempt could not solve (Elie, 2026-11-20).
 - Haiku is for low-risk mechanical work and never for final high-stakes judgement.
 - GLM 5.2 (via the Ollama bridge, `ollama_route.py --route mid-tier`, or the orchestrator's `glm-5.2` worker) sits between Sonnet and Opus for heavy NON-stakes bulk reasoning, drafting, and summarising — it protects Claude quota. The NUMBERS RULE applies: never send customer-facing prices, quotes, invoices, or legal content to Ollama-routed models; if the Ollama endpoint is unreachable, fall back to Sonnet (or Opus per the rules below) rather than blocking.
 - Ollama-routed tiers are hosted off-box: heavy/mid open models run on Ollama Cloud (flat-rate plan) or the Tailscale hub, never resident on a daily-use PC's GPU. A workstation hosts at most one small local floor model (`llama3.2:3b`, shared by the routing classifier and trivial tasks); only a dedicated model-server box (`bootstrap.ps1 -DedicatedGpu`) hosts the full package.
@@ -183,11 +200,12 @@ Use Opus 5 at high effort as the default main-session model (Elie's decision, 20
 
 Whenever a session drafts a customer email reply (Snow Flow Sydney or The Slushie Co Sydney):
 
-1. **Copy-box format, always.** The full email goes in a single plain-text code block the user can copy verbatim. No emojis, no markdown bold/italics inside the email, UPPERCASE section labels, simple `-` bullets, signature on separate lines (name / brand / m: / a: / w: / e:). Operator-facing notes (GST splits, flags, next actions) go outside the box, after it.
+1. **Copy-box format, always.** The full email goes in a single plain-text code block the user can copy verbatim. No emojis, no markdown bold/italics inside the email, UPPERCASE section labels, simple `-` bullets, sign off with "Kind regards," and "Elie" only, with NO plain-text signature block (no brand / m: / a: / w: / e: lines), because Elie's Outlook signature (Elie Dagher, NSW Manager, logo and contact details) is appended automatically when the draft is opened (Elie, 2026-11-16). Operator-facing notes (GST splits, flags, next actions) go outside the box, after it.
 2. **Always overquote, never underquote.** A serve count between tiers rounds UP to the next add-on tier.
 3. **Attendant/operator labour is $65/hour, folded silently into the package price.** Never show an hourly rate or labour line to the customer.
-4. **Delivery default:** delivery Friday, pickup the following Monday, unless it is a bump-in/bump-out or the customer specifies otherwise.
+4. **Delivery default:** delivery Friday, pickup the following Monday, unless it is a bump-in/bump-out or the customer specifies otherwise. Warehouse pickups and warehouse drop-offs (returns) are 9-10am: the customer collects from Revesby on the Friday between 9-10am and returns it on the Monday between 9-10am, unless stated otherwise. Deliveries and collections by us stay 9am-3pm, with a closer time confirmed the day before (Elie, 2026-11-17).
 5. **Never fabricate a price or a date.** Quote only from the verified sources (`snowflow/reply_engine/pricing.py` and the delivery-fee tables in `edagher92-coder/Claude-code-`); anything unverified becomes a `[CONFIRM: …]` gap.
+6. **Brief after every draft.** After each reply draft, outside the box, give Elie a short THREAD SO FAR (what has happened with this customer to date: enquiry, quotes, changes, invoice and payment status) and a REPLY SUMMARY (what the draft says and what it commits us to), in a few lines each (Elie, 2026-11-17).
 
 ## Safety and authority
 
