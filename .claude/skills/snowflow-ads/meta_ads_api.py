@@ -25,7 +25,7 @@ import urllib.error
 from pathlib import Path
 
 API = "https://graph.facebook.com/v25.0"
-AD_ACCOUNT = "act_<AD_ACCOUNT_ID>"  # Snow Flow Sydney ad account
+AD_ACCOUNT = "act_179081790"  # Snow Flow Sydney ad account
 
 TOKEN_FILE = Path(__file__).parent / "meta_token.txt"
 
