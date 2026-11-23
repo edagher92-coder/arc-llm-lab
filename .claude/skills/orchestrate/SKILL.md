@@ -11,6 +11,10 @@ description: >
 
 # Orchestrate — Fable leads, Opus manages, the fleet executes
 
+Roles and the review chain (who plans, who reviews, who produces, who
+releases) are set by the `model-team` skill (Elie, 2026-11-23). This skill
+covers the mechanics of running the fleet.
+
 Full policy: `ORCHESTRATION.md` in `claude-model-router` (hard rules:
 NUMBERS RULE, skills-pass-down, honest envelopes, on-demand only).
 
